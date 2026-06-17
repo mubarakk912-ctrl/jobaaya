@@ -1,0 +1,6 @@
+{
+  "name": "JOBAAYA",
+  "description": "JOBAAYA is a professional networking and business growth platform for all types of workers, professionals, and businesses.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
