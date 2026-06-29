@@ -6,6 +6,7 @@ import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -68,16 +69,24 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.example.R
 import com.example.data.model.UserProfile
 import com.example.data.model.WorkStatus
 import com.example.ui.localization.JobaayaLocalization
 import com.example.viewmodel.JobaayaViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.Random
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -95,6 +104,7 @@ fun ProfileDetailScreen(
 
     // Query specific profile details
     var profile by remember { mutableStateOf<UserProfile?>(null) }
+    val profileReviews by (profile?.let { viewModel.getProfileReviews(it.id) } ?: kotlinx.coroutines.flow.flowOf(emptyList())).collectAsState(initial = emptyList())
     
     // Seed and trigger tracking views
     LaunchedEffect(profileId, profiles) {
@@ -114,25 +124,36 @@ fun ProfileDetailScreen(
 
     // Dialog flags
     var showQrDialog by remember { mutableStateOf(false) }
-    var showHiredDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(profile?.name ?: "Profile Card") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(top = 40.dp, bottom = 8.dp, start = 8.dp, end = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                // Navigation Icon on Left
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier.align(Alignment.CenterStart)
+                ) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                }
+
+                // Action Icons on Right
+                Row(
+                    modifier = Modifier.align(Alignment.CenterEnd),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     IconButton(onClick = { showQrDialog = true }) {
                         Icon(Icons.Default.QrCode, contentDescription = "Show QR Code")
                     }
                     IconButton(onClick = {
                         val sendIntent: Intent = Intent().apply {
                             action = Intent.ACTION_SEND
-                            putExtra(Intent.EXTRA_TEXT, "Connect with ${profile?.name} (${profile?.profession}) on JOBAAYA: https://jobaaya.com/profile/${profile?.id}")
+                            putExtra(Intent.EXTRA_TEXT, "Connect with ${profile?.name} (${profile?.profession}) on jobaaya: https://jobaaya.com/profile/${profile?.id}")
                             type = "text/plain"
                         }
                         context.startActivity(Intent.createChooser(sendIntent, "Share Profile"))
@@ -140,7 +161,7 @@ fun ProfileDetailScreen(
                         Icon(Icons.Default.Share, contentDescription = "Share Profile Link")
                     }
                 }
-            )
+            }
         },
         modifier = modifier
     ) { innerPadding ->
@@ -167,7 +188,9 @@ fun ProfileDetailScreen(
                         elevation = CardDefaults.cardElevation(2.dp)
                     ) {
                         Column(
-                            modifier = Modifier.padding(20.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             // Avatar representing single Allowed profile photo
@@ -175,16 +198,28 @@ fun ProfileDetailScreen(
                                 modifier = Modifier
                                     .size(100.dp)
                                     .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primaryContainer)
+                                    .background(MaterialTheme.colorScheme.primary)
                                     .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = prof.name.take(2).uppercase(),
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    fontWeight = FontWeight.Black
-                                )
+                                if (prof.profilePhotoUrl.isNotBlank()) {
+                                    AsyncImage(
+                                        model = ImageRequest.Builder(context)
+                                            .data(prof.profilePhotoUrl)
+                                            .crossfade(true)
+                                            .build(),
+                                        contentDescription = prof.name,
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    // Khali Placeholder with Calculator Action color
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(MaterialTheme.colorScheme.primary)
+                                    )
+                                }
                             }
 
                             Spacer(modifier = Modifier.height(12.dp))
@@ -216,37 +251,6 @@ fun ProfileDetailScreen(
                                 fontWeight = FontWeight.SemiBold,
                                 textAlign = TextAlign.Center
                             )
-
-                            // Availability bubble
-                            Spacer(modifier = Modifier.height(8.dp))
-                            val isAvail = prof.availabilityStatus == WorkStatus.AVAILABLE.name
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = if (isAvail) Color(0xFFE8F5E9) else Color(0xFFFFF3E0),
-                                border = BorderStroke(1.dp, if (isAvail) Color(0xFF81C784) else Color(0xFFFFB74D))
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(8.dp)
-                                            .background(if (isAvail) Color(0xFF4CAF50) else Color(0xFFFF9800), CircleShape)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = if (isAvail) {
-                                            JobaayaLocalization.translate("status_available", currentLang)
-                                        } else {
-                                            JobaayaLocalization.translate("status_busy", currentLang)
-                                        },
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isAvail) Color(0xFF2E7D32) else Color(0xFFE65100)
-                                    )
-                                }
-                            }
 
                             // Star indicator
                             Row(
@@ -280,7 +284,7 @@ fun ProfileDetailScreen(
                         QuickContactButton(
                             icon = Icons.Default.Call,
                             label = JobaayaLocalization.translate("call", currentLang),
-                            color = Color(0xFF2E7D32),
+                            color = Color(0xFF01796F),
                             onClick = {
                                 try {
                                     val dialIntent = Intent(Intent.ACTION_DIAL).apply {
@@ -293,29 +297,11 @@ fun ProfileDetailScreen(
                             }
                         )
 
-                        // WhatsApp launcher
-                        QuickContactButton(
-                            icon = Icons.Default.Message,
-                            label = JobaayaLocalization.translate("whatsapp", currentLang),
-                            color = Color(0xFF25D366),
-                            onClick = {
-                                try {
-                                    val url = "https://api.whatsapp.com/send?phone=${prof.mobileNumber.replace(" ", "")}"
-                                    val intent = Intent(Intent.ACTION_VIEW).apply {
-                                        data = Uri.parse(url)
-                                    }
-                                    context.startActivity(intent)
-                                } catch (e: Exception) {
-                                    Toast.makeText(context, "WhatsApp Dispatch: ${prof.mobileNumber}", Toast.LENGTH_SHORT).show()
-                                }
-                            }
-                        )
-
                         // One-to-one Chat
                         QuickContactButton(
                             icon = Icons.Default.Chat,
                             label = JobaayaLocalization.translate("chats", currentLang),
-                            color = MaterialTheme.colorScheme.primary,
+                            color = Color(0xFF01796F),
                             onClick = { onStartChat(prof.id) }
                         )
 
@@ -338,8 +324,27 @@ fun ProfileDetailScreen(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            DetailRowLabel("Experience", "${prof.yearsOfExperience} Years of Work Practice")
-                            HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp))
+                            // Experience Box inside Profile Details
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(Icons.Default.Work, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column {
+                                        Text(text = "Experience", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                                        Text(text = "${prof.yearsOfExperience} Years of Professional Practice", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                            
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
                             
                             DetailRowLabel("Working Hours", prof.workingHours)
                             HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp))
@@ -422,7 +427,7 @@ fun ProfileDetailScreen(
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(
-                                text = "About & Trade Description",
+                                text = "About & Service Description",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
@@ -439,6 +444,70 @@ fun ProfileDetailScreen(
                 }
 
                 // Star Rating & Review addition form
+                item {
+                    Text(
+                        text = "Client Testimonials (${profileReviews.size})",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+
+                if (profileReviews.isEmpty()) {
+                    item {
+                        Text(
+                            text = "No reviews yet. Be the first to share your experience!",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.outline,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                    }
+                } else {
+                    items(profileReviews) { review ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = review.reviewerName,
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                    Row {
+                                        repeat(5) { index ->
+                                            Icon(
+                                                imageVector = if (index < review.rating) Icons.Default.Star else Icons.Default.StarBorder,
+                                                contentDescription = null,
+                                                tint = Color(0xFFFFB300),
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = review.reviewText,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date(review.timestamp)),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.outline,
+                                    modifier = Modifier.align(Alignment.End)
+                                )
+                            }
+                        }
+                    }
+                }
+
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -555,24 +624,6 @@ fun ProfileDetailScreen(
                         }
                     }
                 }
-
-                // Hire Me CTA Button
-                item {
-                    Button(
-                        onClick = { showHiredDialog = true },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(54.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                    ) {
-                        Text(
-                            text = "${JobaayaLocalization.translate("hire_me", currentLang)} – ${prof.name}",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        )
-                    }
-                }
             }
         }
     }
@@ -605,7 +656,7 @@ fun ProfileDetailScreen(
                     )
 
                     // Draw Premium Graphic QR Code Matrix dynamically on Custom Canvas
-                    val textString = "JOBAAYA_PROF_${profile?.id}"
+                    val textString = "jobaaya_PROF_${profile?.id}"
                     Box(
                         modifier = Modifier
                             .size(200.dp)
@@ -662,49 +713,6 @@ fun ProfileDetailScreen(
 
                     Button(onClick = { showQrDialog = false }, modifier = Modifier.fillMaxWidth()) {
                         Text("Close Scanner")
-                    }
-                }
-            }
-        }
-    }
-
-    // Modal success dialogue for Hiring Action
-    if (showHiredDialog) {
-        Dialog(onDismissRequest = { showHiredDialog = false }) {
-            Card(
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                modifier = Modifier.padding(24.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = "Success",
-                        tint = Color(0xFF4CAF50),
-                        modifier = Modifier.size(64.dp)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "Booking Dispatched!",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = JobaayaLocalization.translate("hiring_success", currentLang),
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.outline,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Button(
-                        onClick = { showHiredDialog = false },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Awesome")
                     }
                 }
             }

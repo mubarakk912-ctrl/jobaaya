@@ -8,33 +8,50 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme =
-  darkColorScheme(primary = Purple80, secondary = PurpleGrey80, tertiary = Pink80)
+  darkColorScheme(
+    primary = PineGreen,
+    onPrimary = Color.White,
+    primaryContainer = HunterGreenDark,
+    onPrimaryContainer = Color.White,
+    secondary = FoxtonsDarkGreen,
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFF00281F),
+    onSecondaryContainer = Color.White,
+    tertiary = HunterGreenLight,
+    onTertiary = Color.White,
+    background = Color(0xFF001A05),
+    surface = Color(0xFF001A05),
+    onBackground = Color.White,
+    onSurface = OffWhite
+  )
 
 private val LightColorScheme =
   lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40,
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
+    primary = PineGreen,
     onPrimary = Color.White,
+    primaryContainer = Color(0xFFE8F5E9),
+    onPrimaryContainer = PineGreen,
+    secondary = FoxtonsDarkGreen,
     onSecondary = Color.White,
+    secondaryContainer = Color(0xFFDCEDC8),
+    onSecondaryContainer = Color(0xFF33691E),
+    tertiary = HunterGreen,
     onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    background = Color(0xFF001A05), // Keeping it dark as per user preference for white headings
+    surface = Color(0xFF001A05),
+    onBackground = Color.White,
+    onSurface = OffWhite
   )
 
 @Composable
 fun MyApplicationTheme(
   darkTheme: Boolean = isSystemInDarkTheme(),
-  // Dynamic color is available on Android 12+
-  dynamicColor: Boolean = true,
+  // Dynamic color disabled to ensure Pine Green is always used
+  dynamicColor: Boolean = false,
   content: @Composable () -> Unit,
 ) {
   val colorScheme =
@@ -48,5 +65,9 @@ fun MyApplicationTheme(
       else -> LightColorScheme
     }
 
-  MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
+  MaterialTheme(
+    colorScheme = colorScheme,
+    typography = com.example.ui.theme.Typography,
+    content = content
+  )
 }

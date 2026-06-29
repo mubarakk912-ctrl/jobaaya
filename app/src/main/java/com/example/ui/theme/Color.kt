@@ -2,10 +2,12 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
+val HunterGreen = Color(0xFF355E3B)
+val HunterGreenLight = Color(0xFF4F7942)
+val HunterGreenDark = Color(0xFF1B4D3E)
 
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+val FoxtonsGreen = Color(0xFF00D337) // Bright Foxtons Green
+val FoxtonsDarkGreen = Color(0xFF00A32B)
+val PineGreen = Color(0xFF01796F)
+val RoyalBlue = Color(0xFF002366)
+val OffWhite = Color(0xFFE0E0E0)

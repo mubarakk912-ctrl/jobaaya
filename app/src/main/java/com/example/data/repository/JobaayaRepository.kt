@@ -1,53 +1,69 @@
 package com.example.data.repository
 
 import com.example.data.database.ChatMessageDao
+import com.example.data.database.ProfileMediaDao
+import com.example.data.database.SubscriptionDao
+import com.example.data.database.SystemNotificationDao
+import com.example.data.database.UserConnectionDao
 import com.example.data.database.UserProfileDao
 import com.example.data.database.UserReviewDao
 import com.example.data.database.UtilityNoteDao
+import com.example.data.database.PartnershipDealDao
 import com.example.data.model.AccountType
 import com.example.data.model.ChatMessage
+import com.example.data.model.ProfileMedia
+import com.example.data.model.Subscription
+import com.example.data.model.SystemNotification
+import com.example.data.model.UserConnection
 import com.example.data.model.UserProfile
 import com.example.data.model.UserReview
 import com.example.data.model.UtilityNote
 import com.example.data.model.WorkStatus
+import com.example.data.model.PartnershipDeal
+import com.example.data.model.DealMessage
+import com.example.data.model.DealAuditLog
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 
 class JobaayaRepository(
-    private val userProfileDao: UserProfileDao,
-    private val userReviewDao: UserReviewDao,
-    private val chatMessageDao: ChatMessageDao,
-    private val utilityNoteDao: UtilityNoteDao
+    private val profileDao: UserProfileDao,
+    private val reviewDao: UserReviewDao,
+    private val msgDao: ChatMessageDao,
+    private val connectionDao: UserConnectionDao,
+    private val subDao: SubscriptionDao,
+    private val mediaDao: ProfileMediaDao,
+    private val noteDao: UtilityNoteDao,
+    private val notificationDao: SystemNotificationDao,
+    private val dealDao: PartnershipDealDao
 ) {
-    val otherProfiles: Flow<List<UserProfile>> = userProfileDao.getOtherProfiles()
-    val myProfile: Flow<UserProfile?> = userProfileDao.getMyProfileFlow()
+    val otherProfiles: Flow<List<UserProfile>> = profileDao.getOtherProfiles()
+    val myProfile: Flow<UserProfile?> = profileDao.getMyProfileFlow()
 
-    fun getProfileById(id: String): Flow<UserProfile?> = userProfileDao.getProfileById(id)
+    fun getProfileById(id: String): Flow<UserProfile?> = profileDao.getProfileById(id)
 
-    fun searchProfiles(query: String): Flow<List<UserProfile>> = userProfileDao.searchProfiles(query)
+    fun searchProfiles(query: String): Flow<List<UserProfile>> = profileDao.searchProfiles(query)
 
-    suspend fun getMyProfileDirect() = userProfileDao.getMyProfileDirect()
+    suspend fun getMyProfileDirect(): UserProfile? = profileDao.getMyProfileDirect()
 
-    suspend fun insertProfile(profile: UserProfile) = userProfileDao.insertProfile(profile)
+    suspend fun insertProfile(profile: UserProfile) = profileDao.insertProfile(profile)
 
-    suspend fun updateProfile(profile: UserProfile) = userProfileDao.updateProfile(profile)
+    suspend fun updateProfile(profile: UserProfile) = profileDao.updateProfile(profile)
 
-    suspend fun deleteProfile(profile: UserProfile) = userProfileDao.deleteProfile(profile)
+    suspend fun deleteProfile(profile: UserProfile) = profileDao.deleteProfile(profile)
 
     // Reviews
     fun getReviewsForProfile(profileId: String): Flow<List<UserReview>> = 
-        userReviewDao.getReviewsForProfile(profileId)
+        reviewDao.getReviewsForProfile(profileId)
 
     suspend fun insertReview(review: UserReview) {
-        userReviewDao.insertReview(review)
-        // Recalculate dynamic rating & review count for user profile
-        val profile = userProfileDao.getProfileByIdDirect(review.targetProfileId)
+        reviewDao.insertReview(review)
+        val profile = profileDao.getProfileByIdDirect(review.targetProfileId)
         if (profile != null) {
-            val allReviews = userReviewDao.getReviewsForProfile(review.targetProfileId).firstOrNull() ?: emptyList()
+            val allReviews = reviewDao.getReviewsForProfile(review.targetProfileId).firstOrNull() ?: emptyList()
             val newReviewCount = allReviews.size
             val sumRating = allReviews.sumOf { it.rating.toDouble() }.toFloat()
             val avgRating = if (newReviewCount > 0) sumRating / newReviewCount else profile.averageRating
-            userProfileDao.updateProfile(profile.copy(
+            profileDao.updateProfile(profile.copy(
                 averageRating = avgRating,
                 reviewCount = newReviewCount
             ))
@@ -55,179 +71,136 @@ class JobaayaRepository(
     }
 
     // Chat
-    fun getChatMessages(profileId: String): Flow<List<ChatMessage>> = chatMessageDao.getChatMessages(profileId)
+    fun getChatMessages(profileId: String): Flow<List<ChatMessage>> = msgDao.getChatMessages(profileId)
     
-    val allMessages: Flow<List<ChatMessage>> = chatMessageDao.getAllMessages()
+    val allMessages: Flow<List<ChatMessage>> = msgDao.getAllMessages()
 
-    suspend fun insertMessage(message: ChatMessage) = chatMessageDao.insertMessage(message)
+    suspend fun insertMessage(message: ChatMessage) = msgDao.insertMessage(message)
 
-    suspend fun markChatAsRead(profileId: String) = chatMessageDao.markChatAsRead(profileId)
+    suspend fun updateMessage(message: ChatMessage) = msgDao.updateMessage(message)
+
+    suspend fun deleteMessage(message: ChatMessage) = msgDao.deleteMessage(message)
+
+    suspend fun markChatAsRead(profileId: String) = msgDao.markChatAsRead(profileId, System.currentTimeMillis())
+
+    suspend fun markMyMessagesAsReadByOther(profileId: String) = msgDao.markMyMessagesAsReadByOther(profileId)
+
+    // Connections
+    fun getConnections(userId: String): Flow<List<UserConnection>> = connectionDao.getConnections(userId)
+
+    suspend fun toggleConnection(userId: String, connectionId: String) {
+        if (connectionDao.isConnected(userId, connectionId)) {
+            connectionDao.deleteConnection(userId, connectionId)
+        } else {
+            connectionDao.insertConnection(UserConnection(userId, connectionId))
+        }
+    }
+
+    // Subscriptions
+    fun getSubscription(userId: String): Flow<Subscription?> = subDao.getSubscription(userId)
+
+    suspend fun updateSubscription(subscription: Subscription) = subDao.insertSubscription(subscription)
+
+    // Media
+    fun getMediaForProfile(profileId: String): Flow<List<ProfileMedia>> = mediaDao.getMediaForProfile(profileId)
+
+    suspend fun insertMedia(media: ProfileMedia) = mediaDao.insertMedia(media)
+
+    suspend fun deleteMedia(media: ProfileMedia) = mediaDao.deleteMedia(media)
 
     // Notes
-    val allNotes: Flow<List<UtilityNote>> = utilityNoteDao.getAllNotes()
+    val allNotes: Flow<List<UtilityNote>> = noteDao.getAllNotes()
 
-    suspend fun insertNote(note: UtilityNote) = utilityNoteDao.insertNote(note)
+    suspend fun insertNote(note: UtilityNote) = noteDao.insertNote(note)
 
-    suspend fun deleteNote(note: UtilityNote) = utilityNoteDao.deleteNote(note)
+    suspend fun deleteNote(note: UtilityNote) = noteDao.deleteNote(note)
 
-    // Seeding database with amazing, highly accurate professionals
+    // Notifications
+    val allNotifications: Flow<List<SystemNotification>> = notificationDao.getAllNotifications()
+
+    suspend fun insertNotification(notification: SystemNotification) = notificationDao.insertNotification(notification)
+
+    suspend fun markAllNotificationsAsRead() = notificationDao.markAllAsRead()
+
+    suspend fun clearAllNotifications() = notificationDao.clearAll()
+
+    fun getDealMessages(dealId: Int): Flow<List<DealMessage>> = dealDao.getDealMessages(dealId)
+
+    suspend fun insertDealMessage(msg: DealMessage) = dealDao.insertDealMessage(msg)
+
+    fun getMyDeals(userId: String): Flow<List<PartnershipDeal>> = dealDao.getMyDeals(userId)
+
+    fun getDealById(dealId: Int): Flow<PartnershipDeal?> = dealDao.getDealById(dealId)
+
+    suspend fun createDeal(deal: PartnershipDeal): Long = dealDao.insertDeal(deal)
+
+    suspend fun updateDeal(deal: PartnershipDeal) = dealDao.updateDeal(deal)
+
+    suspend fun insertAuditLog(log: DealAuditLog) = dealDao.insertAuditLog(log)
+
+    fun getAuditLogs(dealId: Int) = dealDao.getAuditLogs(dealId)
+
     suspend fun seedDatabaseIfEmpty() {
-        // Checking if already seeded
-        val existing = userProfileDao.getOtherProfiles().firstOrNull()
+        val existing = profileDao.getOtherProfiles().firstOrNull()
         if (existing.isNullOrEmpty()) {
             val seedProfiles = listOf(
-                // Delhi geographic grid (28.6139, 77.2090)
                 UserProfile(
-                    id = "prof_amit",
+                    id = java.util.UUID.randomUUID().toString(),
                     name = "Amit Sharma",
                     profession = "Electrician",
-                    skillsRaw = "Wiring, Repair, Home Appliance Fixing, Inverter Installation",
+                    skillsRaw = "Wiring, Repair, Home Appliance Fixing",
                     mobileNumber = "+91 98765 43210",
-                    emailAddress = "amit.sharma@jobaaya.com",
-                    fullAddress = "A-12, Lajpat Nagar, New Delhi",
+                    emailAddress = "amit@jobaaya.com",
+                    fullAddress = "Lajpat Nagar, Delhi",
                     latitude = 28.5684,
                     longitude = 77.2435,
                     yearsOfExperience = 8,
                     languagesRaw = "Hindi, English",
-                    aboutSection = "Professional residential electrician with 8 years of experience. Fully qualified for fixing high-voltage domestic layouts, smart lighting installations, appliance repairs, and emergency wiring solutions.",
-                    availabilityStatus = WorkStatus.AVAILABLE.name,
+                    aboutSection = "Expert residential electrician with 8 years of experience in Delhi area.",
                     isVerified = true,
                     averageRating = 4.8f,
-                    reviewCount = 3,
-                    profileViewsCount = 241,
-                    interactionsCount = 42,
-                    accountType = AccountType.PROFESSIONAL.name
+                    reviewCount = 1
                 ),
                 UserProfile(
-                    id = "prof_priya",
+                    id = java.util.UUID.randomUUID().toString(),
                     name = "Priya Nair",
-                    profession = "Nutritionist & Dietician",
-                    skillsRaw = "Clinical Dietetics, Weight Management, Child Nutrition, Keto Coaching",
+                    profession = "Nutritionist",
+                    skillsRaw = "Dietetics, Weight Management",
                     mobileNumber = "+91 87654 32109",
-                    emailAddress = "priya.nair@jobaaya.com",
-                    fullAddress = "Block C, Vasant Kunj, New Delhi",
+                    emailAddress = "priya@jobaaya.com",
+                    fullAddress = "Vasant Kunj, Delhi",
                     latitude = 28.5244,
                     longitude = 77.1558,
                     yearsOfExperience = 6,
-                    languagesRaw = "Hindi, English, Malayalam",
-                    aboutSection = "Licensed clinical dietician helping professionals build sustainable eating habits. I guide clients with diabetic care plans, dynamic keto coaching, hormonal management diets, and organic meal preparation structures.",
-                    availabilityStatus = WorkStatus.AVAILABLE.name,
+                    languagesRaw = "Hindi, English",
+                    aboutSection = "Certified clinical nutritionist specializing in weight management.",
                     isVerified = true,
                     averageRating = 4.9f,
-                    reviewCount = 2,
-                    profileViewsCount = 512,
-                    interactionsCount = 89,
-                    accountType = AccountType.BUSINESS.name
-                ),
-                UserProfile(
-                    id = "prof_rajesh",
-                    name = "Rajesh Yadav",
-                    profession = "Car Mechanic",
-                    skillsRaw = "Engine Tuning, Brake Repair, Car AC Servicing, Electrical Diagnosis",
-                    mobileNumber = "+91 76543 21098",
-                    emailAddress = "rajesh.yadav@jobaaya.com",
-                    fullAddress = "Sector 14, Dwarka, New Delhi",
-                    latitude = 28.5921,
-                    longitude = 77.0460,
-                    yearsOfExperience = 12,
-                    languagesRaw = "Hindi",
-                    aboutSection = "Complete expert in Japanese, German, and Indian automobile architectures. Working with specialized computerized engine scan layouts, wheel suspensions, automatic transmission repairs, and fluid leaks.",
-                    availabilityStatus = WorkStatus.BUSY.name,
-                    isVerified = false,
-                    averageRating = 4.4f,
-                    reviewCount = 1,
-                    profileViewsCount = 120,
-                    interactionsCount = 19,
-                    accountType = AccountType.PROFESSIONAL.name
-                ),
-                UserProfile(
-                    id = "prof_rahul",
-                    name = "Rahul Gupta",
-                    profession = "Plumber & Pipe Fitter",
-                    skillsRaw = "Leak Detection, Water Pump Repair, Sanitary Fitting, Pipeline Clog Removal",
-                    mobileNumber = "+91 65432 10987",
-                    emailAddress = "rahul.gupta@jobaaya.com",
-                    fullAddress = "H-456, Connaught Place, New Delhi",
-                    latitude = 28.6304,
-                    longitude = 77.2177,
-                    yearsOfExperience = 5,
-                    languagesRaw = "Hindi, English",
-                    aboutSection = "Reliable plumbing solutions for apartments and commercial centers. Certified plumber skilled in deep diagnostic leak detection, pipeline replacements, new washroom fittings, and smart faucet setups.",
-                    availabilityStatus = WorkStatus.AVAILABLE.name,
-                    isVerified = true,
-                    averageRating = 4.6f,
-                    reviewCount = 2,
-                    profileViewsCount = 198,
-                    interactionsCount = 31,
-                    accountType = AccountType.PROFESSIONAL.name
-                ),
-                UserProfile(
-                    id = "prof_neha",
-                    name = "Neha Malhotra",
-                    profession = "Corporate Legal Consultant",
-                    skillsRaw = "Company Registration, Contract Drafting, Trademark Filing, Joint Ventures",
-                    mobileNumber = "+91 95432 18976",
-                    emailAddress = "neha.consulting@jobaaya.com",
-                    fullAddress = "Defense Colony, New Delhi",
-                    latitude = 28.5742,
-                    longitude = 77.2330,
-                    yearsOfExperience = 9,
-                    languagesRaw = "Hindi, English, Punjabi",
-                    aboutSection = "Corporate advocate providing high-quality, professional consultancies for startups and foreign companies. Specialized in commercial contracting layouts, intellectual property, regulatory compliance, and advisory support.",
-                    availabilityStatus = WorkStatus.AVAILABLE.name,
-                    isVerified = true,
-                    averageRating = 4.7f,
-                    reviewCount = 1,
-                    profileViewsCount = 430,
-                    interactionsCount = 76,
-                    accountType = AccountType.BUSINESS.name
+                    reviewCount = 1
                 )
             )
-            userProfileDao.insertProfiles(seedProfiles)
-
-            // Seed reviews
-            userReviewDao.insertReview(UserReview(targetProfileId = "prof_amit", reviewerName = "Suresh Khanna", rating = 5.0f, reviewText = "Excellent electrician. Arrived right on time and fixed my complicated distribution board issues in 30 minutes! Highly recommended."))
-            userReviewDao.insertReview(UserReview(targetProfileId = "prof_amit", reviewerName = "Divya Sen", rating = 4.0f, reviewText = "Good service and pricing. Polished professional who cleaned up the wiring clutter completely."))
-            userReviewDao.insertReview(UserReview(targetProfileId = "prof_amit", reviewerName = "Kunal Verma", rating = 5.0f, reviewText = "Quick and verified service. Very happy with his work experience."))
-
-            userReviewDao.insertReview(UserReview(targetProfileId = "prof_priya", reviewerName = "Anjali Rawat", rating = 5.0f, reviewText = "Exceptional calorie consultation. Lost 8 kilograms and felt more energetic through her dynamic meal chart."))
-            userReviewDao.insertReview(UserReview(targetProfileId = "prof_priya", reviewerName = "Sunil Thapa", rating = 4.8f, reviewText = "Extremely professional. Explains the health research behind every single customized client plan."))
-
-            userReviewDao.insertReview(UserReview(targetProfileId = "prof_rajesh", reviewerName = "Mohit Juneja", rating = 4.4f, reviewText = "Honest mechanic who diagnosed the gear shift friction issues accurately. The pricing was fair and transparent."))
-
-            userReviewDao.insertReview(UserReview(targetProfileId = "prof_rahul", reviewerName = "Rakesh Sethi", rating = 5.0f, reviewText = "Fixed the high pressure pump leak beautifully. Very affordable plumbing solution."))
-            userReviewDao.insertReview(UserReview(targetProfileId = "prof_rahul", reviewerName = "Ritu Paul", rating = 4.2f, reviewText = "Experienced plumber, resolved the blockage in my kitchen basin instantly."))
-
-            userReviewDao.insertReview(UserReview(targetProfileId = "prof_neha", reviewerName = "Vikram Kapoor", rating = 4.7f, reviewText = "Outstanding legal consulting. Drafted our investor SaaS contract perfectly within 48 hours."))
+            profileDao.insertProfiles(seedProfiles)
             
-            // Seed a starter system message chat history
-            chatMessageDao.insertMessage(ChatMessage(chatWithProfileId = "prof_amit", isFromMe = false, text = "Hello! I am Amit Sharma. Thank you for viewing my profile. Let me know if you need any electrician services today!"))
+            notificationDao.insertNotification(SystemNotification(title = "System Alert", content = "Welcome to jobaaya! Set up your multi-trade business or professional card today."))
         }
 
-        // Check if there is a 'Me' profile
-        val me = userProfileDao.getMyProfileDirect()
+        val me = profileDao.getMyProfileDirect()
         if (me == null) {
-            val myStarterProfile = UserProfile(
-                id = "me_user",
-                name = "Guest User",
-                profession = "Software Developer",
-                skillsRaw = "Android, Kotlin, Jetpack Compose, Mobile Architect",
-                mobileNumber = "+91 99999 88888",
-                emailAddress = "guest@jobaaya.com",
-                fullAddress = "Sector 22, Rohini, New Delhi",
+            profileDao.insertProfile(UserProfile(
+                id = java.util.UUID.randomUUID().toString(),
+                name = "", // Empty name to force onboarding
+                profession = "",
+                skillsRaw = "",
+                mobileNumber = "",
+                emailAddress = "",
+                fullAddress = "",
                 latitude = 28.7159,
                 longitude = 77.1006,
-                yearsOfExperience = 3,
-                languagesRaw = "English, Hindi",
-                aboutSection = "Passionate mobile engineer skilled in declarative Compose UI, local offline-first SQLite synchronization engines, and scalable app architectures.",
-                isMe = true,
-                accountType = AccountType.PROFESSIONAL.name,
-                availabilityStatus = WorkStatus.AVAILABLE.name,
-                profileViewsCount = 15,
-                interactionsCount = 2,
-                isVerified = false
-            )
-            userProfileDao.insertProfile(myStarterProfile)
+                yearsOfExperience = 0,
+                languagesRaw = "",
+                aboutSection = "",
+                isMe = true
+            ))
         }
     }
 }

@@ -30,12 +30,14 @@ import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -51,20 +53,26 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.data.model.AccountType
+import com.example.data.model.ProfileMedia
 import com.example.data.model.WorkStatus
 import com.example.ui.localization.AppLanguage
 import com.example.ui.localization.JobaayaLocalization
+import com.example.ui.components.ProfessionPicker
 import com.example.viewmodel.JobaayaViewModel
 
 @Composable
 fun SettingsScreen(
     viewModel: JobaayaViewModel,
+    onPreviewClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -75,10 +83,18 @@ fun SettingsScreen(
     var notificationState by remember { mutableStateOf(true) }
 
     // Professional details editing state
+    var editName by remember { mutableStateOf(myProfile?.name ?: "") }
+    var editEmail by remember { mutableStateOf(myProfile?.emailAddress ?: "") }
+    var editMobile by remember { mutableStateOf(myProfile?.mobileNumber ?: "") }
+    var editAddress by remember { mutableStateOf(myProfile?.fullAddress ?: "") }
     var editProfession by remember { mutableStateOf(myProfile?.profession ?: "Mechanic") }
     var editSkills by remember { mutableStateOf(myProfile?.skillsRaw ?: "Diagnostics, Tuning") }
     var editHours by remember { mutableStateOf(myProfile?.workingHours ?: "09:00 - 18:00") }
     var editAbout by remember { mutableStateOf(myProfile?.aboutSection ?: "Freelancer") }
+    var editExperience by remember { mutableStateOf(myProfile?.yearsOfExperience?.toString() ?: "3") }
+    var editPhotoUrl by remember { mutableStateOf(myProfile?.profilePhotoUrl ?: "") }
+    var editLat by remember { mutableStateOf(myProfile?.latitude?.toString() ?: "28.7159") }
+    var editLong by remember { mutableStateOf(myProfile?.longitude?.toString() ?: "77.1006") }
 
     val scrollState = rememberScrollState()
 
@@ -115,12 +131,24 @@ fun SettingsScreen(
                             .background(MaterialTheme.colorScheme.primaryContainer),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = me.name.take(2).uppercase(),
-                            fontWeight = FontWeight.Black,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
+                        if (me.profilePhotoUrl.isNotBlank()) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(context)
+                                    .data(me.profilePhotoUrl)
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = me.name,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Text(
+                                text = me.name.take(2).uppercase(),
+                                fontWeight = FontWeight.Black,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.width(16.dp))
@@ -129,44 +157,6 @@ fun SettingsScreen(
                         Text(text = me.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         Text(text = me.accountType, fontSize = 12.sp, color = MaterialTheme.colorScheme.outline)
                         Text(text = "Rating: ${me.averageRating}★", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-
-            // Interactive Availability States (Available, Busy, Offline)
-            Text(
-                text = JobaayaLocalization.translate("avail_title", currentLang),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                listOf(
-                    WorkStatus.AVAILABLE to "AVAILABLE",
-                    WorkStatus.BUSY to "BUSY",
-                    WorkStatus.OFFLINE to "OFFLINE"
-                ).forEach { (status, text) ->
-                    val isSelected = me.availabilityStatus == status.name
-                    Surface(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable {
-                                viewModel.updateMyProfessionalProfile(me.copy(availabilityStatus = status.name))
-                            },
-                        shape = RoundedCornerShape(12.dp),
-                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
-                        border = BorderStroke(1.dp, if (isSelected) Color.Transparent else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
-                    ) {
-                        Text(
-                            text = JobaayaLocalization.translate("status_${text.lowercase()}", currentLang),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp)
-                        )
                     }
                 }
             }
@@ -189,17 +179,41 @@ fun SettingsScreen(
                     )
 
                     OutlinedTextField(
-                        value = editProfession,
-                        onValueChange = { editProfession = it },
-                        label = { Text("Business Trade / Profession") },
+                        value = editName,
+                        onValueChange = { editName = it },
+                        label = { Text("Full Name") },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp)
                     )
 
                     OutlinedTextField(
+                        value = editPhotoUrl,
+                        onValueChange = { editPhotoUrl = it },
+                        label = { Text("Profile Photo URL") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+
+                    ProfessionPicker(
+                        currentProfession = editProfession,
+                        onProfessionChange = { editProfession = it },
+                        currentSkills = editSkills,
+                        onSkillsChange = { editSkills = it },
+                        label = "Business Trade / Profession"
+                    )
+
+                    OutlinedTextField(
                         value = editSkills,
                         onValueChange = { editSkills = it },
-                        label = { Text("Skills List") },
+                        label = { Text("Skills List (Comma separated)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+
+                    OutlinedTextField(
+                        value = editExperience,
+                        onValueChange = { editExperience = it },
+                        label = { Text("Years of Experience") },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp)
                     )
@@ -213,6 +227,47 @@ fun SettingsScreen(
                     )
 
                     OutlinedTextField(
+                        value = editEmail,
+                        onValueChange = { editEmail = it },
+                        label = { Text("Email Address") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+
+                    OutlinedTextField(
+                        value = editMobile,
+                        onValueChange = { editMobile = it },
+                        label = { Text("Mobile Number") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+
+                    OutlinedTextField(
+                        value = editAddress,
+                        onValueChange = { editAddress = it },
+                        label = { Text("Physical Address") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = editLat,
+                            onValueChange = { editLat = it },
+                            label = { Text("Latitude") },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                        OutlinedTextField(
+                            value = editLong,
+                            onValueChange = { editLong = it },
+                            label = { Text("Longitude") },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                    }
+
+                    OutlinedTextField(
                         value = editAbout,
                         onValueChange = { editAbout = it },
                         label = { Text("About section free text") },
@@ -223,10 +278,18 @@ fun SettingsScreen(
                     Button(
                         onClick = {
                             viewModel.updateMyProfessionalProfile(me.copy(
+                                name = editName,
+                                emailAddress = editEmail,
+                                mobileNumber = editMobile,
+                                fullAddress = editAddress,
                                 profession = editProfession,
                                 skillsRaw = editSkills,
                                 workingHours = editHours,
-                                aboutSection = editAbout
+                                aboutSection = editAbout,
+                                yearsOfExperience = editExperience.toIntOrNull() ?: me.yearsOfExperience,
+                                profilePhotoUrl = editPhotoUrl,
+                                latitude = editLat.toDoubleOrNull() ?: me.latitude,
+                                longitude = editLong.toDoubleOrNull() ?: me.longitude
                             ))
                             Toast.makeText(context, "Saved Trade Information successfully.", Toast.LENGTH_SHORT).show()
                         },
@@ -237,10 +300,21 @@ fun SettingsScreen(
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("Save Card Details", fontWeight = FontWeight.Bold)
                     }
+
+                    Button(
+                        onClick = { onPreviewClick(me.id) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                    ) {
+                        Icon(Icons.Default.Star, contentDescription = null) // Using Star as a placeholder for 'Preview'
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Preview My Profile Card", fontWeight = FontWeight.Bold)
+                    }
                 }
             }
 
-            // APP LOGISTICS SETTINGS (Language Selection, Notification triggers)
+            // APP LOGISTICS SETTINGS
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),

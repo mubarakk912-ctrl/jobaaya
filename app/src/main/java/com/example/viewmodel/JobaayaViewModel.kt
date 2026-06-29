@@ -5,18 +5,28 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import com.example.data.database.JobaayaDatabase
+import com.example.data.auth.SessionManager
 import com.example.data.model.AccountType
 import com.example.data.model.ChatMessage
+import com.example.data.model.Subscription
+import com.example.data.model.SystemNotification
 import com.example.data.model.UserProfile
 import com.example.data.model.UserReview
 import com.example.data.model.UtilityNote
 import com.example.data.model.WorkStatus
+import com.example.data.model.PartnershipDeal
+import com.example.data.model.DealMessage
+import com.example.data.model.DealAuditLog
+import com.example.data.repository.AuthRepository
 import com.example.data.repository.JobaayaRepository
 import com.example.ui.localization.AppLanguage
 import com.example.ui.localization.JobaayaLocalization
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
@@ -37,11 +47,19 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
         "jobaaya_database"
     ).fallbackToDestructiveMigration().build()
 
+    private val sessionManager = SessionManager(application)
+    private val authRepository = AuthRepository(sessionManager)
+
     private val repository = JobaayaRepository(
         db.userProfileDao,
         db.userReviewDao,
         db.chatMessageDao,
-        db.utilityNoteDao
+        db.userConnectionDao,
+        db.subscriptionDao,
+        db.profileMediaDao,
+        db.utilityNoteDao,
+        db.systemNotificationDao,
+        db.partnershipDealDao
     )
 
     // Current app-wide language state
@@ -49,17 +67,24 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
     val currentLanguage: StateFlow<AppLanguage> = _currentLanguage.asStateFlow()
 
     // Auth states
-    private val _isLoggedIn = MutableStateFlow(false)
-    val isLoggedIn: StateFlow<Boolean> = _isLoggedIn.asStateFlow()
+    val isLoggedIn: StateFlow<Boolean> = sessionManager.isLoggedIn
 
     private val _otpDispatched = MutableStateFlow(false)
     val otpDispatched: StateFlow<Boolean> = _otpDispatched.asStateFlow()
+
+    private var firebaseVerificationId: String = ""
 
     private val _loginMobileNumber = MutableStateFlow("")
     val loginMobileNumber: StateFlow<String> = _loginMobileNumber.asStateFlow()
 
     private val _onboardingStep = MutableStateFlow(false) // If true, show register questionnaire
     val onboardingStep: StateFlow<Boolean> = _onboardingStep.asStateFlow()
+
+    private val _authError = MutableSharedFlow<String>()
+    val authError: SharedFlow<String> = _authError.asSharedFlow()
+
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     // My own profile StateFlow
     val myProfile: StateFlow<UserProfile?> = repository.myProfile.stateIn(
@@ -109,7 +134,7 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
         repository.otherProfiles,
         filterSet1Flow,
         filterSet2Flow
-    ) { profiles, set1, set2 ->
+    ) { profiles: List<UserProfile>, set1: FilterSet1, set2: FilterSet2 ->
         val query = set1.query
         val availability = set1.avail
         val rating = set1.rating
@@ -119,9 +144,20 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
         val distance = set2.dist
         val myProf = set2.myProf
 
-        profiles.filter { profile ->
+        // Extract city from my address for local filtering
+        val myCity = myProf?.fullAddress?.split(",")?.lastOrNull()?.trim()
+
+        profiles.filter { profile: UserProfile ->
             // Skip blocked profiles
             if (profile.isBlocked) return@filter false
+
+            // City Match (Only show profiles from same city if user has a city set)
+            val matchesCity = if (myCity != null && myCity.isNotEmpty()) {
+                val profileCity = profile.fullAddress.split(",").lastOrNull()?.trim()
+                profileCity.equals(myCity, ignoreCase = true)
+            } else {
+                true // Show all if user has no address/city
+            }
 
             // Search query match (profession, name, skills)
             val matchesQuery = query.isBlank() || 
@@ -151,7 +187,7 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
             }
             val matchesDistance = calculatedDistance <= distance
 
-            matchesQuery && matchesAvailability && matchesRating && matchesExperience && matchesLanguage && matchesDistance
+            matchesCity && matchesQuery && matchesAvailability && matchesRating && matchesExperience && matchesLanguage && matchesDistance
         }
     }.stateIn(
         scope = viewModelScope,
@@ -159,13 +195,25 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
         initialValue = emptyList()
     )
 
+    val availableCategories: StateFlow<List<String>> = repository.otherProfiles.map { profiles ->
+        listOf("All") + profiles.map { it.profession }.distinct().sorted()
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = listOf("All")
+    )
+
     // Chat handling
     private val _activeChatUserId = MutableStateFlow<String?>(null)
     val activeChatUserId: StateFlow<String?> = _activeChatUserId.asStateFlow()
 
+    private val _isPartnerTyping = MutableStateFlow(false)
+    val isPartnerTyping: StateFlow<Boolean> = _isPartnerTyping.asStateFlow()
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val activeChatMessages: StateFlow<List<ChatMessage>> = _activeChatUserId.flatMapLatest { profileId ->
         if (profileId.isNullOrEmpty()) {
-            flowOf(emptyList())
+            flowOf(emptyList<ChatMessage>())
         } else {
             repository.getChatMessages(profileId)
         }
@@ -176,9 +224,11 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
     )
 
     // Dynamic inbox messages map (latest message per user)
-    val chatInboxList: StateFlow<List<ChatInbox>> = repository.allMessages.combine(repository.otherProfiles) { msgList, profiles ->
+    val chatInboxList: StateFlow<List<ChatInbox>> = repository.allMessages.combine(repository.otherProfiles) { msgList: List<ChatMessage>, profiles: List<UserProfile> ->
         val grouped = msgList.groupBy { it.chatWithProfileId }
-        grouped.mapNotNull { (profileId, messages) ->
+        grouped.mapNotNull { entry ->
+            val profileId = entry.key
+            val messages = entry.value
             val profile = profiles.find { it.id == profileId } ?: return@mapNotNull null
             val latest = messages.maxByOrNull { it.timestamp } ?: return@mapNotNull null
             val unreadCount = messages.count { !it.isRead && !it.isFromMe }
@@ -198,17 +248,15 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
     )
 
     // Activity notifications mimicking real-time updates
-    private val _notifications = MutableStateFlow<List<ActivityNotification>>(emptyList())
-    val notifications = _notifications.asStateFlow()
+    val notifications: StateFlow<List<SystemNotification>> = repository.allNotifications.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
 
     init {
         viewModelScope.launch {
             repository.seedDatabaseIfEmpty()
-            // Add custom dynamic notifications
-            _notifications.value = listOf(
-                ActivityNotification("System Alert", "Welcome to JOBAAYA! Set up your multi-trade business or professional card today.", System.currentTimeMillis() - 500000),
-                ActivityNotification("Lead Generation", "Amit Sharma (Electrician) is available for nearby bookings in Delhi.", System.currentTimeMillis() - 1200000)
-            )
         }
     }
 
@@ -217,47 +265,50 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
         _currentLanguage.value = language
     }
 
-    // Auth simulation APIs
+    // Auth production APIs
     fun setLoginMobile(mobile: String) {
         _loginMobileNumber.value = mobile
     }
 
-    fun triggerSendMockOTP() {
-        if (_loginMobileNumber.value.isNotBlank()) {
-            _otpDispatched.value = true
-            addSystemNotification("OTP Request", "Your 6-digit Jobaaya OTP verification code is 422045")
-        }
-    }
-
-    fun verifyMockOTP(otp: String) {
-        if (otp == "422045" || otp == "123456" || otp.length == 6) {
-            viewModelScope.launch {
-                val myProfileDirect = repository.getMyProfileDirect()
-                if (myProfileDirect == null || myProfileDirect.name == "Guest User" || myProfileDirect.name.isBlank()) {
-                    _onboardingStep.value = true
-                } else {
-                    _isLoggedIn.value = true
-                }
+    fun loginWithEmail(email: String, password: CharSequence) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            authRepository.loginWithEmail(email, password).onSuccess {
+                checkProfileStatusAndNavigate()
+            }.onFailure {
+                _authError.emit(it.message ?: "Login failed")
             }
+            _isLoading.value = false
         }
     }
 
-    fun simulateEmailLogin(email: String) {
+    fun loginWithGoogle() {
         viewModelScope.launch {
-            _isLoggedIn.value = true
+            _isLoading.value = true
+            authRepository.signInWithGoogle("mock_google_token").onSuccess {
+                checkProfileStatusAndNavigate()
+            }.onFailure {
+                _authError.emit(it.message ?: "Google Sign-In failed")
+            }
+            _isLoading.value = false
         }
     }
 
-    fun simulateGoogleSignIn() {
-        viewModelScope.launch {
-            _isLoggedIn.value = true
+    private suspend fun checkProfileStatusAndNavigate() {
+        val myProfileDirect = repository.getMyProfileDirect()
+        if (myProfileDirect == null || myProfileDirect.name == "Guest User" || myProfileDirect.name.isBlank()) {
+            _onboardingStep.value = true
+        } else {
+            // Already has a profile
+            _onboardingStep.value = false
         }
     }
 
     fun completeOnboardingRegistration(name: String, profession: String, skills: String, accountType: AccountType, email: String, address: String, exp: Int, languages: String) {
         viewModelScope.launch {
+            _isLoading.value = true
             val existing = repository.getMyProfileDirect()
-            val finalId = existing?.id ?: "me_user"
+            val finalId = existing?.id ?: UUID.randomUUID().toString()
             val updated = UserProfile(
                 id = finalId,
                 name = name,
@@ -278,8 +329,8 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
             )
             repository.insertProfile(updated)
             _onboardingStep.value = false
-            _isLoggedIn.value = true
-            addSystemNotification("Profile Configured", "Your profile cards have been published! Welcome to JOBAAYA.")
+            addSystemNotification("Profile Configured", "Your profile cards have been published! Welcome to jobaaya.")
+            _isLoading.value = false
         }
     }
 
@@ -290,12 +341,15 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    // Toggle Bookmarks/Favorites
     fun toggleBookmarkProfile(profileId: String) {
         viewModelScope.launch {
             val prof = db.userProfileDao.getProfileByIdDirect(profileId)
             if (prof != null) {
-                repository.updateProfile(prof.copy(bookmarkStatus = !prof.bookmarkStatus))
+                val newStatus = !prof.bookmarkStatus
+                repository.updateProfile(prof.copy(bookmarkStatus = newStatus))
+                if (newStatus) {
+                    addSystemNotification("Profile Shortlisted", "${prof.name} has been added to your professional shortlist.")
+                }
             }
         }
     }
@@ -304,16 +358,26 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
     fun toggleConnectWithUser(profileId: String) {
         viewModelScope.launch {
             val prof = db.userProfileDao.getProfileByIdDirect(profileId)
-            if (prof != null) {
+            val me = myProfile.value
+            if (prof != null && me != null) {
                 val nextStatus = when (prof.followStatus) {
                     0 -> 2 // Connected
                     2 -> 0 // Disconnected
                     else -> 0
                 }
+                
+                // Update local profile status
                 repository.updateProfile(prof.copy(
                     followStatus = nextStatus,
                     interactionsCount = prof.interactionsCount + (if (nextStatus == 2) 1 else 0)
                 ))
+                
+                // Update UserConnection table
+                repository.toggleConnection(me.id, prof.id)
+
+                if (nextStatus == 2) {
+                    addSystemNotification("Connection Success", "You are now connected with ${prof.name}.")
+                }
             }
         }
     }
@@ -328,7 +392,14 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun sendChatMessage(text: String, mediaType: String? = null, mediaUri: String? = null) {
+    fun sendChatMessage(
+        text: String, 
+        mediaType: String? = null, 
+        mediaUrl: String? = null, 
+        forwardedFrom: String? = null,
+        replyToId: Int? = null,
+        replyToText: String? = null
+    ) {
         val destId = _activeChatUserId.value
         if (!destId.isNullOrEmpty()) {
             viewModelScope.launch {
@@ -337,7 +408,10 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
                     isFromMe = true,
                     text = text,
                     mediaType = mediaType,
-                    mediaUri = mediaUri
+                    mediaUrl = mediaUrl,
+                    forwardedFrom = forwardedFrom,
+                    replyToId = replyToId,
+                    replyToText = replyToText
                 )
                 repository.insertMessage(msg)
                 
@@ -346,36 +420,55 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
                 if (other != null) {
                     repository.updateProfile(other.copy(interactionsCount = other.interactionsCount + 1))
                 }
-
-                // Simulate reply in a short delay
-                simulateOtherUserReply(destId, text)
             }
         }
     }
 
-    private fun simulateOtherUserReply(partnerId: String, textSent: String) {
+    fun editChatMessage(message: ChatMessage, newText: String) {
         viewModelScope.launch {
-            kotlinx.coroutines.delay(1800)
-            val name = db.userProfileDao.getProfileByIdDirect(partnerId)?.name ?: "Professional"
-            val replyText = when {
-                textSent.contains("price", ignoreCase = true) || textSent.contains("how much", ignoreCase = true) || textSent.contains("rate", ignoreCase = true) -> {
-                    "Sure! I charge approximately $50 per hour. You can use our built-in Calculator in JOBAAYA utilities tab to generate an exact quotation or taxes estimate! Let me know."
-                }
-                textSent.contains("location", ignoreCase = true) || textSent.contains("where", ignoreCase = true) -> {
-                    "You can view my location markers in real-time under the JOBAAYA 'Near Me' maps view. Feel free to initiate path routing directions!"
-                }
-                textSent.contains("available", ignoreCase = true) || textSent.contains("time", ignoreCase = true) -> {
-                    "Yes, I am available as per my listed working hours on my card! Let's schedule the session now."
-                }
-                else -> "Thank you! I received your inquiry text. I am reviewing the details of your service session requirements right now."
-            }
-            val msgReply = ChatMessage(
-                chatWithProfileId = partnerId,
-                isFromMe = false,
-                text = replyText
+            repository.updateMessage(message.copy(text = newText, isEdited = true))
+        }
+    }
+
+    fun deleteChatMessage(message: ChatMessage) {
+        viewModelScope.launch {
+            repository.deleteMessage(message)
+        }
+    }
+
+    fun deleteChatMessages(messages: List<ChatMessage>) {
+        viewModelScope.launch {
+            messages.forEach { repository.deleteMessage(it) }
+        }
+    }
+
+    fun forwardChatMessage(message: ChatMessage, targetProfileId: String) {
+        viewModelScope.launch {
+            val forwardMsg = ChatMessage(
+                chatWithProfileId = targetProfileId,
+                isFromMe = true,
+                text = message.text,
+                mediaType = message.mediaType,
+                mediaUrl = message.mediaUrl,
+                forwardedFrom = message.forwardedFrom ?: "Original Sender" // Simplified
             )
-            repository.insertMessage(msgReply)
-            addSystemNotification("New Chat Message", "$name sent you a message: \"$replyText\"")
+            repository.insertMessage(forwardMsg)
+        }
+    }
+
+    fun forwardChatMessages(messages: List<ChatMessage>, targetProfileId: String) {
+        viewModelScope.launch {
+            messages.forEach { message ->
+                val forwardMsg = ChatMessage(
+                    chatWithProfileId = targetProfileId,
+                    isFromMe = true,
+                    text = message.text,
+                    mediaType = message.mediaType,
+                    mediaUrl = message.mediaUrl,
+                    forwardedFrom = message.forwardedFrom ?: "Original Sender"
+                )
+                repository.insertMessage(forwardMsg)
+            }
         }
     }
 
@@ -383,6 +476,7 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             val rev = UserReview(
                 targetProfileId = profileId,
+                reviewerId = "me_user",
                 reviewerName = reviewerName,
                 rating = rating,
                 reviewText = comment
@@ -407,7 +501,7 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
             val prof = db.userProfileDao.getProfileByIdDirect(profileId)
             if (prof != null) {
                 repository.updateProfile(prof.copy(isReported = true))
-                addSystemNotification("Report Submitted", "You reported ${prof.name}. Jobaaya compliance system is auditing their activity log.")
+                addSystemNotification("Report Submitted", "You reported ${prof.name}. jobaaya compliance system is auditing their activity log.")
             }
         }
     }
@@ -443,9 +537,9 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
     }
 
     // Note actions
-    fun saveUtilityNote(title: String, content: String) {
+    fun saveUtilityNote(title: String, content: String, id: Int = 0, bgColor: Long = 0xFFFFFFFF, font: String = "Normal", fontColor: Long = 0xFF000000, textAlign: String = "Left", isBold: Boolean = false, isItalic: Boolean = false, isLocked: Boolean = false, lockPin: String? = null, reminderTimestamp: Long? = null) {
         viewModelScope.launch {
-            repository.insertNote(UtilityNote(title = title, content = content))
+            repository.insertNote(UtilityNote(id = id, title = title, content = content, backgroundColor = bgColor, fontStyle = font, fontColor = fontColor, textAlign = textAlign, isBold = isBold, isItalic = isItalic, isLocked = isLocked, lockPin = lockPin, reminderTimestamp = reminderTimestamp))
         }
     }
 
@@ -455,11 +549,81 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun markNotificationsAsRead() {
+        viewModelScope.launch {
+            repository.markAllNotificationsAsRead()
+        }
+    }
+
+    fun clearAllNotifications() {
+        viewModelScope.launch {
+            repository.clearAllNotifications()
+        }
+    }
+
+    // Partnership Deals
+    fun getMyDeals(): StateFlow<List<PartnershipDeal>> {
+        val myId = myProfile.value?.id ?: ""
+        return repository.getMyDeals(myId).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    }
+
+    fun getDealById(dealId: Int) = repository.getDealById(dealId)
+    fun getDealMessages(dealId: Int) = repository.getDealMessages(dealId)
+    fun getAuditLogs(dealId: Int) = repository.getAuditLogs(dealId)
+
+    fun startNewDeal(proId: String) {
+        viewModelScope.launch {
+            val me = myProfile.value ?: return@launch
+            val deal = PartnershipDeal(partnerId = me.id, proId = proId)
+            val id = repository.createDeal(deal)
+            repository.insertAuditLog(DealAuditLog(dealId = id.toInt(), userId = me.id, action = "Deal Created"))
+            addSystemNotification("Deal Started", "A new partnership proposal has been initialized.")
+        }
+    }
+
+    fun updateDeal(deal: PartnershipDeal, action: String) {
+        viewModelScope.launch {
+            repository.updateDeal(deal)
+            repository.insertAuditLog(DealAuditLog(dealId = deal.id, userId = myProfile.value?.id ?: "", action = action))
+            
+            val notificationTitle = when(action) {
+                "Deal Done" -> "Deal Finalized"
+                "Edit Requested" -> "Edit Requested"
+                "Edit Approved" -> "Deal Editable Again"
+                else -> "Deal Updated"
+            }
+            addSystemNotification(notificationTitle, "Deal #${deal.id}: $action by user.")
+        }
+    }
+
+    fun sendDealMessage(dealId: Int, text: String) {
+        viewModelScope.launch {
+            val me = myProfile.value ?: return@launch
+            repository.insertDealMessage(DealMessage(dealId = dealId, senderId = me.id, text = text))
+        }
+    }
+
+    fun getProfileMedia(profileId: String) = repository.getMediaForProfile(profileId)
+
+    fun getProfileReviews(profileId: String) = repository.getReviewsForProfile(profileId)
+
+    fun addProfileMedia(media: com.example.data.model.ProfileMedia) {
+        viewModelScope.launch {
+            repository.insertMedia(media)
+        }
+    }
+
+    fun deleteProfileMedia(media: com.example.data.model.ProfileMedia) {
+        viewModelScope.launch {
+            repository.deleteMedia(media)
+        }
+    }
+
     // Helper notifications list add
     private fun addSystemNotification(title: String, message: String) {
-        val next = _notifications.value.toMutableList()
-        next.add(0, ActivityNotification(title, message, System.currentTimeMillis()))
-        _notifications.value = next
+        viewModelScope.launch {
+            repository.insertNotification(SystemNotification(title = title, content = message))
+        }
     }
 
     fun setSearchQuery(q: String) {
@@ -487,9 +651,13 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun handleLogout() {
-        _isLoggedIn.value = false
+        authRepository.logout()
         _otpDispatched.value = false
         _onboardingStep.value = false
+    }
+
+    fun startOnboarding() {
+        _onboardingStep.value = true
     }
 
     // Great Spherical Cosine formula (Haversine approximation)
@@ -509,10 +677,4 @@ data class ChatInbox(
     val partnerProfile: UserProfile,
     val lastMessage: ChatMessage,
     val unreadCount: Int
-)
-
-data class ActivityNotification(
-    val title: String,
-    val text: String,
-    val timestamp: Long
 )

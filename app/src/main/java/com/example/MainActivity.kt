@@ -2,6 +2,7 @@ package com.example
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedVisibility
@@ -9,6 +10,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -30,11 +32,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.BusinessCenter
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Map
+import com.example.ui.screens.partnership.PartnershipHomeScreen
+import com.example.ui.screens.partnership.DealWorkspaceScreen
+import androidx.compose.material.icons.filled.Handshake
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -48,11 +53,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -60,11 +67,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.example.ui.localization.JobaayaLocalization
 import com.example.ui.screens.AdminScreen
 import com.example.ui.screens.AuthScreen
@@ -76,6 +85,7 @@ import com.example.ui.screens.SettingsScreen
 import com.example.ui.screens.UtilitiesScreen
 import com.example.ui.theme.MyApplicationTheme
 import com.example.viewmodel.JobaayaViewModel
+import androidx.compose.ui.tooling.preview.Preview
 
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -101,14 +111,38 @@ class MainActivity : ComponentActivity() {
 fun MainPlatformContainer(
     viewModel: JobaayaViewModel
 ) {
-    val currentLang by viewModel.currentLanguage.collectAsState()
+    val myProfile by viewModel.myProfile.collectAsState()
     val inboxList by viewModel.chatInboxList.collectAsState()
     val notificationsList by viewModel.notifications.collectAsState()
 
     var activeViewRoute by remember { mutableStateOf("home") } // "home", "map", "chats", "utilities", "admin", "settings", "detail"
+    var previousViewRoute by remember { mutableStateOf("home") } 
     var detailedUserIdRoute by remember { mutableStateOf("") }
-
+    var activeDealId by remember { mutableIntStateOf(0) }
     var showNotificationDrawer by remember { mutableStateOf(false) }
+
+    // Helper function to navigate and track history
+    val navigateTo: (String) -> Unit = { route ->
+        if (activeViewRoute != route) {
+            previousViewRoute = activeViewRoute
+            activeViewRoute = route
+        }
+    }
+
+    // Back button handling logic
+    BackHandler(enabled = activeViewRoute != "home" || showNotificationDrawer) {
+        if (showNotificationDrawer) {
+            showNotificationDrawer = false
+        } else if (activeViewRoute == "deal_workspace") {
+            activeViewRoute = "partnership"
+        } else if (activeViewRoute == "detail") {
+            activeViewRoute = previousViewRoute
+            // Prevent recursive back loops
+            if (previousViewRoute == "detail") activeViewRoute = "home"
+        } else {
+            activeViewRoute = "home"
+        }
+    }
 
     val totalInboxUnreadCount = remember(inboxList) {
         inboxList.sumOf { it.unreadCount }
@@ -116,38 +150,56 @@ fun MainPlatformContainer(
 
     Scaffold(
         bottomBar = {
-            // Standard Material 3 bottom navigation pill bar respecting gesture pill safety spacing inset
+            // Standard Material 3 bottom navigation bar with Deep Teal background
             NavigationBar(
-                modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
-                tonalElevation = 8.dp
+                modifier = Modifier
+                    .windowInsetsPadding(WindowInsets.navigationBars)
+                    .height(58.dp), // Reduced height by 10%
+                tonalElevation = 0.dp,
+                containerColor = Color(0xFF0B3A51),
+                contentColor = Color.White
             ) {
-                // Explore Tab
+                // Home Tab
                 NavigationBarItem(
                     selected = activeViewRoute == "home" || (activeViewRoute == "detail" && detailedUserIdRoute.startsWith("prof_")),
-                    onClick = { activeViewRoute = "home" },
-                    icon = { Icon(Icons.Default.Search, contentDescription = "Browse Network") },
-                    label = { Text("Explore", fontSize = 10.sp, fontWeight = FontWeight.Bold) }
+                    onClick = { navigateTo("home") },
+                    icon = { Icon(Icons.Default.Home, contentDescription = "Home", modifier = Modifier.size(21.dp)) }, 
+                    label = { Text("Home", fontSize = 10.sp, fontWeight = FontWeight.Bold) }, 
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Color.White,
+                        selectedTextColor = Color.White,
+                        unselectedIconColor = Color.White.copy(alpha = 0.6f),
+                        unselectedTextColor = Color.White.copy(alpha = 0.6f),
+                        indicatorColor = Color.Transparent // Removed indicator to prevent cutting and keep it clean
+                    )
                 )
 
-                // Near Me Map Tab
+                // Partnership Tab (Earn)
                 NavigationBarItem(
-                    selected = activeViewRoute == "map",
-                    onClick = { activeViewRoute = "map" },
-                    icon = { Icon(Icons.Default.Map, contentDescription = "Near Me") },
-                    label = { Text(JobaayaLocalization.translate("near_me", currentLang), fontSize = 10.sp, fontWeight = FontWeight.Bold) }
+                    selected = activeViewRoute == "partnership",
+                    onClick = { navigateTo("partnership") },
+                    icon = { Icon(Icons.Default.Handshake, contentDescription = "Earn", modifier = Modifier.size(21.dp)) }, 
+                    label = { Text("Earn", fontSize = 10.sp, fontWeight = FontWeight.Bold) }, 
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Color.White,
+                        selectedTextColor = Color.White,
+                        unselectedIconColor = Color.White.copy(alpha = 0.6f),
+                        unselectedTextColor = Color.White.copy(alpha = 0.6f),
+                        indicatorColor = Color.Transparent
+                    )
                 )
 
                 // Chats inbox Tab
                 NavigationBarItem(
-                    selected = activeViewRoute == "chats",
-                    onClick = { activeViewRoute = "chats" },
+                    selected = activeViewRoute == "chats" ,
+                    onClick = { navigateTo("chats") },
                     icon = {
                         Box {
-                            Icon(Icons.Default.Chat, contentDescription = "Chats")
+                            Icon(Icons.Default.Chat, contentDescription = "Chats", modifier = Modifier.size(21.dp)) 
                             if (totalInboxUnreadCount > 0) {
                                 Box(
                                     modifier = Modifier
-                                        .size(14.dp)
+                                        .size(12.dp)
                                         .align(Alignment.TopEnd)
                                         .background(Color.Red, CircleShape),
                                     contentAlignment = Alignment.Center
@@ -155,85 +207,154 @@ fun MainPlatformContainer(
                                     Text(
                                         text = "$totalInboxUnreadCount",
                                         color = Color.White,
-                                        fontSize = 8.sp,
+                                        fontSize = 7.sp,
                                         fontWeight = FontWeight.Bold
                                     )
                                 }
                             }
                         }
                     },
-                    label = { Text(JobaayaLocalization.translate("chats", currentLang), fontSize = 10.sp, fontWeight = FontWeight.Bold) }
+                    label = { Text("Chats", fontSize = 10.sp, fontWeight = FontWeight.Bold) }, 
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Color.White,
+                        selectedTextColor = Color.White,
+                        unselectedIconColor = Color.White.copy(alpha = 0.6f),
+                        unselectedTextColor = Color.White.copy(alpha = 0.6f),
+                        indicatorColor = Color.Transparent
+                    )
                 )
 
                 // Utilities Tab
                 NavigationBarItem(
                     selected = activeViewRoute == "utilities",
-                    onClick = { activeViewRoute = "utilities" },
-                    icon = { Icon(Icons.Default.Bookmark, contentDescription = "Utilities Tools") },
-                    label = { Text("Tools", fontSize = 10.sp, fontWeight = FontWeight.Bold) }
-                )
-
-                // Admin Dashboard console Tab
-                NavigationBarItem(
-                    selected = activeViewRoute == "admin",
-                    onClick = { activeViewRoute = "admin" },
-                    icon = { Icon(Icons.Default.SupervisorAccount, contentDescription = "Admin Console") },
-                    label = { Text("Admin", fontSize = 10.sp, fontWeight = FontWeight.Bold) }
-                )
-
-                // Settings Tab
-                NavigationBarItem(
-                    selected = activeViewRoute == "settings",
-                    onClick = { activeViewRoute = "settings" },
-                    icon = { Icon(Icons.Default.Settings, contentDescription = "Configurations") },
-                    label = { Text(JobaayaLocalization.translate("settings", currentLang), fontSize = 10.sp, fontWeight = FontWeight.Bold) }
+                    onClick = { navigateTo("utilities") },
+                    icon = { Icon(Icons.Default.Build, contentDescription = "Utilities Tools", modifier = Modifier.size(21.dp)) }, 
+                    label = { Text("Tools", fontSize = 10.sp, fontWeight = FontWeight.Bold) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Color.White,
+                        selectedTextColor = Color.White,
+                        unselectedIconColor = Color.White.copy(alpha = 0.6f),
+                        unselectedTextColor = Color.White.copy(alpha = 0.6f),
+                        indicatorColor = Color.Transparent
+                    )
                 )
             }
         },
         topBar = {
-            // Unified top bar showing brand and alerts drawer toggler
-            Row(
+            // Unified top bar with Deep Teal background and reduced vertical size
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surface)
-                    .padding(top = 40.dp, bottom = 12.dp, start = 16.dp, end = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .background(Color(0xFF0B3A51))
+                    .padding(top = 27.dp, bottom = 5.dp, start = 16.dp, end = 16.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(34.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.primary),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("J", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                // Left side: Profile
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .clickable {
+                            myProfile?.let {
+                                detailedUserIdRoute = it.id
+                                navigateTo("detail")
+                            }
+                        },
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (myProfile?.profilePhotoUrl?.isNotEmpty() == true) {
+                        AsyncImage(
+                            model = myProfile?.profilePhotoUrl,
+                            contentDescription = "Profile Logo",
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(CircleShape)
+                        )
+                    } else {
+                        // Pura khali placeholder with Calculator Action color
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary)
+                        )
                     }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = "JOBAAYA",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Black,
-                        color = MaterialTheme.colorScheme.primary
+                }
+
+                // CENTER: App Brand Logo
+                Box(
+                    modifier = Modifier
+                        .width(91.dp)
+                        .height(32.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.Black),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.kuku),
+                        contentDescription = "App Logo",
+                        modifier = Modifier.size(width = 82.dp, height = 29.dp)
                     )
                 }
 
-                // Alerts icon with dynamic notifications count indicator
-                IconButton(onClick = { showNotificationDrawer = !showNotificationDrawer }) {
-                    Box {
-                        Icon(
-                            imageVector = Icons.Default.Notifications,
-                            contentDescription = "Alerts",
-                            tint = if (showNotificationDrawer) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                        )
-                        if (notificationsList.isNotEmpty()) {
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .align(Alignment.TopEnd)
-                                    .background(Color.Red, CircleShape)
+                // Right side: Icons
+                Row(
+                    modifier = Modifier.align(Alignment.CenterEnd),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Admin Icon - ONLY visible to owner/admin
+                    val isAdmin = myProfile?.mobileNumber == "+919630981234" || myProfile?.emailAddress == "mubarakk912@gmail.com"
+                    
+                    if (isAdmin) {
+                        IconButton(onClick = { navigateTo("admin") }, modifier = Modifier.size(36.dp)) {
+                            Icon(
+                                imageVector = Icons.Default.SupervisorAccount,
+                                contentDescription = "Admin Console",
+                                tint = if (activeViewRoute == "admin") MaterialTheme.colorScheme.primary else Color.White,
+                                modifier = Modifier.size(20.dp)
                             )
+                        }
+                    }
+
+                    // Settings Icon
+                    IconButton(onClick = { navigateTo("settings") }, modifier = Modifier.size(36.dp)) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Configurations",
+                            tint = if (activeViewRoute == "settings") MaterialTheme.colorScheme.primary else Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    IconButton(onClick = { 
+                        showNotificationDrawer = !showNotificationDrawer 
+                        if (showNotificationDrawer) {
+                            viewModel.markNotificationsAsRead()
+                        }
+                    }, modifier = Modifier.size(36.dp)) {
+                        Box {
+                            Icon(
+                                imageVector = Icons.Default.Notifications,
+                                contentDescription = "Alerts",
+                                tint = if (showNotificationDrawer) MaterialTheme.colorScheme.primary else Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            val unreadCount = notificationsList.count { !it.isRead }
+                            if (unreadCount > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(12.dp)
+                                        .align(Alignment.TopEnd)
+                                        .background(Color.Red, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "$unreadCount",
+                                        color = Color.White,
+                                        fontSize = 7.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -249,21 +370,22 @@ fun MainPlatformContainer(
             when (activeViewRoute) {
                 "home" -> HomeScreen(
                     viewModel = viewModel,
-                    onProfileClick = { id ->
+                    onProfileClick = { id: String ->
                         detailedUserIdRoute = id
-                        activeViewRoute = "detail"
+                        navigateTo("detail")
                     },
                     onStartChat = { id ->
                         viewModel.selectActiveChat(id)
-                        activeViewRoute = "chats"
-                    }
+                        navigateTo("chats")
+                    },
+                    onNearMeClick = { navigateTo("map") }
                 )
 
                 "map" -> MapScreen(
                     viewModel = viewModel,
-                    onProfileClick = { id ->
+                    onProfileClick = { id: String ->
                         detailedUserIdRoute = id
-                        activeViewRoute = "detail"
+                        navigateTo("detail")
                     }
                 )
 
@@ -273,27 +395,72 @@ fun MainPlatformContainer(
 
                 "utilities" -> UtilitiesScreen(
                     viewModel = viewModel,
-                    onProfileClick = { id ->
+                    onProfileClick = { id: String ->
                         detailedUserIdRoute = id
-                        activeViewRoute = "detail"
+                        navigateTo("detail")
                     }
                 )
 
-                "admin" -> AdminScreen(
-                    viewModel = viewModel
+                "partnership" -> PartnershipHomeScreen(
+                    viewModel = viewModel,
+                    onStartDeal = { proId -> 
+                        viewModel.startNewDeal(proId)
+                        viewModel.selectActiveChat(proId)
+                        navigateTo("chats")
+                    },
+                    onViewDeal = { dealId ->
+                        activeDealId = dealId
+                        navigateTo("deal_workspace")
+                    }
                 )
 
+                "deal_workspace" -> DealWorkspaceScreen(
+                    viewModel = viewModel,
+                    dealId = activeDealId,
+                    onBack = { navigateTo("partnership") }
+                )
+
+                "admin" -> {
+                    val isAdmin = myProfile?.mobileNumber == "+919630981234" || myProfile?.emailAddress == "mubarakk912@gmail.com"
+                    if (isAdmin) {
+                        AdminScreen(
+                            viewModel = viewModel,
+                            onProfileClick = { id: String ->
+                                detailedUserIdRoute = id
+                                navigateTo("detail")
+                            }
+                        )
+                    } else {
+                        // Redirect unauthorized users to home
+                        HomeScreen(
+                            viewModel = viewModel,
+                            onProfileClick = { id: String ->
+                                detailedUserIdRoute = id
+                                navigateTo("detail")
+                            },
+                            onStartChat = { id ->
+                                viewModel.selectActiveChat(id)
+                                navigateTo("chats")
+                            }
+                        )
+                    }
+                }
+
                 "settings" -> SettingsScreen(
-                    viewModel = viewModel
+                    viewModel = viewModel,
+                    onPreviewClick = { id ->
+                        detailedUserIdRoute = id
+                        navigateTo("detail")
+                    }
                 )
 
                 "detail" -> ProfileDetailScreen(
                     viewModel = viewModel,
                     profileId = detailedUserIdRoute,
-                    onBack = { activeViewRoute = "home" },
+                    onBack = { navigateTo("home") },
                     onStartChat = { id ->
                         viewModel.selectActiveChat(id)
-                        activeViewRoute = "chats"
+                        navigateTo("chats")
                     }
                 )
             }
@@ -327,8 +494,15 @@ fun MainPlatformContainer(
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.primary
                             )
-                            IconButton(onClick = { showNotificationDrawer = false }) {
-                                Icon(Icons.Default.Close, contentDescription = "Close Alerts")
+                            Row {
+                                if (notificationsList.isNotEmpty()) {
+                                    IconButton(onClick = { viewModel.clearAllNotifications() }) {
+                                        Icon(Icons.Default.Close, contentDescription = "Clear All", tint = Color.Red)
+                                    }
+                                }
+                                IconButton(onClick = { showNotificationDrawer = false }) {
+                                    Icon(Icons.Default.Close, contentDescription = "Close Alerts")
+                                }
                             }
                         }
 
@@ -343,7 +517,7 @@ fun MainPlatformContainer(
                             items(notificationsList) { alert ->
                                 Column(modifier = Modifier.fillMaxWidth()) {
                                     Text(text = alert.title, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                    Text(text = alert.text, fontSize = 11.sp, color = MaterialTheme.colorScheme.outline)
+                                    Text(text = alert.content, fontSize = 11.sp, color = MaterialTheme.colorScheme.outline)
                                     Spacer(modifier = Modifier.height(4.dp))
                                     HorizontalDivider(color = Color.LightGray.copy(alpha = 0.4f))
                                 }

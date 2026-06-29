@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "86146052069",
+    "project_id": "jobaaya-a8d1c",
+    "storage_bucket": "jobaaya-a8d1c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:86146052069:android:bcd386fdaf4ea42875890c",
+        "android_client_info": {
+          "package_name": "com.aistudio.jobaaya.vskptz"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAs30n-lvewi7Fi3DblXrF6tGAOXlkQFio"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

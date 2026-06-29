@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,9 +25,11 @@ import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FolderShared
 import androidx.compose.material.icons.filled.Gavel
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.SignalCellularAlt
 import androidx.compose.material.icons.filled.Verified
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -35,12 +38,16 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -55,12 +62,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.UserProfile
+import com.example.ui.localization.AppLanguage
 import com.example.ui.localization.JobaayaLocalization
 import com.example.viewmodel.JobaayaViewModel
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.ui.text.TextStyle
 
 @Composable
 fun AdminScreen(
     viewModel: JobaayaViewModel,
+    onProfileClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -105,7 +116,7 @@ fun AdminScreen(
 
         // Content Routing based on selectors
         when (selectedAdminTab) {
-            0 -> AdminUserManagementSection(viewModel = viewModel, profileList = profiles, currentLang = currentLang)
+            0 -> AdminUserManagementSection(viewModel = viewModel, profileList = profiles, currentLang = currentLang, onProfileClick = onProfileClick)
             1 -> AdminReportManagementSection(viewModel = viewModel, reportedList = reportedProfiles, currentLang = currentLang)
             2 -> AdminAnalyticsSection(profileList = profiles, currentLang = currentLang)
         }
@@ -117,30 +128,92 @@ fun AdminScreen(
 fun AdminUserManagementSection(
     viewModel: JobaayaViewModel,
     profileList: List<UserProfile>,
-    currentLang: com.example.ui.localization.AppLanguage
+    currentLang: AppLanguage,
+    onProfileClick: (String) -> Unit
 ) {
+    var adminSearchQuery by remember { mutableStateOf("") }
+    var adminFilter by remember { mutableStateOf("All") } // "All", "Unverified", "Verified", "Blocked"
+
+    val filteredList = remember(profileList, adminSearchQuery, adminFilter) {
+        profileList.filter { user ->
+            val matchesSearch = user.name.contains(adminSearchQuery, ignoreCase = true) ||
+                                user.profession.contains(adminSearchQuery, ignoreCase = true) ||
+                                user.mobileNumber.contains(adminSearchQuery) ||
+                                user.emailAddress.contains(adminSearchQuery, ignoreCase = true)
+            
+            val matchesFilter = when (adminFilter) {
+                "Unverified" -> !user.isVerified
+                "Verified" -> user.isVerified
+                "Blocked" -> user.isBlocked
+                else -> true
+            }
+            
+            matchesSearch && matchesFilter
+        }.sortedByDescending { it.lastSeen }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp)
     ) {
-        Text(
-            text = "Platform Verification Panel",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
+        // Search Bar
+        OutlinedTextField(
+            value = adminSearchQuery,
+            onValueChange = { adminSearchQuery = it },
+            placeholder = { Text("Search by name, phone, or profession...", fontSize = 13.sp) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            shape = RoundedCornerShape(12.dp),
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+            ),
+            textStyle = TextStyle(fontSize = 14.sp)
         )
+
+        // Filter Chips
+        LazyRow(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            val filters = listOf("All", "Unverified", "Verified", "Blocked")
+            items(filters) { filter ->
+                val isSelected = adminFilter == filter
+                Surface(
+                    modifier = Modifier.clickable { adminFilter = filter },
+                    shape = RoundedCornerShape(20.dp),
+                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(1.dp, if (isSelected) Color.Transparent else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                ) {
+                    Text(
+                        text = filter,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(bottom = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+
         Text(
-            text = "Grant or revoke ⚡ Verified Badges for professional directory accounts",
-            style = MaterialTheme.typography.bodySmall,
+            text = "Showing ${filteredList.size} Results",
+            style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.outline,
-            modifier = Modifier.padding(bottom = 16.dp)
+            modifier = Modifier.padding(bottom = 8.dp)
         )
 
         LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.weight(1f)
         ) {
-            items(profileList) { user ->
+            items(filteredList) { user ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
@@ -154,10 +227,10 @@ fun AdminUserManagementSection(
                             modifier = Modifier
                                 .size(36.dp)
                                 .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.secondaryContainer),
+                                .background(if (user.isBlocked) Color.Red.copy(alpha = 0.1f) else MaterialTheme.colorScheme.secondaryContainer),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(user.name.take(2).uppercase(), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text(user.name.take(2).uppercase(), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if(user.isBlocked) Color.Red else MaterialTheme.colorScheme.onSecondaryContainer)
                         }
 
                         Spacer(modifier = Modifier.width(10.dp))
@@ -169,8 +242,22 @@ fun AdminUserManagementSection(
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Icon(Icons.Default.Verified, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color(0xFF1E88E5))
                                 }
+                                if (user.isBlocked) {
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("(Blocked)", color = Color.Red, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
                             }
                             Text(user.profession, fontSize = 11.sp, color = MaterialTheme.colorScheme.outline)
+                            Text(user.mobileNumber, fontSize = 10.sp, color = MaterialTheme.colorScheme.outline.copy(alpha=0.7f))
+                        }
+
+                        IconButton(onClick = { onProfileClick(user.id) }) {
+                            Icon(
+                                imageVector = Icons.Default.Analytics,
+                                contentDescription = "Preview Profile",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
 
                         // Toggle Badge
@@ -201,7 +288,7 @@ fun AdminUserManagementSection(
 fun AdminReportManagementSection(
     viewModel: JobaayaViewModel,
     reportedList: List<UserProfile>,
-    currentLang: com.example.ui.localization.AppLanguage
+    currentLang: AppLanguage
 ) {
     val context = LocalContext.current
 
@@ -319,7 +406,7 @@ fun AdminReportManagementSection(
 @Composable
 fun AdminAnalyticsSection(
     profileList: List<UserProfile>,
-    currentLang: com.example.ui.localization.AppLanguage
+    currentLang: AppLanguage
 ) {
     val totalViewsSum = remember(profileList) { profileList.sumOf { it.profileViewsCount } }
     val totalClicksSum = remember(profileList) { profileList.sumOf { it.interactionsCount } }
@@ -435,8 +522,3 @@ fun AdminAnalyticsSection(
         }
     }
 }
-
-// Custom padding values helper
-@Composable
-fun PaddingValues(horizontal: androidx.compose.ui.unit.Dp, vertical: androidx.compose.ui.unit.Dp) =
-    androidx.compose.foundation.layout.PaddingValues(horizontal, vertical)

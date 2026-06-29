@@ -3,6 +3,7 @@ package com.example.ui.screens
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -22,7 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Lock
@@ -42,6 +43,11 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -57,15 +63,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.R
 import com.example.data.model.AccountType
 import com.example.ui.localization.AppLanguage
 import com.example.ui.localization.JobaayaLocalization
+import com.example.ui.components.ProfessionPicker
 import com.example.viewmodel.JobaayaViewModel
 
 @Composable
@@ -73,12 +83,65 @@ fun AuthScreen(
     viewModel: JobaayaViewModel,
     modifier: Modifier = Modifier
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val currentLang by viewModel.currentLanguage.collectAsState()
-    val otpDispatched by viewModel.otpDispatched.collectAsState()
-    val mobileNumber by viewModel.loginMobileNumber.collectAsState()
     val onboardingStep by viewModel.onboardingStep.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    var loginMode by remember { mutableStateOf("OTP") } // "OTP", "EMAIL"
+    LaunchedEffect(Unit) {
+        viewModel.authError.collectLatest { error ->
+            snackbarHostState.showSnackbar(error)
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        AuthContent(
+            currentLang = currentLang,
+            onboardingStep = onboardingStep,
+            onLanguageChange = { viewModel.changeLanguage(it) },
+            onLogout = { viewModel.handleLogout() },
+            onEmailLogin = { email, password -> viewModel.loginWithEmail(email, password) },
+            onGoogleSignIn = { viewModel.loginWithGoogle() },
+            onCompleteOnboarding = { name, profession, skills, accountType, email, address, exp, languages ->
+                viewModel.completeOnboardingRegistration(name, profession, skills, accountType, email, address, exp, languages)
+            },
+            onToggleOnboarding = { viewModel.startOnboarding() },
+            modifier = modifier
+        )
+
+        if (isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.3f))
+                    .clickable(enabled = false) {},
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
+    }
+}
+
+@Composable
+fun AuthContent(
+    currentLang: AppLanguage,
+    onboardingStep: Boolean,
+    onLanguageChange: (AppLanguage) -> Unit,
+    onLogout: () -> Unit,
+    onEmailLogin: (String, String) -> Unit,
+    onGoogleSignIn: () -> Unit,
+    onCompleteOnboarding: (String, String, String, AccountType, String, String, Int, String) -> Unit,
+    onToggleOnboarding: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
     var otpInput by remember { mutableStateOf("") }
     var emailInput by remember { mutableStateOf("") }
     var passwordInput by remember { mutableStateOf("") }
@@ -103,7 +166,31 @@ fun AuthScreen(
     )
 
     Scaffold(
-        modifier = modifier.fillMaxSize()
+        modifier = modifier.fillMaxSize(),
+        topBar = {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 40.dp, bottom = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                // App Brand Logo fixed at top
+                Box(
+                    modifier = Modifier
+                        .width(90.dp)
+                        .height(32.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.Black),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.kuku),
+                        contentDescription = "Logo",
+                        modifier = Modifier.size(width = 80.dp, height = 28.dp)
+                    )
+                }
+            }
+        }
     ) { innerPadding ->
         Box(
             modifier = Modifier
@@ -132,8 +219,7 @@ fun AuthScreen(
                 if (showLangSelector) {
                     Card(
                         modifier = Modifier
-                            .width(200.dp)
-                            .padding(top = 48.dp),
+                            .width(200.dp),
                         elevation = CardDefaults.cardElevation(8.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                     ) {
@@ -144,7 +230,7 @@ fun AuthScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable {
-                                            viewModel.changeLanguage(lang)
+                                            onLanguageChange(lang)
                                             showLangSelector = false
                                         }
                                         .padding(12.dp),
@@ -166,40 +252,21 @@ fun AuthScreen(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Spacer(modifier = Modifier.height(48.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-                // App Brand Logo
-                Box(
-                    modifier = Modifier
-                        .size(80.dp)
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(MaterialTheme.colorScheme.primary)
-                        .clickable { },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "J",
-                        color = Color.White,
-                        fontSize = 44.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        style = MaterialTheme.typography.displayMedium
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
+                // App Name and Tagline
                 Text(
-                    text = "JOBAAYA",
+                    text = "jobaaya",
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Black,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = Color.White, // Branding/Heading as white
                     letterSpacing = 1.sp
                 )
 
                 Text(
                     text = JobaayaLocalization.translate("app_tagline", currentLang),
                     style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurface, // Normal as OffWhite
                     textAlign = TextAlign.Center
                 )
 
@@ -220,9 +287,12 @@ fun AuthScreen(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                text = JobaayaLocalization.translate("login_title", currentLang),
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
+                                text = JobaayaLocalization.translate(key = "login_title", language = currentLang),
+                                modifier = Modifier.padding(top = 5.dp),
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontSize = 35.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
                                 color = MaterialTheme.colorScheme.onSurface,
                                 textAlign = TextAlign.Center
                             )
@@ -234,156 +304,50 @@ fun AuthScreen(
                                 modifier = Modifier.padding(top = 4.dp, bottom = 20.dp)
                             )
 
-                            // Tabs for login modes
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(
-                                        MaterialTheme.colorScheme.surfaceVariant,
-                                        RoundedCornerShape(12.dp)
-                                    )
-                                    .padding(4.dp),
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(if (loginMode == "OTP") MaterialTheme.colorScheme.surface else Color.Transparent)
-                                        .clickable { loginMode = "OTP" }
-                                        .padding(8.dp),
-                                    horizontalArrangement = Arrangement.Center
-                                ) {
-                                    Text(
-                                        text = "OTP",
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (loginMode == "OTP") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                Row(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(if (loginMode == "EMAIL") MaterialTheme.colorScheme.surface else Color.Transparent)
-                                        .clickable { loginMode = "EMAIL" }
-                                        .padding(8.dp),
-                                    horizontalArrangement = Arrangement.Center
-                                ) {
-                                    Text(
-                                        text = "EMAIL",
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (loginMode == "EMAIL") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
+                            Spacer(modifier = Modifier.height(20.dp))
+
+                            // EMAIL MODE ONLY
+                            OutlinedTextField(
+                                value = emailInput,
+                                onValueChange = { emailInput = it },
+                                label = { Text(JobaayaLocalization.translate("enter_email", currentLang)) },
+                                leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(14.dp)
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            OutlinedTextField(
+                                value = passwordInput,
+                                onValueChange = { passwordInput = it },
+                                label = { Text(JobaayaLocalization.translate("enter_password", currentLang)) },
+                                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                                visualTransformation = PasswordVisualTransformation(),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(14.dp)
+                            )
 
                             Spacer(modifier = Modifier.height(20.dp))
 
-                            if (loginMode == "OTP") {
-                                if (!otpDispatched) {
-                                    OutlinedTextField(
-                                        value = mobileNumber,
-                                        onValueChange = { viewModel.setLoginMobile(it) },
-                                        label = { Text(JobaayaLocalization.translate("enter_mobile", currentLang)) },
-                                        leadingIcon = { Icon(Icons.Default.PhoneAndroid, contentDescription = null) },
-                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .testTag("username_input"),
-                                        shape = RoundedCornerShape(14.dp)
-                                    )
-
-                                    Spacer(modifier = Modifier.height(16.dp))
-
-                                    Button(
-                                        onClick = { viewModel.triggerSendMockOTP() },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(50.dp)
-                                            .testTag("submit_button"),
-                                        shape = RoundedCornerShape(14.dp)
-                                    ) {
-                                        Text(JobaayaLocalization.translate("send_otp", currentLang), fontWeight = FontWeight.Bold)
-                                    }
-                                } else {
-                                    Text(
-                                        text = "${JobaayaLocalization.translate("enter_otp", currentLang)} to ${mobileNumber}",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.padding(bottom = 12.dp)
-                                    )
-
-                                    OutlinedTextField(
-                                        value = otpInput,
-                                        onValueChange = { if (it.length <= 6) otpInput = it },
-                                        label = { Text("6-Digit OTP (e.g. 422045)") },
-                                        leadingIcon = { Icon(Icons.Default.Security, contentDescription = null) },
-                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                        modifier = Modifier.fillMaxWidth(),
-                                        shape = RoundedCornerShape(14.dp)
-                                    )
-
-                                    Spacer(modifier = Modifier.height(16.dp))
-
-                                    Button(
-                                        onClick = { viewModel.verifyMockOTP(otpInput) },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(50.dp),
-                                        shape = RoundedCornerShape(14.dp)
-                                    ) {
-                                        Text(JobaayaLocalization.translate("verify_otp", currentLang), fontWeight = FontWeight.Bold)
-                                    }
-
-                                    Spacer(modifier = Modifier.height(8.dp))
-
-                                    TextButton(onClick = { viewModel.handleLogout() }) {
-                                        Text("Go Back", color = MaterialTheme.colorScheme.secondary)
-                                    }
-                                }
-                            } else {
-                                // EMAIL MODE
-                                OutlinedTextField(
-                                    value = emailInput,
-                                    onValueChange = { emailInput = it },
-                                    label = { Text(JobaayaLocalization.translate("enter_email", currentLang)) },
-                                    leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(14.dp)
-                                )
-
-                                Spacer(modifier = Modifier.height(12.dp))
-
-                                OutlinedTextField(
-                                    value = passwordInput,
-                                    onValueChange = { passwordInput = it },
-                                    label = { Text(JobaayaLocalization.translate("enter_password", currentLang)) },
-                                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                                    visualTransformation = PasswordVisualTransformation(),
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(14.dp)
-                                )
-
-                                Spacer(modifier = Modifier.height(20.dp))
-
-                                Button(
-                                    onClick = { viewModel.simulateEmailLogin(emailInput) },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(50.dp),
-                                    shape = RoundedCornerShape(14.dp)
-                                ) {
-                                    Text(JobaayaLocalization.translate("login", currentLang), fontWeight = FontWeight.Bold)
-                                }
+                            Button(
+                                onClick = { onEmailLogin(emailInput, passwordInput) },
+                                enabled = emailInput.contains("@") && passwordInput.length >= 6,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(50.dp),
+                                shape = RoundedCornerShape(14.dp)
+                            ) {
+                                Text(JobaayaLocalization.translate("login", currentLang), fontWeight = FontWeight.Bold)
                             }
 
                             Spacer(modifier = Modifier.height(16.dp))
 
                             // Google Sign In Button
                             OutlinedButton(
-                                onClick = { viewModel.simulateGoogleSignIn() },
+                                onClick = { onGoogleSignIn() },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(50.dp),
@@ -406,6 +370,26 @@ fun AuthScreen(
                                     )
                                 }
                             }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = "New to jobaaya?",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.outline
+                                )
+                                TextButton(onClick = { onToggleOnboarding(true) }) {
+                                    Text(
+                                        text = JobaayaLocalization.translate("register", currentLang),
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                            }
                         }
                     }
                 } else {
@@ -417,15 +401,25 @@ fun AuthScreen(
                         elevation = CardDefaults.cardElevation(4.dp)
                     ) {
                         Column(
-                            modifier = Modifier.padding(24.dp)
+                            modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 24.dp)
                         ) {
-                            Text(
-                                text = JobaayaLocalization.translate("register", currentLang),
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(bottom = 16.dp)
-                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = JobaayaLocalization.translate("register", currentLang),
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                IconButton(onClick = { onToggleOnboarding(false) }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to Login")
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(16.dp))
 
                             // Role Picker (Three types)
                             Text(
@@ -477,20 +471,15 @@ fun AuthScreen(
 
                             Spacer(modifier = Modifier.height(12.dp))
 
-                            OutlinedTextField(
-                                value = regProfession,
-                                onValueChange = { regProfession = it },
-                                label = { Text(JobaayaLocalization.translate("profession", currentLang)) },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp)
+                            ProfessionPicker(
+                                currentProfession = regProfession,
+                                onProfessionChange = { regProfession = it },
+                                currentSkills = regSkills,
+                                onSkillsChange = { regSkills = it },
+                                label = JobaayaLocalization.translate("profession", currentLang)
                             )
 
-                            Text(
-                                text = JobaayaLocalization.translate("unlimited_msg", currentLang),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.outline,
-                                modifier = Modifier.padding(top = 2.dp, bottom = 12.dp)
-                            )
+                            Spacer(modifier = Modifier.height(12.dp))
 
                             OutlinedTextField(
                                 value = regSkills,
@@ -557,15 +546,15 @@ fun AuthScreen(
                             Button(
                                 onClick = {
                                     if (regName.isNotBlank() && regProfession.isNotBlank()) {
-                                        viewModel.completeOnboardingRegistration(
-                                            name = regName,
-                                            profession = regProfession,
-                                            skills = regSkills,
-                                            accountType = regAccountType,
-                                            email = regEmail,
-                                            address = regAddress,
-                                            exp = regExperience,
-                                            languages = regLanguages
+                                        onCompleteOnboarding(
+                                            regName,
+                                            regProfession,
+                                            regSkills,
+                                            regAccountType,
+                                            regEmail,
+                                            regAddress,
+                                            regExperience,
+                                            regLanguages
                                         )
                                     }
                                 },
@@ -585,4 +574,64 @@ fun AuthScreen(
             }
         }
     }
+}
+
+@Preview(showBackground = true, name = "Interactive Preview")
+@Composable
+fun AuthInteractivePreview() {
+    var isRegister by remember { mutableStateOf(false) }
+    
+    Box {
+        AuthContent(
+            currentLang = AppLanguage.ENGLISH,
+            onboardingStep = isRegister,
+            onLanguageChange = {},
+            onLogout = {},
+            onEmailLogin = { _, _ -> },
+            onGoogleSignIn = {},
+            onCompleteOnboarding = { _, _, _, _, _, _, _, _ -> },
+            onToggleOnboarding = { isRegister = it }
+        )
+        
+        // Floating button only for preview toggle
+        Button(
+            onClick = { isRegister = !isRegister },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 16.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+        ) {
+            Text(if (isRegister) "Show Login" else "Show Registration")
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun AuthScreenPreview() {
+    AuthContent(
+        currentLang = AppLanguage.ENGLISH,
+        onboardingStep = false,
+        onLanguageChange = {},
+        onLogout = {},
+        onEmailLogin = { _, _ -> },
+        onGoogleSignIn = {},
+        onCompleteOnboarding = { _, _, _, _, _, _, _, _ -> },
+        onToggleOnboarding = {}
+    )
+}
+
+@Preview(showBackground = true, name = "Onboarding")
+@Composable
+fun OnboardingPreview() {
+    AuthContent(
+        currentLang = AppLanguage.ENGLISH,
+        onboardingStep = true,
+        onLanguageChange = {},
+        onLogout = {},
+        onEmailLogin = { _, _ -> },
+        onGoogleSignIn = {},
+        onCompleteOnboarding = { _, _, _, _, _, _, _, _ -> },
+        onToggleOnboarding = {}
+    )
 }

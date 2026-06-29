@@ -12,7 +12,8 @@ enum class AppLanguage(val code: String, val displayName: String) {
     URDU("ur", "اردو (Urdu)"),
     MARATHI("mr", "मराठी (Marathi)"),
     GUJARATI("gu", "ગુજરાતી (Gujarati)"),
-    PUNJABI("pa", "ਪੰਜਾਬੀ (Punjabi)")
+    PUNJABI("pa", "ਪੰਜਾਬੀ (Punjabi)"),
+    MALAYALAM("ml", "മലയാളം (Malayalam)")
 }
 
 object JobaayaLocalization {
@@ -22,7 +23,7 @@ object JobaayaLocalization {
         return AppLanguage.entries.find { it.code == defaultLang } ?: AppLanguage.ENGLISH
     }
 
-    private val translations = mapOf(
+    private val translations: Map<AppLanguage, Map<String, String>> = mapOf(
         AppLanguage.ENGLISH to mapOf(
             "app_tagline" to "Professional Networking & Business Growth",
             "search_placeholder" to "Search profession, skill, location...",
@@ -33,8 +34,8 @@ object JobaayaLocalization {
             "admin_panel" to "Admin Panel",
             "calculator" to "Calculator",
             "bookmarks" to "Bookmarks",
-            "login_title" to "Welcome to JOBAAYA",
-            "login_subtitle" to "The Professional Growth & Networking Platform",
+            "login_title" to "Welcome",
+            "login_subtitle" to " ",
             "otp_login" to "OTP Mobile Login",
             "email_login" to "Email Login",
             "google_signin" to "Google Sign-In",
@@ -90,12 +91,13 @@ object JobaayaLocalization {
             "admin_users" to "Accounts Manager",
             "admin_reports" to "Moderation Audit Logs",
             "admin_analytics" to "Growth Insights Dashboard",
-            "create_note" to "Create Sticky Note",
+            "create_note" to "Create Note",
             "note_title" to "Title",
             "note_body" to "Write something...",
             "delete" to "Delete",
             "calc_title" to "Service Calculator",
-            "calc_hint" to "Calculate rates, taxes, & quotations",
+            "calc_hint" to "Calculate rates, & quotations",
+            "currency_counter" to "Cash Counter",
             "hiring_success" to "Congratulation! Your hiring enquiry has been dispatched locally.",
             "unlimited_msg" to "Enter any custom trade. Supports electrician, mechanic, doctor, consultant, or any future profession.",
             "no_results" to "No professionals match your filters. Try search keywords!"
@@ -110,7 +112,7 @@ object JobaayaLocalization {
             "admin_panel" to "एडमिन पैनल",
             "calculator" to "कैलकुलेटर",
             "bookmarks" to "बुकमार्क",
-            "login_title" to "JOBAAYA में आपका स्वागत है",
+            "login_title" to "jobaaya में आपका स्वागत है",
             "login_subtitle" to "पेशेवर विकास और नेटवर्किंग मंच",
             "otp_login" to "ओटीपी मोबाइल लॉगिन",
             "email_login" to "ईमेल लॉगिन",
@@ -167,15 +169,34 @@ object JobaayaLocalization {
             "admin_users" to "खाता प्रबंधक",
             "admin_reports" to "रिपोर्ट और ब्लॉक ऑडिट",
             "admin_analytics" to "व्यावसायिक अंतर्दृष्टि",
-            "create_note" to "नोट बनाएं",
+            "create_note" to "क्रिएट नोट",
             "note_title" to "शीर्षक",
             "note_body" to "कुछ लिखें...",
             "delete" to "हटाएं",
             "calc_title" to "सेवा दर और कोटेशन कैलकुलेटर",
-            "calc_hint" to "दर, टैक्स और कोटेशन की गणना करें",
+            "calc_hint" to "दर और कोटेशन की गणना करें",
+            "currency_counter" to "कैश काउंटर",
             "hiring_success" to "बधाई! आपकी पूछताछ स्थानीय स्तर पर भेज दी गई है।",
             "unlimited_msg" to "किसी भी पेशे को दर्ज करें। कोई प्रतिबंध नहीं है।",
             "no_results" to "कोई पेशेवर नहीं मिला। कृपया अन्य खोज शब्द आज़माएं।"
+        ),
+        AppLanguage.MALAYALAM to mapOf(
+            "app_tagline" to "പ്രൊഫഷണൽ നെറ്റ്വർക്കിംഗും ബിസിനസ്സ് വളർച്ചയും",
+            "search_placeholder" to "തിരയുക...",
+            "near_me" to "എന്റെ അടുത്ത്",
+            "chats" to "ചാറ്റുകൾ",
+            "login" to "ലോഗിൻ",
+            "hire_me" to "ഹയർ ചെയ്യുക",
+            "verified" to "സ്ഥിരീകരിച്ച പ്രൊഫഷണൽ"
+        ),
+        AppLanguage.ARABIC to mapOf(
+            "app_tagline" to "التواصل المهني ونمو الأعمال",
+            "search_placeholder" to "بحث...",
+            "near_me" to "بالقرب مني",
+            "chats" to "المحادثات",
+            "login" to "تسجيل الدخول",
+            "hire_me" to "وظفني",
+            "verified" to "محترف موثق"
         )
     )
 
