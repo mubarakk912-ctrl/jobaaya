@@ -274,9 +274,19 @@ fun HomeContent(
                 Surface(
                     modifier = Modifier.clickable { onSearchQueryChange(if (cat == "All") "" else cat) },
                     shape = RoundedCornerShape(20.dp),
-                    color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
+                    color = Color.Transparent,
+                    border = BorderStroke(
+                        width = if (active) 2.dp else 1.dp,
+                        color = if (active) Color(0xFF01796F) else Color(0xFF01796F).copy(alpha = 0.4f)
+                    )
                 ) {
-                    Text(text = cat, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), color = if (active) Color.White else MaterialTheme.colorScheme.onSurface)
+                    Text(
+                        text = cat,
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        color = if (active) Color(0xFF01796F) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        fontWeight = if (active) FontWeight.Bold else FontWeight.Normal
+                    )
                 }
             }
         }

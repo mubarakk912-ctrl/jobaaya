@@ -35,16 +35,24 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Map
-import com.example.ui.screens.partnership.PartnershipHomeScreen
-import com.example.ui.screens.partnership.DealWorkspaceScreen
-import androidx.compose.material.icons.filled.Handshake
+import com.example.ui.screens.AdminScreen
+import com.example.ui.screens.AuthScreen
+import com.example.ui.screens.ChatScreen
+import com.example.ui.screens.HomeScreen
+import com.example.ui.screens.MapScreen
+import com.example.ui.screens.ProfileDetailScreen
+import com.example.ui.screens.SettingsScreen
+import com.example.ui.screens.UtilitiesScreen
+import com.example.ui.theme.MyApplicationTheme
+import com.example.viewmodel.JobaayaViewModel
+import com.example.viewmodel.ChatInbox
+import com.example.data.model.UserProfile
+import com.example.data.model.SystemNotification
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SupervisorAccount
-import androidx.compose.material3.Badge
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -69,23 +77,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.example.ui.localization.JobaayaLocalization
-import com.example.ui.screens.AdminScreen
-import com.example.ui.screens.AuthScreen
-import com.example.ui.screens.ChatScreen
-import com.example.ui.screens.HomeScreen
-import com.example.ui.screens.MapScreen
-import com.example.ui.screens.ProfileDetailScreen
-import com.example.ui.screens.SettingsScreen
-import com.example.ui.screens.UtilitiesScreen
-import com.example.ui.theme.MyApplicationTheme
-import com.example.viewmodel.JobaayaViewModel
-import androidx.compose.ui.tooling.preview.Preview
 
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -133,8 +128,6 @@ fun MainPlatformContainer(
     BackHandler(enabled = activeViewRoute != "home" || showNotificationDrawer) {
         if (showNotificationDrawer) {
             showNotificationDrawer = false
-        } else if (activeViewRoute == "deal_workspace") {
-            activeViewRoute = "partnership"
         } else if (activeViewRoute == "detail") {
             activeViewRoute = previousViewRoute
             // Prevent recursive back loops
@@ -171,21 +164,6 @@ fun MainPlatformContainer(
                         unselectedIconColor = Color.White.copy(alpha = 0.6f),
                         unselectedTextColor = Color.White.copy(alpha = 0.6f),
                         indicatorColor = Color.Transparent // Removed indicator to prevent cutting and keep it clean
-                    )
-                )
-
-                // Partnership Tab (Earn)
-                NavigationBarItem(
-                    selected = activeViewRoute == "partnership",
-                    onClick = { navigateTo("partnership") },
-                    icon = { Icon(Icons.Default.Handshake, contentDescription = "Earn", modifier = Modifier.size(21.dp)) }, 
-                    label = { Text("Earn", fontSize = 10.sp, fontWeight = FontWeight.Bold) }, 
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Color.White,
-                        selectedTextColor = Color.White,
-                        unselectedIconColor = Color.White.copy(alpha = 0.6f),
-                        unselectedTextColor = Color.White.copy(alpha = 0.6f),
-                        indicatorColor = Color.Transparent
                     )
                 )
 
@@ -230,6 +208,21 @@ fun MainPlatformContainer(
                     onClick = { navigateTo("utilities") },
                     icon = { Icon(Icons.Default.Build, contentDescription = "Utilities Tools", modifier = Modifier.size(21.dp)) }, 
                     label = { Text("Tools", fontSize = 10.sp, fontWeight = FontWeight.Bold) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Color.White,
+                        selectedTextColor = Color.White,
+                        unselectedIconColor = Color.White.copy(alpha = 0.6f),
+                        unselectedTextColor = Color.White.copy(alpha = 0.6f),
+                        indicatorColor = Color.Transparent
+                    )
+                )
+
+                // Settings Tab
+                NavigationBarItem(
+                    selected = activeViewRoute == "settings",
+                    onClick = { navigateTo("settings") },
+                    icon = { Icon(Icons.Default.Settings, contentDescription = "Settings", modifier = Modifier.size(21.dp)) }, 
+                    label = { Text("Settings", fontSize = 10.sp, fontWeight = FontWeight.Bold) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = Color.White,
                         selectedTextColor = Color.White,
@@ -315,16 +308,6 @@ fun MainPlatformContainer(
                         }
                     }
 
-                    // Settings Icon
-                    IconButton(onClick = { navigateTo("settings") }, modifier = Modifier.size(36.dp)) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Configurations",
-                            tint = if (activeViewRoute == "settings") MaterialTheme.colorScheme.primary else Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-
                     IconButton(onClick = { 
                         showNotificationDrawer = !showNotificationDrawer 
                         if (showNotificationDrawer) {
@@ -390,7 +373,11 @@ fun MainPlatformContainer(
                 )
 
                 "chats" -> ChatScreen(
-                    viewModel = viewModel
+                    viewModel = viewModel,
+                    onNavigateToProfile = { id ->
+                        detailedUserIdRoute = id
+                        navigateTo("detail")
+                    }
                 )
 
                 "utilities" -> UtilitiesScreen(
@@ -399,25 +386,6 @@ fun MainPlatformContainer(
                         detailedUserIdRoute = id
                         navigateTo("detail")
                     }
-                )
-
-                "partnership" -> PartnershipHomeScreen(
-                    viewModel = viewModel,
-                    onStartDeal = { proId -> 
-                        viewModel.startNewDeal(proId)
-                        viewModel.selectActiveChat(proId)
-                        navigateTo("chats")
-                    },
-                    onViewDeal = { dealId ->
-                        activeDealId = dealId
-                        navigateTo("deal_workspace")
-                    }
-                )
-
-                "deal_workspace" -> DealWorkspaceScreen(
-                    viewModel = viewModel,
-                    dealId = activeDealId,
-                    onBack = { navigateTo("partnership") }
                 )
 
                 "admin" -> {

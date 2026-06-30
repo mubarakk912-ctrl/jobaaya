@@ -186,14 +186,6 @@ fun SettingsScreen(
                         shape = RoundedCornerShape(10.dp)
                     )
 
-                    OutlinedTextField(
-                        value = editPhotoUrl,
-                        onValueChange = { editPhotoUrl = it },
-                        label = { Text("Profile Photo URL") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp)
-                    )
-
                     ProfessionPicker(
                         currentProfession = editProfession,
                         onProfessionChange = { editProfession = it },
@@ -249,23 +241,6 @@ fun SettingsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp)
                     )
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
-                            value = editLat,
-                            onValueChange = { editLat = it },
-                            label = { Text("Latitude") },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                        OutlinedTextField(
-                            value = editLong,
-                            onValueChange = { editLong = it },
-                            label = { Text("Longitude") },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                    }
 
                     OutlinedTextField(
                         value = editAbout,

@@ -47,20 +47,40 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.BusinessCenter
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContactPage
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardVoice
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.Pin
+import androidx.compose.material.icons.filled.PinEnd
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Poll
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Shortcut
 import androidx.compose.material.icons.filled.SmartDisplay
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.material.icons.filled.VideoCall
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -83,6 +103,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -105,6 +126,7 @@ import com.example.data.model.ChatMessage
 import com.example.viewmodel.ChatInbox
 import com.example.viewmodel.JobaayaViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -112,7 +134,8 @@ import java.util.Locale
 @Composable
 fun ChatScreen(
     viewModel: JobaayaViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onNavigateToProfile: (String) -> Unit = {}
 ) {
     val inboxList by viewModel.chatInboxList.collectAsState()
     val activeChatUserId by viewModel.activeChatUserId.collectAsState()
@@ -127,6 +150,23 @@ fun ChatScreen(
     var showForwardDialog by remember { mutableStateOf<List<ChatMessage>?>(null) }
     var selectedMessageIds by remember { mutableStateOf(setOf<Int>()) }
     var showInfoMessage by remember { mutableStateOf<ChatMessage?>(null) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var showChatMenu by remember { mutableStateOf(false) }
+    var showCallingDialog by remember { mutableStateOf<String?>(null) } // "VOICE" or "VIDEO"
+    var highlightedMessageId by remember { mutableStateOf<Int?>(null) }
+    
+    var chatSearchQuery by remember { mutableStateOf("") }
+    var isSearching by remember { mutableStateOf(false) }
+    
+    var showLocationPicker by remember { mutableStateOf(false) }
+    var showContactPicker by remember { mutableStateOf(false) }
+    var showDealDialog by remember { mutableStateOf(false) }
+    var showPollDialog by remember { mutableStateOf(false) }
+    
+    val filteredMessages = remember(currentChatMessages, chatSearchQuery) {
+        if (chatSearchQuery.isBlank()) currentChatMessages
+        else currentChatMessages.filter { it.text.contains(chatSearchQuery, ignoreCase = true) }
+    }
     
     // Media Playback & Recording State
     var activePlayingId by remember { mutableStateOf<Int?>(null) }
@@ -142,6 +182,7 @@ fun ChatScreen(
     var recordingTime by remember { mutableIntStateOf(0) }
     var recordingLocked by remember { mutableStateOf(false) }
     
+    val coroutineScope = rememberCoroutineScope()
     val listState = rememberLazyListState()
     val mediaPlayer = remember { MediaPlayer() }
     var mediaRecorder by remember { mutableStateOf<MediaRecorder?>(null) }
@@ -332,6 +373,10 @@ fun ChatScreen(
         selectedMessageIds = emptySet()
     }
 
+    BackHandler(enabled = !activeChatUserId.isNullOrEmpty() && !isSelectionMode) {
+        viewModel.selectActiveChat(null)
+    }
+
     if (!activeChatUserId.isNullOrEmpty()) {
         val activePartner = inboxList.find { it.partnerProfile.id == activeChatUserId }?.partnerProfile
             ?: otherProfiles.find { it.id == activeChatUserId }
@@ -381,9 +426,7 @@ fun ChatScreen(
                             Icon(Icons.Default.Shortcut, contentDescription = "Forward")
                         }
                         IconButton(onClick = { 
-                            val toDelete = currentChatMessages.filter { it.id in selectedMessageIds }
-                            viewModel.deleteChatMessages(toDelete)
-                            selectedMessageIds = emptySet()
+                            showDeleteDialog = true
                         }) {
                             Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red)
                         }
@@ -403,7 +446,13 @@ fun ChatScreen(
                     IconButton(onClick = { viewModel.selectActiveChat(null) }) {
                         Icon(Icons.Default.Close, contentDescription = "Back")
                     }
-                    Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer)) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primaryContainer)
+                            .clickable { onNavigateToProfile(activeChatUserId!!) }
+                    ) {
                         if (activePartner?.profilePhotoUrl?.isNotBlank() == true) {
                             AsyncImage(
                                 model = activePartner.profilePhotoUrl,
@@ -414,16 +463,89 @@ fun ChatScreen(
                         }
                     }
                     Spacer(modifier = Modifier.width(10.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(activePartner?.name ?: "Professional Chat", fontWeight = FontWeight.Bold)
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { onNavigateToProfile(activeChatUserId!!) }
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(activePartner?.name ?: "Professional Chat", fontWeight = FontWeight.Bold)
+                            if (activePartner?.isMuted == true) {
+                                Spacer(Modifier.width(4.dp))
+                                Icon(Icons.Default.NotificationsOff, null, modifier = Modifier.size(14.dp), tint = Color.Gray)
+                            }
+                        }
                         Text(
                             text = if (isTyping) "Typing..." else "Online",
                             style = MaterialTheme.typography.labelSmall,
                             color = if (isTyping) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
                         )
                     }
+                    Box {
+                        IconButton(onClick = { showChatMenu = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "Menu")
+                        }
+                        DropdownMenu(
+                            expanded = showChatMenu,
+                            onDismissRequest = { showChatMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(if (isSearching) "Close Search" else "Search Chat") },
+                                onClick = { showChatMenu = false; isSearching = !isSearching; if (!isSearching) chatSearchQuery = "" },
+                                leadingIcon = { Icon(Icons.Default.Search, null) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(if (activePartner?.isPinned == true) "Unpin Chat" else "Pin Chat") },
+                                onClick = { showChatMenu = false; viewModel.togglePinChat(activeChatUserId!!) },
+                                leadingIcon = { Icon(if (activePartner?.isPinned == true) Icons.Default.PinEnd else Icons.Default.PushPin, null) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(if (activePartner?.isMuted == true) "Unmute Chat" else "Mute Chat") },
+                                onClick = { showChatMenu = false; viewModel.toggleMuteChat(activeChatUserId!!) },
+                                leadingIcon = { Icon(if (activePartner?.isMuted == true) Icons.Default.NotificationsOff else Icons.Default.NotificationsOff, null) }
+                            )
+                            HorizontalDivider()
+                            DropdownMenuItem(
+                                text = { Text("Report") },
+                                onClick = { 
+                                    showChatMenu = false
+                                    viewModel.reportUserProfile(activeChatUserId!!)
+                                },
+                                leadingIcon = { Icon(Icons.Default.Flag, null) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Block") },
+                                onClick = { 
+                                    showChatMenu = false
+                                    viewModel.blockUserProfile(activeChatUserId!!)
+                                    viewModel.selectActiveChat(null)
+                                },
+                                leadingIcon = { Icon(Icons.Default.Block, null) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Clear chat") },
+                                onClick = { 
+                                    showChatMenu = false
+                                    viewModel.clearChat(activeChatUserId!!)
+                                },
+                                leadingIcon = { Icon(Icons.Default.DeleteSweep, null) }
+                            )
+                        }
+                    }
                 }
                 HorizontalDivider()
+                if (isSearching) {
+                    OutlinedTextField(
+                        value = chatSearchQuery,
+                        onValueChange = { chatSearchQuery = it },
+                        modifier = Modifier.fillMaxWidth().padding(8.dp),
+                        placeholder = { Text("Search messages...") },
+                        leadingIcon = { Icon(Icons.Default.Search, null) },
+                        trailingIcon = { IconButton(onClick = { isSearching = false; chatSearchQuery = "" }) { Icon(Icons.Default.Close, null) } },
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true
+                    )
+                }
             }
 
             // Message List
@@ -432,10 +554,11 @@ fun ChatScreen(
                 modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.Bottom)
             ) {
-                items(currentChatMessages) { msg ->
+                items(filteredMessages, key = { it.id }) { msg ->
                     ChatBubble(
                         message = msg,
                         isSelected = selectedMessageIds.contains(msg.id),
+                        isHighlighted = highlightedMessageId == msg.id,
                         isSelectionMode = isSelectionMode,
                         isAudioPlaying = activePlayingId == msg.id && (mediaPlayer.isPlaying || msg.mediaUrl == "simulated_audio_uri"),
                         playbackProgress = if (activePlayingId == msg.id) playbackProgress else 0f,
@@ -465,7 +588,21 @@ fun ChatScreen(
                         onToggleSelection = {
                             if (selectedMessageIds.contains(msg.id)) selectedMessageIds -= msg.id
                             else selectedMessageIds += msg.id
-                        }
+                        },
+                        onReplyClicked = { replyId: Int ->
+                            val index = currentChatMessages.indexOfFirst { it.id == replyId }
+                            if (index != -1) {
+                                coroutineScope.launch {
+                                    listState.animateScrollToItem(index)
+                                    highlightedMessageId = replyId
+                                    delay(2000)
+                                    if (highlightedMessageId == replyId) {
+                                        highlightedMessageId = null
+                                    }
+                                }
+                            }
+                        },
+                        onStarMessage = { viewModel.toggleStarMessage(it) }
                     )
                 }
                 if (isTyping) item { TypingIndicator() }
@@ -490,11 +627,19 @@ fun ChatScreen(
             // Attachment Sheet
             AnimatedVisibility(visible = showAttachmentSheet) {
                 Card(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
-                    Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                        MediaAttachmentItem(Icons.Default.Mic, "Audio", Color.Red) { audioPicker.launch("audio/*"); showAttachmentSheet = false }
-                        MediaAttachmentItem(Icons.Default.CameraAlt, "Photo", Color.Cyan) { imagePicker.launch("image/*"); showAttachmentSheet = false }
-                        MediaAttachmentItem(Icons.Default.SmartDisplay, "Video", Color.Magenta) { videoPicker.launch("video/*"); showAttachmentSheet = false }
-                        MediaAttachmentItem(Icons.Default.Description, "Document", Color.Blue) { docPicker.launch("*/*"); showAttachmentSheet = false }
+                    Column {
+                        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+                            MediaAttachmentItem(Icons.Default.Mic, "Audio", Color.Red) { audioPicker.launch("audio/*"); showAttachmentSheet = false }
+                            MediaAttachmentItem(Icons.Default.CameraAlt, "Photo", Color.Cyan) { imagePicker.launch("image/*"); showAttachmentSheet = false }
+                            MediaAttachmentItem(Icons.Default.SmartDisplay, "Video", Color.Magenta) { videoPicker.launch("video/*"); showAttachmentSheet = false }
+                            MediaAttachmentItem(Icons.Default.Description, "File", Color.Blue) { docPicker.launch("*/*"); showAttachmentSheet = false }
+                        }
+                        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+                            MediaAttachmentItem(Icons.Default.LocationOn, "Location", Color(0xFF4CAF50)) { showLocationPicker = true; showAttachmentSheet = false }
+                            MediaAttachmentItem(Icons.Default.ContactPage, "Contact", Color(0xFFFF9800)) { showContactPicker = true; showAttachmentSheet = false }
+                            MediaAttachmentItem(Icons.Default.BusinessCenter, "Direct Deal", Color(0xFF673AB7)) { showDealDialog = true; showAttachmentSheet = false }
+                            MediaAttachmentItem(Icons.Default.Poll, "Poll", Color(0xFFE91E63)) { showPollDialog = true; showAttachmentSheet = false }
+                        }
                     }
                 }
             }
@@ -701,6 +846,214 @@ fun ChatScreen(
             }
         }
     }
+
+    // Dialogs for new attachments
+    if (showLocationPicker) {
+        Dialog(onDismissRequest = { showLocationPicker = false }) {
+            Card(shape = RoundedCornerShape(16.dp)) {
+                Column(Modifier.padding(20.dp)) {
+                    Text("Share Location", fontWeight = FontWeight.Bold)
+                    Text("Mocking location fetch...", fontSize = 12.sp)
+                    Button(onClick = { 
+                        viewModel.sendLocationMessage(28.6139, 77.2090, "Connaught Place, New Delhi")
+                        showLocationPicker = false 
+                    }, Modifier.align(Alignment.End)) { Text("Send CP, Delhi") }
+                }
+            }
+        }
+    }
+
+    if (showContactPicker) {
+        Dialog(onDismissRequest = { showContactPicker = false }) {
+            Card(shape = RoundedCornerShape(16.dp)) {
+                Column(Modifier.padding(20.dp)) {
+                    Text("Share Contact", fontWeight = FontWeight.Bold)
+                    var name by remember { mutableStateOf("") }
+                    var phone by remember { mutableStateOf("") }
+                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Name") })
+                    OutlinedTextField(value = phone, onValueChange = { phone = it }, label = { Text("Phone") })
+                    Button(onClick = { 
+                        viewModel.sendContactMessage(name, phone)
+                        showContactPicker = false 
+                    }, Modifier.align(Alignment.End)) { Text("Share") }
+                }
+            }
+        }
+    }
+
+    if (showDealDialog) {
+        Dialog(onDismissRequest = { showDealDialog = false }) {
+            Card(shape = RoundedCornerShape(16.dp)) {
+                Column(Modifier.padding(20.dp)) {
+                    Text("Direct Business Proposal", fontWeight = FontWeight.Bold)
+                    var title by remember { mutableStateOf("") }
+                    var budget by remember { mutableStateOf("") }
+                    var date by remember { mutableStateOf("") }
+                    OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Project Title") })
+                    OutlinedTextField(value = budget, onValueChange = { budget = it }, label = { Text("Budget (INR)") })
+                    OutlinedTextField(value = date, onValueChange = { date = it }, label = { Text("Completion Date") })
+                    Button(onClick = { 
+                        viewModel.sendDirectDealMessage(title, budget, date)
+                        showDealDialog = false 
+                    }, Modifier.align(Alignment.End)) { Text("Send Proposal") }
+                }
+            }
+        }
+    }
+
+    if (showPollDialog) {
+        Dialog(onDismissRequest = { showPollDialog = false }) {
+            Card(shape = RoundedCornerShape(16.dp)) {
+                Column(Modifier.padding(20.dp)) {
+                    Text("Create Poll", fontWeight = FontWeight.Bold)
+                    var q by remember { mutableStateOf("") }
+                    var opt1 by remember { mutableStateOf("") }
+                    var opt2 by remember { mutableStateOf("") }
+                    OutlinedTextField(value = q, onValueChange = { q = it }, label = { Text("Question") })
+                    OutlinedTextField(value = opt1, onValueChange = { opt1 = it }, label = { Text("Option 1") })
+                    OutlinedTextField(value = opt2, onValueChange = { opt2 = it }, label = { Text("Option 2") })
+                    Button(onClick = { 
+                        viewModel.sendPollMessage(q, listOf(opt1, opt2))
+                        showPollDialog = false 
+                    }, Modifier.align(Alignment.End)) { Text("Create Poll") }
+                }
+            }
+        }
+    }
+
+    // Delete Confirmation Dialog
+    if (showDeleteDialog) {
+        val selectedMsgs = currentChatMessages.filter { it.id in selectedMessageIds }
+        val allFromMe = selectedMsgs.all { it.isFromMe }
+
+        Dialog(onDismissRequest = { showDeleteDialog = false }) {
+            Card(
+                shape = RoundedCornerShape(28.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+            ) {
+                Column(
+                    Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        "Delete Messages?",
+                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.headlineSmall,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        "Are you sure you want to delete the selected messages?",
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(24.dp))
+                    
+                    Button(
+                        onClick = { 
+                            viewModel.deleteChatMessages(selectedMsgs)
+                            selectedMessageIds = emptySet()
+                            showDeleteDialog = false 
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) { Text("Delete for me", fontWeight = FontWeight.Bold) }
+
+                    if (allFromMe) {
+                        Spacer(Modifier.height(8.dp))
+                        androidx.compose.material3.OutlinedButton(
+                            onClick = { 
+                                viewModel.deleteChatMessages(selectedMsgs)
+                                android.widget.Toast.makeText(context, "Deleted for everyone", android.widget.Toast.LENGTH_SHORT).show()
+                                selectedMessageIds = emptySet()
+                                showDeleteDialog = false 
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                        ) { 
+                            Text(
+                                "Delete for everyone", 
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold
+                            ) 
+                        }
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+                    androidx.compose.material3.TextButton(
+                        onClick = { showDeleteDialog = false },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { 
+                        Text(
+                            "Cancel", 
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        ) 
+                    }
+                }
+            }
+        }
+    }
+
+    // Calling Simulation Dialog
+    if (showCallingDialog != null) {
+        val activePartner = inboxList.find { it.partnerProfile.id == activeChatUserId }?.partnerProfile
+            ?: otherProfiles.find { it.id == activeChatUserId }
+            
+        Dialog(onDismissRequest = { showCallingDialog = null }) {
+            Card(
+                modifier = Modifier.fillMaxSize(),
+                shape = RoundedCornerShape(0.dp),
+                colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = Color.DarkGray)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Box(modifier = Modifier.size(120.dp).clip(CircleShape).background(Color.Gray)) {
+                        if (activePartner?.profilePhotoUrl?.isNotBlank() == true) {
+                            AsyncImage(activePartner.profilePhotoUrl, null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                        }
+                    }
+                    Spacer(Modifier.height(24.dp))
+                    Text(activePartner?.name ?: "User", color = Color.White, style = MaterialTheme.typography.headlineMedium)
+                    Text(if (showCallingDialog == "VIDEO") "Video Calling..." else "Voice Calling...", color = Color.White.copy(0.7f))
+                    
+                    Spacer(Modifier.weight(1f))
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        IconButton(
+                            onClick = { showCallingDialog = null },
+                            modifier = Modifier.size(64.dp).background(Color.Red, CircleShape)
+                        ) {
+                            Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.size(32.dp))
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -711,8 +1064,23 @@ fun InboxItemRow(inbox: ChatInbox, onClick: () -> Unit) {
         }
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(inbox.partnerProfile.name, fontWeight = FontWeight.Bold)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(inbox.partnerProfile.name, fontWeight = FontWeight.Bold)
+                if (inbox.partnerProfile.isPinned) {
+                    Spacer(Modifier.width(4.dp))
+                    Icon(Icons.Default.PushPin, null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.primary)
+                }
+                if (inbox.partnerProfile.isMuted) {
+                    Spacer(Modifier.width(4.dp))
+                    Icon(Icons.Default.NotificationsOff, null, modifier = Modifier.size(12.dp), tint = Color.Gray)
+                }
+            }
             Text(inbox.lastMessage.text, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall)
+        }
+        if (inbox.unreadCount > 0) {
+            Box(modifier = Modifier.size(20.dp).background(MaterialTheme.colorScheme.primary, CircleShape), contentAlignment = Alignment.Center) {
+                Text("${inbox.unreadCount}", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            }
         }
     }
 }
@@ -727,6 +1095,7 @@ fun TypingIndicator() {
 fun ChatBubble(
     message: ChatMessage,
     isSelected: Boolean,
+    isHighlighted: Boolean,
     isSelectionMode: Boolean,
     isAudioPlaying: Boolean,
     playbackProgress: Float,
@@ -739,16 +1108,29 @@ fun ChatBubble(
     onEdit: () -> Unit,
     onForward: () -> Unit,
     onReply: () -> Unit,
-    onToggleSelection: () -> Unit
+    onToggleSelection: () -> Unit,
+    onReplyClicked: (Int) -> Unit,
+    onStarMessage: (ChatMessage) -> Unit
 ) {
     val isMe = message.isFromMe
     var showMenu by remember { mutableStateOf(false) }
     var showInfoDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
     val timeLabel = remember(message.timestamp) { SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(message.timestamp)) }
 
+    val bubbleColor = if (isHighlighted) {
+        Color(0xFF0B3A51).copy(alpha = 0.8f)
+    } else {
+        if (isMe) Color(0xFF0B3A51) else Color(0xFF1E1E1E)
+    }
+
     Row(
-        modifier = Modifier.fillMaxWidth().background(if (isSelected) MaterialTheme.colorScheme.primary.copy(0.1f) else Color.Transparent)
+        modifier = Modifier.fillMaxWidth().background(
+            if (isSelected) MaterialTheme.colorScheme.primary.copy(0.1f) 
+            else if (isHighlighted) MaterialTheme.colorScheme.secondary.copy(0.2f)
+            else Color.Transparent
+        )
             .padding(vertical = 2.dp, horizontal = 4.dp),
         horizontalArrangement = if (isMe) Arrangement.End else Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically
@@ -764,7 +1146,7 @@ fun ChatBubble(
             if (!message.forwardedFrom.isNullOrEmpty()) Text("Forwarded", fontSize = 9.sp, fontStyle = FontStyle.Italic, modifier = Modifier.padding(bottom = 2.dp))
             Card(
                 shape = RoundedCornerShape(16.dp, 16.dp, if (isMe) 4.dp else 16.dp, if (isMe) 16.dp else 4.dp),
-                colors = CardDefaults.cardColors(containerColor = if (isMe) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant),
+                colors = CardDefaults.cardColors(containerColor = bubbleColor),
                 modifier = Modifier.combinedClickable(
                     onClick = {
                         if (isSelectionMode) onToggleSelection()
@@ -791,41 +1173,66 @@ fun ChatBubble(
             ) {
                 Column {
                     if (message.replyToId != null) {
-                        Box(modifier = Modifier.padding(8.dp).fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(0.1f)).padding(8.dp)) {
-                            Text(message.replyToText ?: "Original Message", fontSize = 11.sp, color = if (isMe) Color.White else Color.Black)
+                        Box(modifier = Modifier.padding(4.dp).fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(0.15f)).clickable { 
+                            onReplyClicked(message.replyToId)
+                        }.padding(8.dp)) {
+                            Text(message.replyToText ?: "Original Message", fontSize = 10.sp, color = Color.White.copy(0.8f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                     }
-                    Box(modifier = Modifier.padding(if (message.mediaType == "PHOTO") 4.dp else 12.dp)) {
+                    Box(modifier = Modifier.padding(if (message.mediaType == "PHOTO") 2.dp else 4.dp)) {
                         Column {
-                            when (message.mediaType) {
-                                "VOICE", "AUDIO" -> {
-                                    val parts = message.text.split("|")
-                                    val staticDuration = if (parts.size > 1) {
-                                        val secs = parts[1].toIntOrNull() ?: 0
-                                        String.format("%02d:%02d", secs / 60, secs % 60)
-                                    } else "0:00"
-
-                                    VoiceMessageVisualizer(
-                                        isMe = isMe,
-                                        isPlaying = isAudioPlaying,
-                                        progress = playbackProgress,
-                                        durationLabel = if (isAudioPlaying && message.mediaUrl != "simulated_audio_uri") {
-                                            String.format("%02d:%02d", (currentPosition / 1000) / 60, (currentPosition / 1000) % 60)
-                                        } else staticDuration
-                                    )
-                                }
-                                "PHOTO" -> PhotoAttachmentVisualizer(message.mediaUrl, isMe, timeLabel, message.isRead)
-                                "VIDEO" -> VideoAttachmentVisualizer(message.mediaUrl, isMe, timeLabel, message.isRead)
-                                "DOCUMENT" -> DocumentAttachmentVisualizer(isMe, message.text)
-                                else -> Text(message.text, color = if (isMe) Color.White else Color.Black)
+                            if (message.isStarred) {
+                                Icon(Icons.Default.Star, null, modifier = Modifier.size(10.dp).align(Alignment.End), tint = Color(0xFFFFD700))
                             }
-                            if (message.mediaType != "PHOTO" && message.mediaType != "VIDEO") {
-                                Row(modifier = Modifier.align(Alignment.End), verticalAlignment = Alignment.CenterVertically) {
-                                    if (message.isEdited) Text("Edited ", fontSize = 8.sp, color = if (isMe) Color.White.copy(0.6f) else Color.Gray)
-                                    Text(timeLabel, fontSize = 9.sp, color = if (isMe) Color.White.copy(0.7f) else Color.Gray)
-                                    if (isMe) {
-                                        Spacer(Modifier.width(4.dp))
-                                        Text(if (message.isRead) "✓✓" else "✓", fontSize = 10.sp, color = if (message.isRead) Color(0xFF00E676) else Color.White.copy(0.6f))
+                            
+                            Box(modifier = Modifier.widthIn(min = 60.dp)) {
+                                Column {
+                                    when (message.mediaType) {
+                                        "VOICE", "AUDIO" -> {
+                                            val parts = message.text.split("|")
+                                            val staticDuration = if (parts.size > 1) {
+                                                val secs = parts[1].toIntOrNull() ?: 0
+                                                String.format("%02d:%02d", secs / 60, secs % 60)
+                                            } else "0:00"
+
+                                            VoiceMessageVisualizer(
+                                                isMe = isMe,
+                                                isPlaying = isAudioPlaying,
+                                                progress = playbackProgress,
+                                                durationLabel = if (isAudioPlaying && message.mediaUrl != "simulated_audio_uri") {
+                                                    String.format("%02d:%02d", (currentPosition / 1000) / 60, (currentPosition / 1000) % 60)
+                                                } else staticDuration
+                                            )
+                                        }
+                                        "PHOTO" -> PhotoAttachmentVisualizer(message.mediaUrl, isMe, timeLabel, message.isRead)
+                                        "VIDEO" -> VideoAttachmentVisualizer(message.mediaUrl, isMe, timeLabel, message.isRead)
+                                        "DOCUMENT" -> DocumentAttachmentVisualizer(isMe, message.text)
+                                        "LOCATION" -> LocationAttachmentVisualizer(isMe, message.text, message.mediaUrl)
+                                        "CONTACT" -> ContactAttachmentVisualizer(isMe, message.text)
+                                        "DEAL" -> DirectDealVisualizer(isMe, message.text)
+                                        "POLL" -> PollVisualizer(isMe, message.text)
+                                        else -> {
+                                            Text(
+                                                text = message.text,
+                                                color = Color.White,
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                modifier = Modifier.padding(start = 12.dp, end = 16.dp, top = 8.dp, bottom = 22.dp)
+                                            )
+                                        }
+                                    }
+                                }
+
+                                if (message.mediaType != "PHOTO" && message.mediaType != "VIDEO") {
+                                    Row(
+                                        modifier = Modifier.align(Alignment.BottomEnd).padding(end = 10.dp, bottom = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        if (message.isEdited) Text("Edited ", fontSize = 7.sp, color = Color.White.copy(0.5f))
+                                        Text(timeLabel, fontSize = 8.sp, color = Color.White.copy(0.6f))
+                                        if (isMe) {
+                                            Spacer(Modifier.width(2.dp))
+                                            Text(if (message.isRead) "✓✓" else "✓", fontSize = 9.sp, color = if (message.isRead) Color(0xFF00E676) else Color.White.copy(0.5f))
+                                        }
                                     }
                                 }
                             }
@@ -840,14 +1247,24 @@ fun ChatBubble(
 
         DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
             if (selectedCount <= 1) {
+                DropdownMenuItem(
+                    text = { Text("Copy") }, 
+                    onClick = { 
+                        showMenu = false
+                        clipboardManager.setText(AnnotatedString(message.text))
+                        android.widget.Toast.makeText(context, "Text copied to clipboard", android.widget.Toast.LENGTH_SHORT).show()
+                    }, 
+                    leadingIcon = { Icon(Icons.Default.ContentCopy, null) }
+                )
                 DropdownMenuItem(text = { Text("Reply") }, onClick = { showMenu = false; onReply() }, leadingIcon = { Icon(Icons.AutoMirrored.Filled.Reply, null) })
+                DropdownMenuItem(text = { Text(if (message.isStarred) "Unstar" else "Star") }, onClick = { showMenu = false; onStarMessage(message) }, leadingIcon = { Icon(if (message.isStarred) Icons.Default.StarBorder else Icons.Default.Star, null) })
                 if (isMe) {
                     DropdownMenuItem(text = { Text("Edit") }, onClick = { showMenu = false; onEdit() }, leadingIcon = { Icon(Icons.Default.Edit, null) })
                 }
             }
             DropdownMenuItem(text = { Text(if (selectedCount > 1) "Delete Selection" else "Delete") }, onClick = { showMenu = false; onDelete() }, leadingIcon = { Icon(Icons.Default.Delete, null, tint = Color.Red) })
             DropdownMenuItem(text = { Text(if (selectedCount > 1) "Forward Selection" else "Forward") }, onClick = { showMenu = false; onForward() }, leadingIcon = { Icon(Icons.Default.Shortcut, null) })
-            // Info always visible for long press
+            DropdownMenuItem(text = { Text("Report Message") }, onClick = { showMenu = false; android.widget.Toast.makeText(context, "Message reported", android.widget.Toast.LENGTH_SHORT).show() }, leadingIcon = { Icon(Icons.Default.Flag, null) })
             DropdownMenuItem(text = { Text("Info") }, onClick = { showMenu = false; showInfoDialog = true }, leadingIcon = { Icon(Icons.Default.Info, null) })
         }
     }
@@ -943,6 +1360,87 @@ fun VideoAttachmentVisualizer(url: String?, isMe: Boolean, time: String, isRead:
         Row(modifier = Modifier.align(Alignment.BottomEnd).padding(4.dp).background(Color.Black.copy(0.4f), RoundedCornerShape(8.dp)).padding(4.dp)) {
             Text(time, fontSize = 9.sp, color = Color.White)
             if (isMe) Text(if (isRead) " ✓✓" else " ✓", fontSize = 10.sp, color = if (isRead) Color.Green else Color.White)
+        }
+    }
+}
+
+@Composable
+fun LocationAttachmentVisualizer(isMe: Boolean, address: String, coords: String?) {
+    Column(modifier = Modifier.padding(4.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.LocationOn, null, tint = if (isMe) Color.White else Color(0xFF4CAF50))
+            Spacer(Modifier.width(8.dp))
+            Text(address, fontWeight = FontWeight.Bold, color = if (isMe) Color.White else Color.Black)
+        }
+        Spacer(Modifier.height(8.dp))
+        Button(onClick = { /* Open maps intent */ }, modifier = Modifier.fillMaxWidth().height(32.dp), shape = RoundedCornerShape(8.dp)) {
+            Text("Open Maps", fontSize = 10.sp)
+        }
+    }
+}
+
+@Composable
+fun ContactAttachmentVisualizer(isMe: Boolean, text: String) {
+    val parts = text.split("|")
+    val name = parts.getOrNull(0) ?: "Contact"
+    val phone = parts.getOrNull(1) ?: ""
+    Column(modifier = Modifier.padding(4.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.ContactPage, null, tint = if (isMe) Color.White else Color(0xFFFF9800))
+            Spacer(Modifier.width(8.dp))
+            Text(name, fontWeight = FontWeight.Bold, color = if (isMe) Color.White else Color.Black)
+        }
+        Text(phone, fontSize = 11.sp, color = if (isMe) Color.White.copy(0.7f) else Color.Gray)
+        Spacer(Modifier.height(8.dp))
+        Button(onClick = { /* Call intent */ }, modifier = Modifier.fillMaxWidth().height(32.dp), shape = RoundedCornerShape(8.dp)) {
+            Text("Save Contact", fontSize = 10.sp)
+        }
+    }
+}
+
+@Composable
+fun DirectDealVisualizer(isMe: Boolean, text: String) {
+    val parts = text.split("|")
+    val title = parts.getOrNull(0) ?: "Project Deal"
+    val budget = parts.getOrNull(1) ?: "N/A"
+    val deadline = parts.getOrNull(2) ?: "N/A"
+    Card(colors = CardDefaults.cardColors(containerColor = if (isMe) Color.White.copy(0.1f) else Color.White.copy(0.5f))) {
+        Column(modifier = Modifier.padding(8.dp)) {
+            Text("Business Proposal", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            Text(title, fontWeight = FontWeight.Bold, color = if (isMe) Color.White else Color.Black)
+            Row {
+                Text("Budget: ", fontSize = 11.sp, color = if (isMe) Color.White.copy(0.7f) else Color.Gray)
+                Text(budget, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (isMe) Color.White else Color.Black)
+            }
+            Text("Deadline: $deadline", fontSize = 11.sp, color = if (isMe) Color.White.copy(0.7f) else Color.Gray)
+            Spacer(Modifier.height(8.dp))
+            Button(onClick = { /* View details */ }, modifier = Modifier.fillMaxWidth().height(32.dp)) {
+                Text("Review Proposal", fontSize = 10.sp)
+            }
+        }
+    }
+}
+
+@Composable
+fun PollVisualizer(isMe: Boolean, text: String) {
+    val parts = text.split("|")
+    val question = parts.getOrNull(0) ?: "Poll Question"
+    val options = parts.drop(1)
+    Column(modifier = Modifier.padding(4.dp)) {
+        Text(question, fontWeight = FontWeight.Bold, color = if (isMe) Color.White else Color.Black)
+        Spacer(Modifier.height(8.dp))
+        options.forEach { option ->
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 2.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if (isMe) Color.White.copy(0.2f) else Color.Gray.copy(0.1f))
+                    .clickable { }
+                    .padding(8.dp)
+            ) {
+                Text(option, fontSize = 11.sp, color = if (isMe) Color.White else Color.Black)
+            }
         }
     }
 }

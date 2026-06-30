@@ -54,7 +54,9 @@ data class UserProfile(
     val bookmarkStatus: Boolean = false,
     val followStatus: Int = 0, // 0: None, 1: Requested, 2: Connected
     val isVerifiedPartner: Boolean = false,
-    val partnerRating: Float = 0.0f
+    val partnerRating: Float = 0.0f,
+    val isMuted: Boolean = false,
+    val isPinned: Boolean = false
 ) {
     val skills: List<String>
         get() = if (skillsRaw.isBlank()) emptyList() else skillsRaw.split(",").map { it.trim() }
@@ -110,7 +112,10 @@ data class ChatMessage(
     val forwardedFrom: String? = null, // Store name or ID of original sender
     val readAt: Long? = null,
     val replyToId: Int? = null,
-    val replyToText: String? = null
+    val replyToText: String? = null,
+    val isStarred: Boolean = false,
+    val isDisappearing: Boolean = false,
+    val expiryTimestamp: Long? = null
 )
 
 @Entity(

@@ -371,7 +371,7 @@ fun ProfileDetailScreen(
                                             mapIntent.setPackage("com.google.android.apps.maps")
                                             context.startActivity(mapIntent)
                                         } catch (e: Exception) {
-                                            Toast.makeText(context, "Opening Route coordinates: ${prof.latitude}, ${prof.longitude}", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, "Directions not available.", Toast.LENGTH_SHORT).show()
                                         }
                                     }
                                 ) {

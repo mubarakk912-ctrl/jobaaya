@@ -177,6 +177,40 @@ class JobaayaRepository(
                     isVerified = true,
                     averageRating = 4.9f,
                     reviewCount = 1
+                ),
+                UserProfile(
+                    id = java.util.UUID.randomUUID().toString(),
+                    name = "Rahul Verma",
+                    profession = "Software Engineer",
+                    skillsRaw = "Kotlin, Android, Firebase, Jetpack Compose",
+                    mobileNumber = "+91 99988 77766",
+                    emailAddress = "rahul@jobaaya.com",
+                    fullAddress = "Cyber City, Gurgaon",
+                    latitude = 28.4950,
+                    longitude = 77.0890,
+                    yearsOfExperience = 5,
+                    languagesRaw = "English, Hindi",
+                    aboutSection = "Professional Android Developer with 5 years experience in building high-scale apps.",
+                    isVerified = true,
+                    averageRating = 5.0f,
+                    reviewCount = 3
+                ),
+                UserProfile(
+                    id = java.util.UUID.randomUUID().toString(),
+                    name = "Suresh Khanna",
+                    profession = "IT Professional",
+                    skillsRaw = "Networking, CCTV, Laptop Repair, System Admin",
+                    mobileNumber = "+91 91122 33344",
+                    emailAddress = "suresh@jobaaya.com",
+                    fullAddress = "Rohini, Delhi",
+                    latitude = 28.7041,
+                    longitude = 77.1025,
+                    yearsOfExperience = 10,
+                    languagesRaw = "Hindi, English",
+                    aboutSection = "IT infrastructure and hardware specialist providing 24/7 support services.",
+                    isVerified = true,
+                    averageRating = 4.7f,
+                    reviewCount = 12
                 )
             )
             profileDao.insertProfiles(seedProfiles)

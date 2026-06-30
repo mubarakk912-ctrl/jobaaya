@@ -57,8 +57,19 @@ object ProfessionsData {
         ProfessionSuggestion("Videographer (वीडियोग्राफर)", listOf("Cinematography", "YouTube", "Events", "Reels", "Video Editing")),
         ProfessionSuggestion("Musician / Singer (गायक)", listOf("Live Performance", "Events", "Jagran", "Stage Show", "Music Class")),
         ProfessionSuggestion("Dancer / Choreographer (डांसर)", listOf("Wedding Dance", "Stage Performance", "Classes", "Folk", "Zumba")),
-        ProfessionSuggestion("Astrologer / Pandit (पंडित)", listOf("Puja Path", "Horoscope", "Vastu", "Marriage", "Katha")),
         
+        // IT & Technology (High Rank)
+        ProfessionSuggestion("IT Professional", listOf("Networking", "IT Support", "Hardware", "Troubleshooting", "System Admin")),
+        ProfessionSuggestion("Software Engineer", listOf("Java", "Python", "C++", "Architecture", "Development")),
+        ProfessionSuggestion("Web Developer", listOf("Frontend", "Backend", "Fullstack", "React", "Node.js")),
+        ProfessionSuggestion("App Developer", listOf("Android", "iOS", "Kotlin", "Flutter", "Swift")),
+        ProfessionSuggestion("UI/UX Designer", listOf("Figma", "Adobe XD", "Prototyping", "User Research", "Visual Design")),
+        ProfessionSuggestion("Data Scientist", listOf("Big Data", "Analysis", "Python", "R", "SQL")),
+        ProfessionSuggestion("AI/ML Engineer", listOf("Machine Learning", "Deep Learning", "TensorFlow", "Computer Vision", "NLP")),
+        ProfessionSuggestion("Digital Marketer", listOf("Social Media", "Ads", "Content Strategy", "Email Marketing", "Brand")),
+        ProfessionSuggestion("SEO Specialist", listOf("Ranking", "Keywords", "Backlinks", "Analytics", "Optimization")),
+        ProfessionSuggestion("Cyber Security Expert", listOf("Ethical Hacking", "Firewall", "Network Security", "Protection", "Audit")),
+
         // Specialized Trades
         ProfessionSuggestion("Mechanic ( bike/car )", listOf("Engine Repair", "Puncture", "Oil Change", "Service", "Spare Parts")),
         ProfessionSuggestion("Mistri ( Carpenter )", listOf("Woodwork", "Cabinets", "Refurbishing", "Fittings", "Design")),
@@ -186,8 +197,6 @@ object ProfessionsData {
         ProfessionSuggestion("Goldsmith (Small Items)", listOf("Nose Pin", "Earrings", "Gold Polish", "Silver Repair", "Valuation")),
         ProfessionSuggestion("Traditional Weaver", listOf("Handloom Saree", "Shawls", "Carpet", "Cotton Cloth", "Traditional")),
         ProfessionSuggestion("Potter (Seasonal Items)", listOf("Matkas", "Diyas", "Gullak", "Plant Pots", "Clay Work")),
-        ProfessionSuggestion("Astrologer (Face Reading)", listOf("Palmistry", "Vastu", "Remedies", "Consultation", "Online")),
-        ProfessionSuggestion("Pandit (Puja/Marriage)", listOf("Wedding Ceremony", "Katha", "Shanti Path", "Graha Pravesh", "Astrology")),
         ProfessionSuggestion("Maulvi (Religious)", listOf("Nikah", "Teaching", "Consultation", "Community Service", "Religious")),
         ProfessionSuggestion("Granthi (Religious)", listOf("Path", "Kirtan", "Teaching", "Ceremonies", "Religious")),
         ProfessionSuggestion("NGO / Social Worker", listOf("Help", "Donation", "Community Service", "Support", "Awareness")),

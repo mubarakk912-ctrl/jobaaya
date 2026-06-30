@@ -196,7 +196,10 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
     )
 
     val availableCategories: StateFlow<List<String>> = repository.otherProfiles.map { profiles ->
-        listOf("All") + profiles.map { it.profession }.distinct().sorted()
+        val highRank = listOf("Software Engineer", "IT Professional", "Web Developer", "Digital Marketer")
+        val dynamic = profiles.map { it.profession }.distinct()
+        val sortedDynamic = dynamic.sorted()
+        (listOf("All") + highRank + sortedDynamic + listOf("Other")).distinct()
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -233,7 +236,7 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
             val latest = messages.maxByOrNull { it.timestamp } ?: return@mapNotNull null
             val unreadCount = messages.count { !it.isRead && !it.isFromMe }
             ChatInbox(profile, latest, unreadCount)
-        }.sortedByDescending { it.lastMessage.timestamp }
+        }.sortedWith(compareByDescending<ChatInbox> { it.partnerProfile.isPinned }.thenByDescending { it.lastMessage.timestamp })
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -439,6 +442,55 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
     fun deleteChatMessages(messages: List<ChatMessage>) {
         viewModelScope.launch {
             messages.forEach { repository.deleteMessage(it) }
+        }
+    }
+
+    fun toggleStarMessage(message: ChatMessage) {
+        viewModelScope.launch {
+            repository.updateMessage(message.copy(isStarred = !message.isStarred))
+        }
+    }
+
+    fun togglePinChat(profileId: String) {
+        viewModelScope.launch {
+            val prof = db.userProfileDao.getProfileByIdDirect(profileId)
+            if (prof != null) {
+                repository.updateProfile(prof.copy(isPinned = !prof.isPinned))
+            }
+        }
+    }
+
+    fun toggleMuteChat(profileId: String) {
+        viewModelScope.launch {
+            val prof = db.userProfileDao.getProfileByIdDirect(profileId)
+            if (prof != null) {
+                repository.updateProfile(prof.copy(isMuted = !prof.isMuted))
+            }
+        }
+    }
+
+    fun sendLocationMessage(lat: Double, lng: Double, address: String) {
+        sendChatMessage(text = address, mediaType = "LOCATION", mediaUrl = "$lat,$lng")
+    }
+
+    fun sendContactMessage(name: String, phone: String) {
+        sendChatMessage(text = "$name|$phone", mediaType = "CONTACT")
+    }
+
+    fun sendDirectDealMessage(title: String, budget: String, deadline: String) {
+        sendChatMessage(text = "$title|$budget|$deadline", mediaType = "DEAL")
+    }
+
+    fun sendPollMessage(question: String, options: List<String>) {
+        val optionsStr = options.joinToString("|")
+        sendChatMessage(text = "$question|$optionsStr", mediaType = "POLL")
+    }
+
+    fun clearChat(profileId: String) {
+        viewModelScope.launch {
+            val messages = activeChatMessages.value
+            messages.forEach { repository.deleteMessage(it) }
+            addSystemNotification("Chat Cleared", "Conversation history with this user has been erased.")
         }
     }
 
