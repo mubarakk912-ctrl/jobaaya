@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -50,6 +51,7 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.BusinessCenter
 import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContactPage
@@ -119,6 +121,23 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.material3.Scaffold
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.Verified
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -162,6 +181,24 @@ fun ChatScreen(
     var showContactPicker by remember { mutableStateOf(false) }
     var showDealDialog by remember { mutableStateOf(false) }
     var showPollDialog by remember { mutableStateOf(false) }
+    var showNewChatDialog by remember { mutableStateOf(false) }
+
+    var inboxSearchQuery by remember { mutableStateOf("") }
+    var selectedInboxTab by remember { mutableIntStateOf(0) } // 0: All, 1: Unread, 2: Pinned, 3: Starred
+
+    val filteredInbox = remember(inboxList, inboxSearchQuery, selectedInboxTab) {
+        inboxList.filter {
+            val matchesSearch = it.partnerProfile.name.contains(inboxSearchQuery, ignoreCase = true) ||
+                    it.lastMessage.text.contains(inboxSearchQuery, ignoreCase = true)
+            val matchesTab = when (selectedInboxTab) {
+                1 -> it.unreadCount > 0
+                2 -> it.partnerProfile.isPinned
+                3 -> it.lastMessage.isStarred // Simplified
+                else -> true
+            }
+            matchesSearch && matchesTab
+        }
+    }
     
     val filteredMessages = remember(currentChatMessages, chatSearchQuery) {
         if (chatSearchQuery.isBlank()) currentChatMessages
@@ -751,11 +788,130 @@ fun ChatScreen(
             }
         }
     } else {
-        Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-            Text("Conversations Inbox", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            LazyColumn {
-                items(inboxList) { inbox ->
-                    InboxItemRow(inbox) { viewModel.selectActiveChat(inbox.partnerProfile.id) }
+        Scaffold(
+            floatingActionButton = {
+                FloatingActionButton(
+                    onClick = { showNewChatDialog = true },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = Color.White,
+                    shape = CircleShape
+                ) {
+                    Icon(Icons.Default.PersonAdd, contentDescription = "New Chat")
+                }
+            }
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+            ) {
+                // Professional Header
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surface)
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        text = "Messages",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    // Inbox Search
+                    OutlinedTextField(
+                        value = inboxSearchQuery,
+                        onValueChange = { inboxSearchQuery = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 56.dp),
+                        placeholder = { Text("Search conversations...", fontSize = 14.sp) },
+                        leadingIcon = { Icon(Icons.Default.Search, null, modifier = Modifier.size(20.dp)) },
+                        trailingIcon = {
+                            if (inboxSearchQuery.isNotEmpty()) {
+                                IconButton(onClick = { inboxSearchQuery = "" }) {
+                                    Icon(Icons.Default.Close, null, modifier = Modifier.size(18.dp))
+                                }
+                            }
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                        )
+                    )
+                }
+
+                // Filter Tabs
+                ScrollableTabRow(
+                    selectedTabIndex = selectedInboxTab,
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.primary,
+                    edgePadding = 16.dp,
+                    divider = {},
+                    indicator = { tabPositions ->
+                        if (selectedInboxTab < tabPositions.size) {
+                            TabRowDefaults.SecondaryIndicator(
+                                modifier = Modifier.tabIndicatorOffset(tabPositions[selectedInboxTab]),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                ) {
+                    val tabs = listOf("All", "Unread", "Pinned", "Starred")
+                    tabs.forEachIndexed { index, title ->
+                        Tab(
+                            selected = selectedInboxTab == index,
+                            onClick = { selectedInboxTab = index },
+                            text = {
+                                Text(
+                                    text = title,
+                                    fontSize = 13.sp,
+                                    fontWeight = if (selectedInboxTab == index) FontWeight.Bold else FontWeight.Medium
+                                )
+                            }
+                        )
+                    }
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+
+                if (filteredInbox.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Default.Chat,
+                                contentDescription = null,
+                                modifier = Modifier.size(64.dp),
+                                tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                            )
+                            Spacer(Modifier.height(12.dp))
+                            Text(
+                                "No conversations found",
+                                color = MaterialTheme.colorScheme.outline
+                            )
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = WindowInsets.navigationBars.asPaddingValues()
+                    ) {
+                        items(filteredInbox, key = { it.partnerProfile.id }) { inbox ->
+                            InboxItemRow(inbox) {
+                                viewModel.selectActiveChat(inbox.partnerProfile.id)
+                            }
+                            HorizontalDivider(
+                                modifier = Modifier.padding(start = 76.dp),
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.05f)
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -1054,35 +1210,221 @@ fun ChatScreen(
             }
         }
     }
+
+    // New Chat Dialog
+    if (showNewChatDialog) {
+        Dialog(onDismissRequest = { showNewChatDialog = false }) {
+            Card(
+                shape = RoundedCornerShape(24.dp),
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(Modifier.padding(20.dp)) {
+                    Text(
+                        "Start New Conversation",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    LazyColumn(modifier = Modifier.height(400.dp)) {
+                        items(otherProfiles) { profile ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        viewModel.selectActiveChat(profile.id)
+                                        showNewChatDialog = false
+                                    }
+                                    .padding(vertical = 12.dp, horizontal = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primaryContainer)
+                                ) {
+                                    if (profile.profilePhotoUrl.isNotBlank()) {
+                                        AsyncImage(profile.profilePhotoUrl, null, contentScale = ContentScale.Crop)
+                                    }
+                                }
+                                Spacer(Modifier.width(12.dp))
+                                Column {
+                                    Text(profile.name, fontWeight = FontWeight.Bold)
+                                    Text(profile.profession, fontSize = 12.sp, color = Color.Gray)
+                                }
+                            }
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                        }
+                    }
+                    Spacer(Modifier.height(16.dp))
+                    androidx.compose.material3.TextButton(
+                        onClick = { showNewChatDialog = false },
+                        modifier = Modifier.align(Alignment.End)
+                    ) {
+                        Text("CANCEL")
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
 fun InboxItemRow(inbox: ChatInbox, onClick: () -> Unit) {
-    Row(modifier = Modifier.fillMaxWidth().clickable { onClick() }.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(modifier = Modifier.size(48.dp).clip(CircleShape).background(Color.LightGray)) {
-            if (inbox.partnerProfile.profilePhotoUrl.isNotBlank()) AsyncImage(inbox.partnerProfile.profilePhotoUrl, null, contentScale = ContentScale.Crop)
-        }
-        Spacer(Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(inbox.partnerProfile.name, fontWeight = FontWeight.Bold)
-                if (inbox.partnerProfile.isPinned) {
-                    Spacer(Modifier.width(4.dp))
-                    Icon(Icons.Default.PushPin, null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.primary)
-                }
-                if (inbox.partnerProfile.isMuted) {
-                    Spacer(Modifier.width(4.dp))
-                    Icon(Icons.Default.NotificationsOff, null, modifier = Modifier.size(12.dp), tint = Color.Gray)
-                }
-            }
-            Text(inbox.lastMessage.text, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall)
-        }
-        if (inbox.unreadCount > 0) {
-            Box(modifier = Modifier.size(20.dp).background(MaterialTheme.colorScheme.primary, CircleShape), contentAlignment = Alignment.Center) {
-                Text("${inbox.unreadCount}", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-            }
+    val partner = inbox.partnerProfile
+    val lastMsg = inbox.lastMessage
+    val context = LocalContext.current
+    
+    val timeLabel = remember(lastMsg.timestamp) {
+        val now = System.currentTimeMillis()
+        val diff = now - lastMsg.timestamp
+        when {
+            diff < 24 * 60 * 60 * 1000 -> SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(lastMsg.timestamp))
+            diff < 48 * 60 * 60 * 1000 -> "Yesterday"
+            else -> SimpleDateFormat("dd/MM/yy", Locale.getDefault()).format(Date(lastMsg.timestamp))
         }
     }
+
+    ListItem(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        leadingContent = {
+            Box {
+                Box(
+                    modifier = Modifier
+                        .size(52.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer)
+                ) {
+                    if (partner.profilePhotoUrl.isNotBlank()) {
+                        AsyncImage(
+                            model = partner.profilePhotoUrl,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Icon(
+                            Icons.Default.PersonAdd,
+                            contentDescription = null,
+                            modifier = Modifier.align(Alignment.Center),
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+                
+                // Online Status Indicator
+                Box(
+                    modifier = Modifier
+                        .size(14.dp)
+                        .align(Alignment.BottomEnd)
+                        .background(Color.White, CircleShape)
+                        .padding(2.dp)
+                        .background(Color(0xFF4CAF50), CircleShape)
+                )
+            }
+        },
+        headlineContent = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = partner.name,
+                    fontWeight = if (inbox.unreadCount > 0) FontWeight.ExtraBold else FontWeight.Bold,
+                    fontSize = 16.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                if (partner.isVerified) {
+                    Spacer(Modifier.width(4.dp))
+                    Icon(
+                        Icons.Default.Verified,
+                        contentDescription = "Verified",
+                        tint = Color(0xFF1E88E5),
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+                if (partner.isPinned) {
+                    Spacer(Modifier.width(6.dp))
+                    Icon(
+                        Icons.Default.PushPin,
+                        null,
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        },
+        supportingContent = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (lastMsg.isFromMe) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = if (lastMsg.isRead) Color(0xFF00E676) else Color.Gray
+                    )
+                    Spacer(Modifier.width(4.dp))
+                }
+                
+                val previewPrefix = when (lastMsg.mediaType) {
+                    "PHOTO" -> "📷 Photo"
+                    "VIDEO" -> "🎥 Video"
+                    "VOICE", "AUDIO" -> "🎤 Audio"
+                    "LOCATION" -> "📍 Location"
+                    "DOCUMENT" -> "📄 Document"
+                    "DEAL" -> "💼 Business Deal"
+                    "POLL" -> "📊 Poll"
+                    else -> ""
+                }
+                
+                Text(
+                    text = if (previewPrefix.isNotEmpty()) previewPrefix else lastMsg.text,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (inbox.unreadCount > 0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline
+                )
+            }
+        },
+        trailingContent = {
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = timeLabel,
+                    fontSize = 11.sp,
+                    color = if (inbox.unreadCount > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                    fontWeight = if (inbox.unreadCount > 0) FontWeight.Bold else FontWeight.Normal
+                )
+                Spacer(Modifier.height(6.dp))
+                if (inbox.unreadCount > 0) {
+                    Box(
+                        modifier = Modifier
+                            .size(20.dp)
+                            .background(MaterialTheme.colorScheme.primary, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "${inbox.unreadCount}",
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                } else if (partner.isMuted) {
+                    Icon(
+                        Icons.Default.NotificationsOff,
+                        null,
+                        modifier = Modifier.size(14.dp),
+                        tint = Color.Gray.copy(alpha = 0.6f)
+                    )
+                }
+            }
+        },
+        colors = ListItemDefaults.colors(
+            containerColor = if (partner.isPinned) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f) else Color.Transparent
+        )
+    )
 }
 
 @Composable
@@ -1212,26 +1554,25 @@ fun ChatBubble(
                                         "DEAL" -> DirectDealVisualizer(isMe, message.text)
                                         "POLL" -> PollVisualizer(isMe, message.text)
                                         else -> {
-                                            Text(
-                                                text = message.text,
-                                                color = Color.White,
-                                                style = MaterialTheme.typography.bodyLarge,
-                                                modifier = Modifier.padding(start = 12.dp, end = 16.dp, top = 8.dp, bottom = 22.dp)
-                                            )
-                                        }
-                                    }
-                                }
-
-                                if (message.mediaType != "PHOTO" && message.mediaType != "VIDEO") {
-                                    Row(
-                                        modifier = Modifier.align(Alignment.BottomEnd).padding(end = 10.dp, bottom = 4.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        if (message.isEdited) Text("Edited ", fontSize = 7.sp, color = Color.White.copy(0.5f))
-                                        Text(timeLabel, fontSize = 8.sp, color = Color.White.copy(0.6f))
-                                        if (isMe) {
-                                            Spacer(Modifier.width(2.dp))
-                                            Text(if (message.isRead) "✓✓" else "✓", fontSize = 9.sp, color = if (message.isRead) Color(0xFF00E676) else Color.White.copy(0.5f))
+                                            Column(modifier = Modifier.padding(start = 12.dp, end = 16.dp, top = 8.dp, bottom = 4.dp)) {
+                                                Text(
+                                                    text = message.text,
+                                                    color = Color.White,
+                                                    style = MaterialTheme.typography.bodyLarge
+                                                )
+                                                Spacer(modifier = Modifier.height(6.dp))
+                                                Row(
+                                                    modifier = Modifier.align(Alignment.End),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    if (message.isEdited) Text("Edited ", fontSize = 8.sp, color = Color.White.copy(0.5f))
+                                                    Text(timeLabel, fontSize = 9.sp, color = Color.White.copy(0.7f), fontWeight = FontWeight.Medium)
+                                                    if (isMe) {
+                                                        Spacer(Modifier.width(3.dp))
+                                                        Text(if (message.isRead) "✓✓" else "✓", fontSize = 10.sp, color = if (message.isRead) Color(0xFF00E676) else Color.White.copy(0.6f))
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
                                 }

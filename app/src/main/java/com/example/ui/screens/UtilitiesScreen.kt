@@ -1003,7 +1003,7 @@ fun CurrencyTabSection(
 
     val totalAmount = denominations.sumOf { (it * (counts[it]?.toLongOrNull() ?: 0L)) }
 
-    val offWhite = Color(0xFFF5F5F5)
+    val contentColor = MaterialTheme.colorScheme.onSurface
 
     Column(
         modifier = Modifier
@@ -1074,7 +1074,7 @@ fun CurrencyTabSection(
                         Text(
                             text = "  x ",
                             fontWeight = FontWeight.Bold,
-                            color = offWhite
+                            color = contentColor
                         )
 
                         TextField(
@@ -1084,35 +1084,36 @@ fun CurrencyTabSection(
                                     counts = counts.toMutableMap().apply { put(denom, newVal) }
                                 }
                             },
-                            placeholder = { Text("0", fontSize = 14.sp, color = offWhite.copy(alpha=0.5f)) },
+                            placeholder = { Text("0", fontSize = 14.sp, color = contentColor.copy(alpha=0.5f)) },
                             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                                 keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
                             ),
                             modifier = Modifier
                                 .width(100.dp)
-                                .border(1.dp, offWhite.copy(alpha = 0.3f), RoundedCornerShape(8.dp)),
+                                .border(1.dp, contentColor.copy(alpha = 0.3f), RoundedCornerShape(8.dp)),
                             singleLine = true,
                             colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.Black.copy(alpha = 0.1f),
+                                focusedContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
                                 unfocusedContainerColor = Color.Transparent,
                                 focusedIndicatorColor = Color.Transparent,
                                 unfocusedIndicatorColor = Color.Transparent,
-                                focusedTextColor = offWhite,
-                                unfocusedTextColor = offWhite
+                                focusedTextColor = contentColor,
+                                unfocusedTextColor = contentColor
                             ),
-                            textStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 16.sp, color = offWhite, textAlign = TextAlign.Center)
+                            textStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 16.sp, color = contentColor, textAlign = TextAlign.Center)
                         )
                     }
 
                     Text(
                         text = "= ₹ ${denom * (counts[denom]?.toLongOrNull() ?: 0L)}",
                         fontWeight = FontWeight.Black,
-                        color = offWhite,
+                        color = contentColor,
                         style = MaterialTheme.typography.bodyLarge
                     )
                 }
             }
         }
+
         
         Button(
             onClick = { counts = denominations.associateWith { "" } },

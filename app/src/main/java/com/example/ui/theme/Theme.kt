@@ -13,38 +13,32 @@ import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme =
   darkColorScheme(
-    primary = PineGreen,
+    primary = Color(0xFF0B3A51),
     onPrimary = Color.White,
-    primaryContainer = HunterGreenDark,
+    primaryContainer = Color(0xFF1B4D3E),
     onPrimaryContainer = Color.White,
-    secondary = FoxtonsDarkGreen,
+    secondary = PineGreen,
     onSecondary = Color.White,
-    secondaryContainer = Color(0xFF00281F),
-    onSecondaryContainer = Color.White,
-    tertiary = HunterGreenLight,
-    onTertiary = Color.White,
-    background = Color(0xFF001A05),
-    surface = Color(0xFF001A05),
+    background = Color(0xFF121212),
+    surface = Color(0xFF1E1E1E),
     onBackground = Color.White,
-    onSurface = OffWhite
+    onSurface = Color.White,
+    outline = Color.LightGray
   )
 
 private val LightColorScheme =
   lightColorScheme(
-    primary = PineGreen,
+    primary = Color(0xFF0B3A51),
     onPrimary = Color.White,
     primaryContainer = Color(0xFFE8F5E9),
-    onPrimaryContainer = PineGreen,
-    secondary = FoxtonsDarkGreen,
+    onPrimaryContainer = Color(0xFF0B3A51),
+    secondary = PineGreen,
     onSecondary = Color.White,
-    secondaryContainer = Color(0xFFDCEDC8),
-    onSecondaryContainer = Color(0xFF33691E),
-    tertiary = HunterGreen,
-    onTertiary = Color.White,
-    background = Color(0xFF001A05), // Keeping it dark as per user preference for white headings
-    surface = Color(0xFF001A05),
-    onBackground = Color.White,
-    onSurface = OffWhite
+    background = Color(0xFFF5F5F5),
+    surface = Color.White,
+    onBackground = Color.Black,
+    onSurface = Color.Black,
+    outline = Color.Gray
   )
 
 @Composable

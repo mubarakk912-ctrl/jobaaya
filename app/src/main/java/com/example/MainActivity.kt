@@ -87,9 +87,10 @@ class MainActivity : ComponentActivity() {
     super.onCreate(savedInstanceState)
     enableEdgeToEdge()
     setContent {
-      MyApplicationTheme {
-        val rootViewModel: JobaayaViewModel = viewModel()
-        
+      val rootViewModel: JobaayaViewModel = viewModel()
+      val isDarkMode by rootViewModel.isDarkMode.collectAsState()
+
+      MyApplicationTheme(darkTheme = isDarkMode) {
         val isLoggedIn by rootViewModel.isLoggedIn.collectAsState()
         
         if (!isLoggedIn) {

@@ -34,6 +34,9 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.io.File
+import java.io.FileOutputStream
+import java.io.InputStream
 import java.util.UUID
 
 private data class FilterSet1(val query: String, val avail: String, val rating: Float, val exp: Int)
@@ -189,6 +192,14 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
 
             matchesCity && matchesQuery && matchesAvailability && matchesRating && matchesExperience && matchesLanguage && matchesDistance
         }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
+
+    val blockedProfiles: StateFlow<List<UserProfile>> = repository.otherProfiles.map { profiles ->
+        profiles.filter { it.isBlocked }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -406,12 +417,19 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
         val destId = _activeChatUserId.value
         if (!destId.isNullOrEmpty()) {
             viewModelScope.launch {
+                var finalMediaUrl = mediaUrl
+                
+                // If it's a content URI (e.g. from picker), copy to internal storage for persistence
+                if (mediaUrl != null && mediaUrl.startsWith("content://")) {
+                    finalMediaUrl = saveMediaToInternalStorage(mediaUrl)
+                }
+
                 val msg = ChatMessage(
                     chatWithProfileId = destId,
                     isFromMe = true,
                     text = text,
                     mediaType = mediaType,
-                    mediaUrl = mediaUrl,
+                    mediaUrl = finalMediaUrl,
                     forwardedFrom = forwardedFrom,
                     replyToId = replyToId,
                     replyToText = replyToText
@@ -424,6 +442,26 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
                     repository.updateProfile(other.copy(interactionsCount = other.interactionsCount + 1))
                 }
             }
+        }
+    }
+
+    private fun saveMediaToInternalStorage(uriString: String): String {
+        return try {
+            val context = getApplication<Application>()
+            val uri = android.net.Uri.parse(uriString)
+            val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
+            val fileName = "chat_media_${System.currentTimeMillis()}"
+            val file = File(context.filesDir, fileName)
+            
+            inputStream?.use { input ->
+                FileOutputStream(file).use { output ->
+                    input.copyTo(output)
+                }
+            }
+            file.absolutePath
+        } catch (e: Exception) {
+            e.printStackTrace()
+            uriString // Fallback to original URI if copy fails
         }
     }
 
@@ -568,6 +606,16 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun unblockUserProfile(profileId: String) {
+        viewModelScope.launch {
+            val prof = db.userProfileDao.getProfileByIdDirect(profileId)
+            if (prof != null) {
+                repository.updateProfile(prof.copy(isBlocked = false))
+                addSystemNotification("User Unblocked", "${prof.name} is now visible again.")
+            }
+        }
+    }
+
     // Admin commands
     fun adminToggleVerification(profileId: String) {
         viewModelScope.launch {
@@ -700,6 +748,42 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
 
     fun setFilterDistance(distance: Float) {
         _filterDistanceKm.value = distance
+    }
+
+    // App Settings states
+    private val _isDarkMode = MutableStateFlow(false)
+    val isDarkMode: StateFlow<Boolean> = _isDarkMode.asStateFlow()
+
+    private val _fontSizeMultiplier = MutableStateFlow(1.0f)
+    val fontSizeMultiplier: StateFlow<Float> = _fontSizeMultiplier.asStateFlow()
+
+    private val _isMobilePublic = MutableStateFlow(true)
+    val isMobilePublic: StateFlow<Boolean> = _isMobilePublic.asStateFlow()
+
+    private val _isAccountPrivate = MutableStateFlow(false)
+    val isAccountPrivate: StateFlow<Boolean> = _isAccountPrivate.asStateFlow()
+
+    private val _serviceRadius = MutableStateFlow(20f)
+    val serviceRadius: StateFlow<Float> = _serviceRadius.asStateFlow()
+
+    fun toggleDarkMode(enabled: Boolean) {
+        _isDarkMode.value = enabled
+    }
+
+    fun setFontSizeMultiplier(multiplier: Float) {
+        _fontSizeMultiplier.value = multiplier
+    }
+
+    fun setMobilePublic(enabled: Boolean) {
+        _isMobilePublic.value = enabled
+    }
+
+    fun setAccountPrivate(enabled: Boolean) {
+        _isAccountPrivate.value = enabled
+    }
+
+    fun setServiceRadius(radius: Float) {
+        _serviceRadius.value = radius
     }
 
     fun handleLogout() {

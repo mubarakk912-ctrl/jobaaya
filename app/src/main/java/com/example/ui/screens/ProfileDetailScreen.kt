@@ -101,19 +101,24 @@ fun ProfileDetailScreen(
     val context = LocalContext.current
     val currentLang by viewModel.currentLanguage.collectAsState()
     val profiles by viewModel.filteredProfiles.collectAsState()
+    val myProfile by viewModel.myProfile.collectAsState()
 
     // Query specific profile details
     var profile by remember { mutableStateOf<UserProfile?>(null) }
     val profileReviews by (profile?.let { viewModel.getProfileReviews(it.id) } ?: kotlinx.coroutines.flow.flowOf(emptyList())).collectAsState(initial = emptyList())
     
     // Seed and trigger tracking views
-    LaunchedEffect(profileId, profiles) {
-        val found = profiles.find { it.id == profileId }
-        if (found != null && profile == null) {
-            profile = found
-            viewModel.incrementViewsCount(profileId)
-        } else if (found != null) {
-            profile = found
+    LaunchedEffect(profileId, profiles, myProfile) {
+        if (myProfile?.id == profileId) {
+            profile = myProfile
+        } else {
+            val found = profiles.find { it.id == profileId }
+            if (found != null && profile == null) {
+                profile = found
+                viewModel.incrementViewsCount(profileId)
+            } else if (found != null) {
+                profile = found
+            }
         }
     }
 

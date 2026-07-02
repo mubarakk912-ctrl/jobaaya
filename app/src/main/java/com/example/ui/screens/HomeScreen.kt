@@ -180,7 +180,7 @@ fun HomeContent(
                         Surface(
                             onClick = onNearMeClick,
                             shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.primary,
+                            color = Color(0xFF0B3A51), // Deep Teal
                             modifier = Modifier.height(32.dp)
                         ) {
                             Row(
@@ -200,7 +200,7 @@ fun HomeContent(
                             Icon(
                                 imageVector = Icons.Default.FilterList,
                                 contentDescription = "Filters",
-                                tint = if (showFilters) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                tint = if (showFilters) Color(0xFF0B3A51) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                                 modifier = Modifier.size(17.dp)
                             )
                         }
@@ -213,12 +213,12 @@ fun HomeContent(
                 shape = RoundedCornerShape(12.dp),
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    focusedBorderColor = Color(0xFF0B3A51),
                     unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f),
-                    focusedContainerColor = Color.Black.copy(alpha = 0.05f),
-                    unfocusedContainerColor = Color.Black.copy(alpha = 0.05f),
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                 )
             )
         }
@@ -236,7 +236,7 @@ fun HomeContent(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f))
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(text = "Refine Network Search", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = Color.White)
+                    Text(text = "Refine Network Search", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text("Experience (Min: $selectedExp Years)", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface)
@@ -252,7 +252,7 @@ fun HomeContent(
                                 val active = selectedRating == stars
                                 Surface(
                                     modifier = Modifier.padding(horizontal = 4.dp).clickable { onFilterRatingChange(stars) },
-                                    color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                    color = if (active) Color(0xFF0B3A51) else MaterialTheme.colorScheme.surfaceVariant,
                                     shape = CircleShape
                                 ) {
                                     Text(text = if (stars == 0.0f) "All" else "$stars★", style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), color = if (active) Color.White else MaterialTheme.colorScheme.onSurfaceVariant)
@@ -274,17 +274,17 @@ fun HomeContent(
                 Surface(
                     modifier = Modifier.clickable { onSearchQueryChange(if (cat == "All") "" else cat) },
                     shape = RoundedCornerShape(20.dp),
-                    color = Color.Transparent,
+                    color = if (active) Color(0xFF0B3A51).copy(alpha = 0.1f) else Color.Transparent,
                     border = BorderStroke(
                         width = if (active) 2.dp else 1.dp,
-                        color = if (active) Color(0xFF01796F) else Color(0xFF01796F).copy(alpha = 0.4f)
+                        color = if (active) Color(0xFF0B3A51) else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
                     )
                 ) {
                     Text(
                         text = cat,
                         style = MaterialTheme.typography.labelLarge,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                        color = if (active) Color(0xFF01796F) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        color = if (active) Color(0xFF0B3A51) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         fontWeight = if (active) FontWeight.Bold else FontWeight.Normal
                     )
                 }
@@ -311,7 +311,7 @@ fun HomeContent(
                         HorizontalDivider(
                             modifier = Modifier.padding(horizontal = 16.dp),
                             thickness = 1.dp,
-                            color = Color.Gray.copy(alpha = 0.5f)
+                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
                         )
                     }
                 }
@@ -337,8 +337,8 @@ fun ProfileListItem(
             .padding(horizontal = 2.dp, vertical = 6.dp)
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF00120F)),
-        elevation = CardDefaults.cardElevation(4.dp)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             // Top Section: Avatar, Name, Profession
@@ -347,7 +347,7 @@ fun ProfileListItem(
                     modifier = Modifier
                         .size(54.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFF015F56)),
+                        .background(MaterialTheme.colorScheme.primaryContainer),
                     contentAlignment = Alignment.Center
                 ) {
                     if (profile.profilePhotoUrl.isNotBlank()) {
@@ -361,12 +361,7 @@ fun ProfileListItem(
                             contentScale = ContentScale.Crop
                         )
                     } else {
-                        // Khali Placeholder
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(Color(0xFF015F56))
-                        )
+                        Icon(Icons.Default.Person, null, modifier = Modifier.size(30.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
                     }
                 }
                 Spacer(modifier = Modifier.width(16.dp))
@@ -376,7 +371,7 @@ fun ProfileListItem(
                             text = profile.name,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         if (profile.isVerified) {
                             Spacer(modifier = Modifier.width(6.dp))
@@ -404,7 +399,7 @@ fun ProfileListItem(
                     Icon(
                         imageVector = if (profile.bookmarkStatus) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
                         contentDescription = "Shortlist",
-                        tint = if (profile.bookmarkStatus) Color(0xFFFFB300) else Color.White.copy(alpha = 0.6f),
+                        tint = if (profile.bookmarkStatus) Color(0xFFFFB300) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -428,12 +423,12 @@ fun ProfileListItem(
                     text = String.format("%.1f", profile.averageRating),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = " (${profile.reviewCount})",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.outline
                 )
 
                 Spacer(modifier = Modifier.width(16.dp))
@@ -441,19 +436,19 @@ fun ProfileListItem(
                 Icon(
                     imageVector = Icons.Default.LocationOn,
                     contentDescription = null,
-                    tint = Color.Gray,
+                    tint = MaterialTheme.colorScheme.outline,
                     modifier = Modifier.size(16.dp)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = profile.fullAddress.split(",").last().trim(),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.outline
                 )
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // Get Direction - Styled as a simple clickable line
+                // Get Direction
                 Row(
                     modifier = Modifier.clickable {
                         try {
@@ -483,11 +478,11 @@ fun ProfileListItem(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Expertise & Custom Skills Button - Now Toggles details
+            // Expertise & Custom Skills Button
             Box(
                 modifier = Modifier
-                    .background(Color(0xFF00120F), RoundedCornerShape(8.dp))
-                    .border(1.dp, Color(0xFF015F56), RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                    .border(1.dp, Color(0xFF015F56).copy(alpha = 0.5f), RoundedCornerShape(8.dp))
                     .clickable { showDetailedSkills = !showDetailedSkills }
                     .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
@@ -496,13 +491,13 @@ fun ProfileListItem(
                         text = "Expertise & Custom Skills",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White.copy(alpha = 0.9f)
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Icon(
                         imageVector = if (showDetailedSkills) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                         contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.7f),
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -518,8 +513,8 @@ fun ProfileListItem(
                         profile.skills.forEach { skill ->
                             Box(
                                 modifier = Modifier
-                                    .background(Color(0xFF015F56).copy(alpha = 0.2f), RoundedCornerShape(6.dp))
-                                    .border(1.dp, Color(0xFF015F56).copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                                    .background(Color(0xFF00A38E).copy(alpha = 0.1f), RoundedCornerShape(6.dp))
+                                    .border(1.dp, Color(0xFF00A38E).copy(alpha = 0.3f), RoundedCornerShape(6.dp))
                                     .padding(horizontal = 10.dp, vertical = 6.dp)
                             ) {
                                 Text(
@@ -547,7 +542,7 @@ fun ProfileListItem(
                         .weight(1f)
                         .height(40.dp),
                     shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF015F56))
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0B3A51))
                 ) {
                     Icon(
                         imageVector = Icons.Default.Chat,
@@ -572,7 +567,7 @@ fun ProfileListItem(
                         .weight(1f)
                         .height(40.dp),
                     shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF015F56))
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0B3A51))
                 ) {
                     Icon(
                         imageVector = Icons.Default.Call,
@@ -594,41 +589,48 @@ fun HomeScreenPreview() {
     MyApplicationTheme {
         HomeContent(
             currentLang = AppLanguage.ENGLISH,
-            myProfile = UserProfile(
-                name = "My Profile",
-                profession = "Developer",
-                skillsRaw = "Kotlin, Compose",
-                mobileNumber = "1234567890",
-                emailAddress = "me@example.com",
-                fullAddress = "Home",
-                latitude = 0.0,
-                longitude = 0.0,
-                yearsOfExperience = 5,
-                languagesRaw = "English",
-                aboutSection = "I am a developer",
-                isMe = true
-            ),
+            myProfile = null,
             profiles = listOf(
                 UserProfile(
-                    name = "Jane Smith",
-                    profession = "Designer",
-                    skillsRaw = "Figma, UI/UX",
-                    mobileNumber = "0987654321",
-                    emailAddress = "jane@example.com",
-                    fullAddress = "Office",
+                    id = "1",
+                    name = "John Doe",
+                    profession = "Electrician",
+                    skillsRaw = "Wiring, Repairs, Installation",
+                    mobileNumber = "1234567890",
+                    emailAddress = "john@example.com",
+                    fullAddress = "123 Main St, City",
                     latitude = 0.0,
                     longitude = 0.0,
-                    yearsOfExperience = 3,
+                    yearsOfExperience = 5,
                     languagesRaw = "English, Spanish",
-                    aboutSection = "I am a designer",
-                    averageRating = 4.5f
+                    aboutSection = "Expert electrician",
+                    isVerified = true,
+                    averageRating = 4.8f,
+                    reviewCount = 12
+                ),
+                UserProfile(
+                    id = "2",
+                    name = "Jane Smith",
+                    profession = "Plumber",
+                    skillsRaw = "Piping, Leakage, Drainage",
+                    mobileNumber = "0987654321",
+                    emailAddress = "jane@example.com",
+                    fullAddress = "456 Oak Ave, Town",
+                    latitude = 0.0,
+                    longitude = 0.0,
+                    yearsOfExperience = 8,
+                    languagesRaw = "English",
+                    aboutSection = "Professional plumber",
+                    isVerified = false,
+                    averageRating = 4.5f,
+                    reviewCount = 25
                 )
             ),
             searchQuery = "",
-            selectedAvail = "All",
-            selectedRating = 0.0f,
+            selectedAvail = "Available",
+            selectedRating = 0f,
             selectedExp = 0,
-            selectedDistance = 50.0f,
+            selectedDistance = 50f,
             onSearchQueryChange = {},
             onFilterAvailChange = {},
             onFilterRatingChange = {},
@@ -637,7 +639,8 @@ fun HomeScreenPreview() {
             onProfileClick = {},
             onChatClick = {},
             onBookmarkClick = {},
-            categories = listOf("All", "Design", "Development")
+            categories = listOf("All", "Electrician", "Plumber", "Cleaner")
         )
     }
 }
+
