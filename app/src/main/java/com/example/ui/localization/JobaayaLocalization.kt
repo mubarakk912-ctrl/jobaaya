@@ -100,7 +100,12 @@ object JobaayaLocalization {
             "currency_counter" to "Cash Counter",
             "hiring_success" to "Congratulation! Your hiring enquiry has been dispatched locally.",
             "unlimited_msg" to "Enter any custom trade. Supports electrician, mechanic, doctor, consultant, or any future profession.",
-            "no_results" to "No professionals match your filters. Try search keywords!"
+            "no_results" to "No professionals match your filters. Try search keywords!",
+            "set_photo" to "Set Profile Photo",
+            "adjust_photo" to "Adjust Photo",
+            "save_photo" to "Save Photo",
+            "cancel" to "Cancel",
+            "zoom_to_fit" to "Zoom to Fit"
         ),
         AppLanguage.HINDI to mapOf(
             "app_tagline" to "पेशेवर नेटवर्किंग और व्यावसायिक विकास",
@@ -178,7 +183,12 @@ object JobaayaLocalization {
             "currency_counter" to "कैश काउंटर",
             "hiring_success" to "बधाई! आपकी पूछताछ स्थानीय स्तर पर भेज दी गई है।",
             "unlimited_msg" to "किसी भी पेशे को दर्ज करें। कोई प्रतिबंध नहीं है।",
-            "no_results" to "कोई पेशेवर नहीं मिला। कृपया अन्य खोज शब्द आज़माएं।"
+            "no_results" to "कोई पेशेवर नहीं मिला। कृपया अन्य खोज शब्द आज़माएं।",
+            "set_photo" to "प्रोफ़ाइल फोटो सेट करें",
+            "adjust_photo" to "फोटो को सही करें",
+            "save_photo" to "फोटो सहेजें",
+            "cancel" to "रद्द करें",
+            "zoom_to_fit" to "फिट करने के लिए ज़ूम करें"
         ),
         AppLanguage.MALAYALAM to mapOf(
             "app_tagline" to "പ്രൊഫഷണൽ നെറ്റ്വർക്കിംഗും ബിസിനസ്സ് വളർച്ചയും",

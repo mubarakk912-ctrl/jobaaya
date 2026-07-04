@@ -30,3 +30,9 @@ fun ViewHomeScreen() {
         HomeScreenPreview()
     }
 }
+
+@Preview(showBackground = true, name = "4. Profile Screen")
+@Composable
+fun ViewProfileScreen() {
+    // We would need a mock ViewModel here, but for now just showing the UI
+}

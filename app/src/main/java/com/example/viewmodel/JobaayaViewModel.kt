@@ -4,6 +4,9 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
+import androidx.core.net.toUri
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 import com.example.data.database.JobaayaDatabase
 import com.example.data.auth.SessionManager
 import com.example.data.model.AccountType
@@ -337,6 +340,7 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
                 languagesRaw = languages,
                 aboutSection = "Verified $profession providing customer success. Certified skills: $skills.",
                 accountType = accountType.name,
+                profilePhotoUrl = existing?.profilePhotoUrl ?: "",
                 isMe = true,
                 isVerified = false,
                 availabilityStatus = WorkStatus.AVAILABLE.name
@@ -350,8 +354,14 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
 
     fun updateMyProfessionalProfile(profile: UserProfile) {
         viewModelScope.launch {
-            repository.updateProfile(profile)
-            addSystemNotification("Profile Alert", "Your availability and location coordinates was modified successfully.")
+            val existing = repository.getMyProfileDirect()
+            val finalProfile = if (existing != null) {
+                profile.copy(profilePhotoUrl = existing.profilePhotoUrl)
+            } else {
+                profile
+            }
+            repository.updateProfile(finalProfile)
+            addSystemNotification("Profile Alert", "Your professional profile details were updated.")
         }
     }
 
@@ -445,12 +455,52 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    private fun saveMediaToInternalStorage(uriString: String): String {
+    fun uploadProfilePhoto(uri: android.net.Uri, scale: Float = 1f, offsetX: Float = 0f, offsetY: Float = 0f) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val context = getApplication<android.app.Application>()
+                val fileName = "avatar_${System.currentTimeMillis()}.jpg"
+                val file = java.io.File(context.filesDir, fileName)
+                
+                withContext(Dispatchers.IO) {
+                    context.filesDir.listFiles()?.forEach { 
+                        if (it.name.startsWith("avatar_") && it.name.endsWith(".jpg")) {
+                            it.delete()
+                        }
+                    }
+                    context.contentResolver.openInputStream(uri)?.use { input ->
+                        java.io.FileOutputStream(file).use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                }
+
+                val finalPath = file.absolutePath
+                val me = repository.getMyProfileDirect()
+                if (me != null) {
+                    repository.updateProfile(me.copy(profilePhotoUrl = finalPath))
+                    withContext(Dispatchers.Main) {
+                        android.widget.Toast.makeText(context, "Photo Uploaded & Saved!", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    android.widget.Toast.makeText(getApplication(), "Error: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    private fun saveMediaToInternalStorage(uriString: String, customFileName: String? = null): String {
         return try {
             val context = getApplication<Application>()
             val uri = android.net.Uri.parse(uriString)
             val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
-            val fileName = "chat_media_${System.currentTimeMillis()}"
+            val fileName = customFileName ?: "chat_media_${System.currentTimeMillis()}"
             val file = File(context.filesDir, fileName)
             
             inputStream?.use { input ->
@@ -461,7 +511,7 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
             file.absolutePath
         } catch (e: Exception) {
             e.printStackTrace()
-            uriString // Fallback to original URI if copy fails
+            uriString
         }
     }
 

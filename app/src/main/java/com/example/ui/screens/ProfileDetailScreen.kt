@@ -1,6 +1,8 @@
 package com.example.ui.screens
 
 import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import android.net.Uri
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
@@ -26,6 +28,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Call
@@ -82,6 +85,7 @@ import coil.request.ImageRequest
 import com.example.R
 import com.example.data.model.UserProfile
 import com.example.data.model.WorkStatus
+import com.example.ui.components.PhotoFitDialog
 import com.example.ui.localization.JobaayaLocalization
 import com.example.viewmodel.JobaayaViewModel
 import java.text.SimpleDateFormat
@@ -129,6 +133,19 @@ fun ProfileDetailScreen(
 
     // Dialog flags
     var showQrDialog by remember { mutableStateOf(false) }
+
+    val isMe = myProfile?.id == profileId
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var showFitDialog by remember { mutableStateOf(false) }
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            selectedImageUri = uri
+            showFitDialog = true
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -204,14 +221,17 @@ fun ProfileDetailScreen(
                                     .size(100.dp)
                                     .clip(CircleShape)
                                     .background(MaterialTheme.colorScheme.primary)
-                                    .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                                    .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                                    .then(if (isMe) Modifier.clickable { launcher.launch("image/*") } else Modifier),
                                 contentAlignment = Alignment.Center
                             ) {
                                 if (prof.profilePhotoUrl.isNotBlank()) {
                                     AsyncImage(
                                         model = ImageRequest.Builder(context)
-                                            .data(prof.profilePhotoUrl)
+                                            .data(if (isMe) java.io.File(prof.profilePhotoUrl) else prof.profilePhotoUrl)
                                             .crossfade(true)
+                                            .diskCachePolicy(coil.request.CachePolicy.DISABLED)
+                                            .memoryCachePolicy(coil.request.CachePolicy.DISABLED)
                                             .build(),
                                         contentDescription = prof.name,
                                         modifier = Modifier.fillMaxSize(),
@@ -224,6 +244,17 @@ fun ProfileDetailScreen(
                                             .fillMaxSize()
                                             .background(MaterialTheme.colorScheme.primary)
                                     )
+                                }
+                                
+                                if (isMe) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(Color.Black.copy(alpha = 0.2f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(Icons.Default.AddAPhoto, null, tint = Color.White.copy(alpha = 0.7f), modifier = Modifier.size(24.dp))
+                                    }
                                 }
                             }
 
@@ -722,6 +753,17 @@ fun ProfileDetailScreen(
                 }
             }
         }
+    }
+
+    if (showFitDialog && selectedImageUri != null) {
+        PhotoFitDialog(
+            uri = selectedImageUri!!,
+            onDismiss = { showFitDialog = false },
+            onConfirm = { finalUri, scale, ox, oy ->
+                viewModel.uploadProfilePhoto(finalUri, scale, ox, oy)
+                showFitDialog = false
+            }
+        )
     }
 }
 

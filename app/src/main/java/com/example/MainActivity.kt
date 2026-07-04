@@ -35,6 +35,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Close
+import com.example.ui.screens.MyProfileScreen
+import androidx.compose.material.icons.filled.Person
 import com.example.ui.screens.AdminScreen
 import com.example.ui.screens.AuthScreen
 import com.example.ui.screens.ChatScreen
@@ -81,8 +83,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import coil.request.CachePolicy
+import com.canhub.cropper.CropImageContract
+import com.canhub.cropper.CropImageOptions
+import com.canhub.cropper.CropImageView
+import de.hdodenhof.circleimageview.CircleImageView
+import androidx.appcompat.app.AppCompatActivity
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
+  private val cropImage = registerForActivityResult(CropImageContract()) { result ->
+    if (result.isSuccessful) {
+        findViewById<CircleImageView>(R.id.profile_image)?.setImageURI(result.uriContent)
+    }
+  }
+
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     enableEdgeToEdge()
@@ -218,12 +233,12 @@ fun MainPlatformContainer(
                     )
                 )
 
-                // Settings Tab
+                // Profile Tab
                 NavigationBarItem(
-                    selected = activeViewRoute == "settings",
-                    onClick = { navigateTo("settings") },
-                    icon = { Icon(Icons.Default.Settings, contentDescription = "Settings", modifier = Modifier.size(21.dp)) }, 
-                    label = { Text("Settings", fontSize = 10.sp, fontWeight = FontWeight.Bold) },
+                    selected = activeViewRoute == "profile",
+                    onClick = { navigateTo("profile") },
+                    icon = { Icon(Icons.Default.Person, contentDescription = "My Profile", modifier = Modifier.size(21.dp)) }, 
+                    label = { Text("Profile", fontSize = 10.sp, fontWeight = FontWeight.Bold) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = Color.White,
                         selectedTextColor = Color.White,
@@ -248,20 +263,23 @@ fun MainPlatformContainer(
                     modifier = Modifier
                         .align(Alignment.CenterStart)
                         .clickable {
-                            myProfile?.let {
-                                detailedUserIdRoute = it.id
-                                navigateTo("detail")
-                            }
+                            navigateTo("profile")
                         },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     if (myProfile?.profilePhotoUrl?.isNotEmpty() == true) {
                         AsyncImage(
-                            model = myProfile?.profilePhotoUrl,
+                            model = ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
+                                .data(java.io.File(myProfile!!.profilePhotoUrl))
+                                .crossfade(true)
+                                .diskCachePolicy(coil.request.CachePolicy.DISABLED)
+                                .memoryCachePolicy(coil.request.CachePolicy.DISABLED)
+                                .build(),
                             contentDescription = "Profile Logo",
                             modifier = Modifier
                                 .size(28.dp)
-                                .clip(CircleShape)
+                                .clip(CircleShape),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
                         )
                     } else {
                         // Pura khali placeholder with Calculator Action color
@@ -341,6 +359,15 @@ fun MainPlatformContainer(
                             }
                         }
                     }
+
+                    IconButton(onClick = { navigateTo("settings") }, modifier = Modifier.size(36.dp)) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Settings",
+                            tint = if (activeViewRoute == "settings") MaterialTheme.colorScheme.primary else Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
             }
         }
@@ -416,6 +443,10 @@ fun MainPlatformContainer(
                 }
 
                 "settings" -> SettingsScreen(
+                    viewModel = viewModel
+                )
+
+                "profile" -> MyProfileScreen(
                     viewModel = viewModel,
                     onPreviewClick = { id ->
                         detailedUserIdRoute = id

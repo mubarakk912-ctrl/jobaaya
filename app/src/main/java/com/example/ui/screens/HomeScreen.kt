@@ -353,8 +353,10 @@ fun ProfileListItem(
                     if (profile.profilePhotoUrl.isNotBlank()) {
                         AsyncImage(
                             model = ImageRequest.Builder(LocalContext.current)
-                                .data(profile.profilePhotoUrl)
+                                .data(if (profile.isMe) java.io.File(profile.profilePhotoUrl) else profile.profilePhotoUrl)
                                 .crossfade(true)
+                                .diskCachePolicy(coil.request.CachePolicy.DISABLED)
+                                .memoryCachePolicy(coil.request.CachePolicy.DISABLED)
                                 .build(),
                             contentDescription = profile.name,
                             modifier = Modifier.fillMaxSize(),
