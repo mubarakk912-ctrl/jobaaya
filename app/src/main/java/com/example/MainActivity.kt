@@ -100,12 +100,11 @@ class MainActivity : AppCompatActivity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+    androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES)
     enableEdgeToEdge()
     setContent {
       val rootViewModel: JobaayaViewModel = viewModel()
-      val isDarkMode by rootViewModel.isDarkMode.collectAsState()
-
-      MyApplicationTheme(darkTheme = isDarkMode) {
+      MyApplicationTheme(darkTheme = true) {
         val isLoggedIn by rootViewModel.isLoggedIn.collectAsState()
         
         if (!isLoggedIn) {

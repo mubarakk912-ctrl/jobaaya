@@ -38,7 +38,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.BugReport
-import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.Help
@@ -102,7 +101,6 @@ fun SettingsScreen(
     val context = LocalContext.current
     val currentLang by viewModel.currentLanguage.collectAsState()
     val blockedUsers by viewModel.blockedProfiles.collectAsState()
-    val isDarkMode by viewModel.isDarkMode.collectAsState()
     val isMobilePublic by viewModel.isMobilePublic.collectAsState()
     val isAccountPrivate by viewModel.isAccountPrivate.collectAsState()
 
@@ -200,18 +198,6 @@ fun SettingsScreen(
                         }
                     }
 
-                    HorizontalDivider(Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-
-                    Text(text = "Appearance", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.DarkMode, null, tint = MaterialTheme.colorScheme.outline)
-                            Spacer(Modifier.width(12.dp))
-                            Text("Dark Mode", color = MaterialTheme.colorScheme.onSurface)
-                        }
-                        Switch(checked = isDarkMode, onCheckedChange = { viewModel.toggleDarkMode(it) })
-                    }
-                    
                     HorizontalDivider(Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
                     
                     Text(text = "App & Data", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)

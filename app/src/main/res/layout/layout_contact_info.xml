@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:id="@+id/layoutMobileNumber"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:orientation="horizontal"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/bg_outlined_box"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="4dp">
+
+        <Spinner
+            android:id="@+id/spinnerCountryCode"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="0.2"
+            android:spinnerMode="dropdown"
+            android:backgroundTint="#FFFFFF"
+            android:gravity="center" />
+
+        <View
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:background="#66888888"
+            android:layout_marginVertical="12dp" />
+
+        <EditText
+            android:id="@+id/etMobileNumber"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="0.8"
+            android:hint="Mobile Number"
+            android:inputType="phone"
+            android:maxLength="15"
+            android:paddingStart="8dp"
+            android:background="@android:color/transparent"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#888888" />
+    </LinearLayout>
+
+    <EditText
+        android:id="@+id/etAddress"
+        android:layout_width="match_parent"
+        android:layout_height="120dp"
+        android:layout_marginTop="16dp"
+        android:hint="Enter your address"
+        android:inputType="textPostalAddress"
+        android:gravity="top|start"
+        android:background="@drawable/bg_outlined_box"
+        android:padding="12dp"
+        android:textColor="#FFFFFF"
+        android:textColorHint="#888888" />
+
+</LinearLayout>
