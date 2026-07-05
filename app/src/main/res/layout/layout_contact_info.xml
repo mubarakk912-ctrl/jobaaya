@@ -4,6 +4,55 @@
     android:layout_height="wrap_content"
     android:orientation="vertical">
 
+    <EditText
+        android:id="@+id/etAddressLine"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="60dp"
+        android:layout_marginTop="16dp"
+        android:hint="Address"
+        android:inputType="textMultiLine"
+        android:scrollbars="vertical"
+        android:gravity="top|start"
+        android:background="@drawable/bg_outlined_box"
+        android:padding="12dp"
+        android:textColor="#FFFFFF"
+        android:textColorHint="#888888" />
+
+    <EditText
+        android:id="@+id/etCity"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:layout_marginTop="12dp"
+        android:hint="City"
+        android:inputType="text"
+        android:background="@drawable/bg_outlined_box"
+        android:padding="12dp"
+        android:textColor="#FFFFFF"
+        android:textColorHint="#888888" />
+
+    <EditText
+        android:id="@+id/etPinCode"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:layout_marginTop="12dp"
+        android:hint="Pin Code"
+        android:inputType="number"
+        android:background="@drawable/bg_outlined_box"
+        android:padding="12dp"
+        android:textColor="#FFFFFF"
+        android:textColorHint="#888888" />
+
+    <Spinner
+        android:id="@+id/spinnerCountry"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/bg_outlined_box"
+        android:backgroundTint="#FFFFFF"
+        android:spinnerMode="dropdown"
+        android:paddingHorizontal="12dp" />
+
     <LinearLayout
         android:id="@+id/layoutMobileNumber"
         android:layout_width="match_parent"
@@ -14,14 +63,15 @@
         android:gravity="center_vertical"
         android:paddingHorizontal="4dp">
 
-        <Spinner
-            android:id="@+id/spinnerCountryCode"
+        <TextView
+            android:id="@+id/tvCountryCodeDisplay"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="0.2"
-            android:spinnerMode="dropdown"
-            android:backgroundTint="#FFFFFF"
-            android:gravity="center" />
+            android:gravity="center"
+            android:text="+91"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp" />
 
         <View
             android:layout_width="1dp"
@@ -42,18 +92,4 @@
             android:textColor="#FFFFFF"
             android:textColorHint="#888888" />
     </LinearLayout>
-
-    <EditText
-        android:id="@+id/etAddress"
-        android:layout_width="match_parent"
-        android:layout_height="120dp"
-        android:layout_marginTop="16dp"
-        android:hint="Enter your address"
-        android:inputType="textPostalAddress"
-        android:gravity="top|start"
-        android:background="@drawable/bg_outlined_box"
-        android:padding="12dp"
-        android:textColor="#FFFFFF"
-        android:textColorHint="#888888" />
-
 </LinearLayout>
