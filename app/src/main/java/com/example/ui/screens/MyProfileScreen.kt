@@ -187,6 +187,15 @@ fun MyProfileScreen(
 
                         OutlinedTextField(value = editExperience, onValueChange = { editExperience = it }, label = { Text("Years of Experience") }, modifier = Modifier.fillMaxWidth())
                         OutlinedTextField(value = editAbout, onValueChange = { editAbout = it }, label = { Text("About Me") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
+                        
+                        Button(
+                            onClick = { onPreviewClick(me.id) },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                        ) {
+                            Text("Preview")
+                        }
+
                         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                         Text(text = "Service Area: ${serviceRadius.toInt()} km", fontWeight = FontWeight.Medium)
                         Slider(value = serviceRadius, onValueChange = { viewModel.setServiceRadius(it) }, valueRange = 1f..100f)
