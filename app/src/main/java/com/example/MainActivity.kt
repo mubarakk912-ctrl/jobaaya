@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -35,6 +36,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import com.example.ui.screens.MyProfileScreen
 import androidx.compose.material.icons.filled.Person
 import com.example.ui.screens.AdminScreen
@@ -497,7 +499,7 @@ fun MainPlatformContainer(
                             Row {
                                 if (notificationsList.isNotEmpty()) {
                                     IconButton(onClick = { viewModel.clearAllNotifications() }) {
-                                        Icon(Icons.Default.Close, contentDescription = "Clear All", tint = Color.Red)
+                                        Icon(Icons.Default.Delete, contentDescription = "Clear All", tint = Color.Red, modifier = Modifier.size(20.dp))
                                     }
                                 }
                                 IconButton(onClick = { showNotificationDrawer = false }) {
@@ -506,20 +508,74 @@ fun MainPlatformContainer(
                             }
                         }
 
-                        HorizontalDivider()
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-                        LazyColumn(
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
-                            modifier = Modifier
-                                .height(220.dp)
-                                .padding(vertical = 10.dp)
-                        ) {
-                            items(notificationsList) { alert ->
-                                Column(modifier = Modifier.fillMaxWidth()) {
-                                    Text(text = alert.title, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                    Text(text = alert.content, fontSize = 11.sp, color = MaterialTheme.colorScheme.outline)
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    HorizontalDivider(color = Color.LightGray.copy(alpha = 0.4f))
+                        if (notificationsList.isEmpty()) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(150.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Icon(Icons.Default.Notifications, null, tint = Color.Gray.copy(alpha = 0.3f), modifier = Modifier.size(48.dp))
+                                    Text("No recent activity logs", color = Color.Gray, fontSize = 12.sp)
+                                }
+                            }
+                        } else {
+                            LazyColumn(
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier
+                                    .heightIn(max = 350.dp)
+                                    .padding(vertical = 4.dp)
+                            ) {
+                                items(notificationsList) { alert ->
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 4.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(8.dp)
+                                                        .clip(CircleShape)
+                                                        .background(if (alert.isRead) Color.Transparent else MaterialTheme.colorScheme.primary)
+                                                )
+                                                Spacer(Modifier.width(8.dp))
+                                                Text(
+                                                    text = alert.title,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 14.sp,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                            }
+                                            
+                                            val timeString = try {
+                                                val sdf = java.text.SimpleDateFormat("hh:mm a", java.util.Locale.getDefault())
+                                                sdf.format(java.util.Date(alert.timestamp))
+                                            } catch (e: Exception) { "" }
+                                            
+                                            Text(
+                                                text = timeString,
+                                                fontSize = 10.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                            )
+                                        }
+                                        Text(
+                                            text = alert.content,
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(start = 16.dp, top = 2.dp)
+                                        )
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                                    }
                                 }
                             }
                         }

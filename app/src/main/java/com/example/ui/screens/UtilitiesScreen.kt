@@ -431,7 +431,7 @@ fun NotesTabSection(
                             )
                         }
 
-                        Button(
+                                Button(
                             onClick = {
                                 if (noteTitle.isNotBlank() || noteContentValue.text.isNotBlank()) {
                                     viewModel.saveUtilityNote(

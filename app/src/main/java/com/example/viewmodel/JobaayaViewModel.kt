@@ -267,7 +267,7 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
     // Activity notifications mimicking real-time updates
     val notifications: StateFlow<List<SystemNotification>> = repository.allNotifications.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
+        started = SharingStarted.Eagerly,
         initialValue = emptyList()
     )
 
@@ -697,12 +697,17 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
     fun saveUtilityNote(title: String, content: String, id: Int = 0, bgColor: Long = 0xFFFFFFFF, font: String = "Normal", fontColor: Long = 0xFF000000, textAlign: String = "Left", isBold: Boolean = false, isItalic: Boolean = false, isLocked: Boolean = false, lockPin: String? = null, reminderTimestamp: Long? = null) {
         viewModelScope.launch {
             repository.insertNote(UtilityNote(id = id, title = title, content = content, backgroundColor = bgColor, fontStyle = font, fontColor = fontColor, textAlign = textAlign, isBold = isBold, isItalic = isItalic, isLocked = isLocked, lockPin = lockPin, reminderTimestamp = reminderTimestamp))
+            addSystemNotification(
+                if (id == 0) "Note Created" else "Note Updated",
+                "Utility Note \"${title.ifBlank { "Untitled" }}\" has been saved."
+            )
         }
     }
 
     fun deleteUtilityNote(note: UtilityNote) {
         viewModelScope.launch {
             repository.deleteNote(note)
+            addSystemNotification("Note Deleted", "Utility Note \"${note.title.ifBlank { "Untitled" }}\" was removed.")
         }
     }
 

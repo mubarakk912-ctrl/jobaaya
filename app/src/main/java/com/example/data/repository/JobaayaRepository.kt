@@ -216,7 +216,17 @@ class JobaayaRepository(
             profileDao.insertProfiles(seedProfiles)
             
             notificationDao.insertNotification(SystemNotification(title = "System Alert", content = "Welcome to jobaaya! Set up your multi-trade business or professional card today."))
+            notificationDao.insertNotification(SystemNotification(title = "Network Insight", content = "Professional connections in Delhi are growing. Connect with Amit Sharma to expand your reach."))
+            notificationDao.insertNotification(SystemNotification(title = "Security Tip", content = "Keep your profile verified to gain more client trust and higher rankings."))
         }
+
+        val notifyExisting = notificationDao.getAllNotifications().firstOrNull()
+        if (notifyExisting.isNullOrEmpty()) {
+            notificationDao.insertNotification(SystemNotification(title = "System Alert", content = "Welcome to jobaaya! Your activity log is ready."))
+        }
+        
+        // Always add a session start notification for debugging visibility
+        notificationDao.insertNotification(SystemNotification(title = "Session Started", content = "Platform session initialized. All services are online."))
 
         val me = profileDao.getMyProfileDirect()
         if (me == null) {
