@@ -935,7 +935,7 @@ fun CalculatorTabSection(
                                     text = key,
                                     fontWeight = FontWeight.Bold,
                                     style = MaterialTheme.typography.headlineSmall,
-                                    fontSize = if(isAction) 13.sp else 15.sp, // Reduced font sizes
+                                    fontSize = if(isAction) 17.sp else 20.sp, // Increased by 30% (from 13sp/15sp)
                                     color = Color.White
                                 )
                             }
