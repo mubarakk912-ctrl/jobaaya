@@ -274,6 +274,9 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
     init {
         viewModelScope.launch {
             repository.seedDatabaseIfEmpty()
+            repository.getMyProfileDirect()?.let {
+                _serviceRadius.value = it.serviceRadius
+            }
         }
     }
 
@@ -343,7 +346,8 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
                 profilePhotoUrl = existing?.profilePhotoUrl ?: "",
                 isMe = true,
                 isVerified = false,
-                availabilityStatus = WorkStatus.AVAILABLE.name
+                availabilityStatus = WorkStatus.AVAILABLE.name,
+                serviceRadius = _serviceRadius.value
             )
             repository.insertProfile(updated)
             _onboardingStep.value = false
@@ -356,7 +360,10 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             val existing = repository.getMyProfileDirect()
             val finalProfile = if (existing != null) {
-                profile.copy(profilePhotoUrl = existing.profilePhotoUrl)
+                profile.copy(
+                    profilePhotoUrl = existing.profilePhotoUrl,
+                    serviceRadius = _serviceRadius.value
+                )
             } else {
                 profile
             }

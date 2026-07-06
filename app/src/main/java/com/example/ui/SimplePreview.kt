@@ -5,6 +5,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.example.ui.screens.AuthScreenPreview
 import com.example.ui.screens.HomeScreenPreview
 import com.example.ui.screens.OnboardingPreview
+import com.example.ui.screens.ProfileDetailPreview
 import com.example.ui.theme.MyApplicationTheme
 
 @Preview(showBackground = true, name = "1. Onboarding Screen")
@@ -34,5 +35,7 @@ fun ViewHomeScreen() {
 @Preview(showBackground = true, name = "4. Profile Screen")
 @Composable
 fun ViewProfileScreen() {
-    // We would need a mock ViewModel here, but for now just showing the UI
+    MyApplicationTheme {
+        ProfileDetailPreview()
+    }
 }

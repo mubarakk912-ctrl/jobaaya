@@ -87,6 +87,7 @@ import com.example.data.model.UserProfile
 import com.example.data.model.WorkStatus
 import com.example.ui.components.PhotoFitDialog
 import com.example.ui.localization.JobaayaLocalization
+import androidx.compose.ui.tooling.preview.Preview
 import com.example.viewmodel.JobaayaViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -815,6 +816,37 @@ fun QuickContactButton(
         }
         Spacer(modifier = Modifier.height(6.dp))
         Text(text = label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = color)
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ProfileDetailPreview() {
+    val mockProfile = UserProfile(
+        name = "Rahul Verma",
+        profession = "Software Engineer",
+        skillsRaw = "Kotlin, Android, Firebase, Jetpack Compose",
+        mobileNumber = "+91 99988 77766",
+        emailAddress = "rahul@jobaaya.com",
+        fullAddress = "Cyber City, Gurgaon, 122002",
+        latitude = 28.4950,
+        longitude = 77.0890,
+        yearsOfExperience = 5,
+        languagesRaw = "English, Hindi",
+        aboutSection = "Professional Android Developer with 5 years experience in building high-scale apps.",
+        isVerified = true,
+        averageRating = 5.0f,
+        reviewCount = 3
+    )
+    
+    MaterialTheme {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text("Profile Preview (Mock Data)", style = MaterialTheme.typography.titleLarge)
+            DetailRowLabel("Full Name", mockProfile.name)
+            DetailRowLabel("Profession", mockProfile.profession)
+            DetailRowLabel("Location", mockProfile.fullAddress)
+            DetailRowLabel("Mobile", mockProfile.mobileNumber)
+        }
     }
 }
 

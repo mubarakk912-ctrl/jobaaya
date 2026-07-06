@@ -44,6 +44,7 @@ data class UserProfile(
     val isMe: Boolean = false,
     val averageRating: Float = 0.0f,
     val reviewCount: Int = 0,
+    val serviceRadius: Float = 20f,
     val lastSeen: Long = System.currentTimeMillis(),
     
     // UI and Interaction states

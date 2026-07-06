@@ -81,6 +81,14 @@ fun MyProfileScreen(
     var editSkills by remember { mutableStateOf("") }
     var editAbout by remember { mutableStateOf("") }
     var editExperience by remember { mutableStateOf("0") }
+    var editAddress by remember { mutableStateOf("") }
+    var editCity by remember { mutableStateOf("") }
+    var editPinCode by remember { mutableStateOf("") }
+    var editMobile by remember { mutableStateOf("") }
+    var editCountryCode by remember { mutableStateOf("+91") }
+    var editEmail by remember { mutableStateOf("") }
+    var editLanguages by remember { mutableStateOf("") }
+    var editWorkingHours by remember { mutableStateOf("09:00 - 17:00") }
 
     LaunchedEffect(myProfile) {
         myProfile?.let {
@@ -88,7 +96,25 @@ fun MyProfileScreen(
             if (editProfession.isEmpty()) editProfession = it.profession
             if (editSkills.isEmpty()) editSkills = it.skillsRaw
             if (editAbout.isEmpty()) editAbout = it.aboutSection
-            if (editExperience == "0") editExperience = it.yearsOfExperience.toString()
+            if (editExperience == "0" && it.yearsOfExperience > 0) editExperience = it.yearsOfExperience.toString()
+            if (editEmail.isEmpty()) editEmail = it.emailAddress
+            if (editLanguages.isEmpty()) editLanguages = it.languagesRaw
+            if (editWorkingHours == "09:00 - 17:00") editWorkingHours = it.workingHours
+            
+            val addressParts = it.fullAddress.split(",").map { it.trim() }
+            if (editAddress.isEmpty()) editAddress = addressParts.getOrNull(0) ?: ""
+            if (editCity.isEmpty()) editCity = addressParts.getOrNull(1) ?: ""
+            if (editPinCode.isEmpty()) editPinCode = addressParts.getOrNull(2) ?: ""
+            
+            if (editMobile.isEmpty()) {
+                val mobileParts = it.mobileNumber.split(" ")
+                if (mobileParts.size >= 2) {
+                    editCountryCode = mobileParts[0]
+                    editMobile = mobileParts.drop(1).joinToString(" ")
+                } else {
+                    editMobile = it.mobileNumber
+                }
+            }
         }
     }
 
@@ -137,8 +163,8 @@ fun MyProfileScreen(
                         
                         Spacer(modifier = Modifier.width(20.dp))
                         Column {
-                            Text(text = me.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                            Text(text = me.profession, color = Color(0xFF00A38E), fontWeight = FontWeight.SemiBold)
+                            Text(text = editName.ifBlank { me.name }, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                            Text(text = editProfession.ifBlank { me.profession }, color = Color(0xFF00A38E), fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
@@ -153,8 +179,33 @@ fun MyProfileScreen(
                             factory = { ctx ->
                                 val view = LayoutInflater.from(ctx).inflate(R.layout.layout_contact_info, null)
 
+                                val etAddress = view.findViewById<android.widget.EditText>(R.id.etAddressLine)
+                                val etCity = view.findViewById<android.widget.EditText>(R.id.etCity)
+                                val etPinCode = view.findViewById<android.widget.EditText>(R.id.etPinCode)
+                                val etMobile = view.findViewById<android.widget.EditText>(R.id.etMobileNumber)
                                 val spinnerCountry = view.findViewById<Spinner>(R.id.spinnerCountry)
                                 val tvCountryCodeDisplay = view.findViewById<android.widget.TextView>(R.id.tvCountryCodeDisplay)
+
+                                etAddress.setText(editAddress)
+                                etCity.setText(editCity)
+                                etPinCode.setText(editPinCode)
+                                etMobile.setText(editMobile)
+
+                                val textWatcher = object : android.text.TextWatcher {
+                                    override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                                    override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+                                    override fun afterTextChanged(s: android.text.Editable?) {
+                                        editAddress = etAddress.text.toString()
+                                        editCity = etCity.text.toString()
+                                        editPinCode = etPinCode.text.toString()
+                                        editMobile = etMobile.text.toString()
+                                    }
+                                }
+
+                                etAddress.addTextChangedListener(textWatcher)
+                                etCity.addTextChangedListener(textWatcher)
+                                etPinCode.addTextChangedListener(textWatcher)
+                                etMobile.addTextChangedListener(textWatcher)
 
                                 // Map of Country Names and their respective Dialing Codes
                                 val countryData = linkedMapOf(
@@ -171,8 +222,9 @@ fun MyProfileScreen(
                                 spinnerCountry.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
                                     override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
                                         val selectedCountry = countryNames[position]
-                                        val matchingCode = countryData[selectedCountry]
+                                        val matchingCode = countryData[selectedCountry] ?: "+91"
                                         tvCountryCodeDisplay.text = matchingCode
+                                        editCountryCode = matchingCode
 
                                         // Force white text visibility in dropdown selection
                                         (view as? android.widget.TextView)?.setTextColor(android.graphics.Color.WHITE)
@@ -182,10 +234,30 @@ fun MyProfileScreen(
 
                                 view
                             },
+                            update = { view ->
+                                val etAddress = view.findViewById<android.widget.EditText>(R.id.etAddressLine)
+                                val etCity = view.findViewById<android.widget.EditText>(R.id.etCity)
+                                val etPinCode = view.findViewById<android.widget.EditText>(R.id.etPinCode)
+                                val etMobile = view.findViewById<android.widget.EditText>(R.id.etMobileNumber)
+
+                                if (etAddress.text.toString() != editAddress) etAddress.setText(editAddress)
+                                if (etCity.text.toString() != editCity) etCity.setText(editCity)
+                                if (etPinCode.text.toString() != editPinCode) etPinCode.setText(editPinCode)
+                                if (etMobile.text.toString() != editMobile) etMobile.setText(editMobile)
+                            },
                             modifier = Modifier.fillMaxWidth()
                         )
 
-                        OutlinedTextField(value = editExperience, onValueChange = { editExperience = it }, label = { Text("Years of Experience") }, modifier = Modifier.fillMaxWidth())
+                        OutlinedTextField(
+                            value = editExperience, 
+                            onValueChange = { editExperience = it }, 
+                            label = { Text("Years of Experience") }, 
+                            modifier = Modifier.fillMaxWidth(),
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
+                        )
+                        OutlinedTextField(value = editEmail, onValueChange = { editEmail = it }, label = { Text("Email Address") }, modifier = Modifier.fillMaxWidth(), keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Email))
+                        OutlinedTextField(value = editLanguages, onValueChange = { editLanguages = it }, label = { Text("Languages (comma separated)") }, modifier = Modifier.fillMaxWidth())
+                        OutlinedTextField(value = editWorkingHours, onValueChange = { editWorkingHours = it }, label = { Text("Working Hours") }, modifier = Modifier.fillMaxWidth())
                         OutlinedTextField(value = editAbout, onValueChange = { editAbout = it }, label = { Text("About Me") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
                         
                         Button(
@@ -200,7 +272,30 @@ fun MyProfileScreen(
                         Text(text = "Service Area: ${serviceRadius.toInt()} km", fontWeight = FontWeight.Medium)
                         Slider(value = serviceRadius, onValueChange = { viewModel.setServiceRadius(it) }, valueRange = 1f..100f)
                         Button(onClick = {
-                            viewModel.updateMyProfessionalProfile(me.copy(name = editName, profession = editProfession, skillsRaw = editSkills, aboutSection = editAbout, yearsOfExperience = editExperience.toIntOrNull() ?: 0))
+                            val combinedAddress = if (editAddress.isNotBlank() || editCity.isNotBlank() || editPinCode.isNotBlank()) {
+                                "$editAddress, $editCity, $editPinCode"
+                            } else {
+                                me.fullAddress
+                            }
+                            val combinedMobile = if (editMobile.isNotBlank()) {
+                                "$editCountryCode $editMobile"
+                            } else {
+                                me.mobileNumber
+                            }
+                            viewModel.updateMyProfessionalProfile(
+                                me.copy(
+                                    name = editName,
+                                    profession = editProfession,
+                                    skillsRaw = editSkills,
+                                    aboutSection = editAbout,
+                                    yearsOfExperience = editExperience.toIntOrNull() ?: 0,
+                                    fullAddress = combinedAddress,
+                                    mobileNumber = combinedMobile,
+                                    emailAddress = editEmail,
+                                    languagesRaw = editLanguages,
+                                    workingHours = editWorkingHours
+                                )
+                            )
                             Toast.makeText(context, "Saved", Toast.LENGTH_SHORT).show()
                         }, modifier = Modifier.fillMaxWidth()) {
                             Icon(Icons.Default.Save, null)

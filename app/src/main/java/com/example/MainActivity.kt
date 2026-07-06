@@ -94,7 +94,8 @@ import androidx.appcompat.app.AppCompatActivity
 class MainActivity : AppCompatActivity() {
   private val cropImage = registerForActivityResult(CropImageContract()) { result ->
     if (result.isSuccessful) {
-        findViewById<CircleImageView>(R.id.profile_image)?.setImageURI(result.uriContent)
+        // Compose application should handle URI updates in ViewModel, not by finding views in activity
+        // findViewById<CircleImageView>(R.id.profile_image)?.setImageURI(result.uriContent)
     }
   }
 

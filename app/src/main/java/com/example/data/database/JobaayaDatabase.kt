@@ -194,7 +194,7 @@ interface PartnershipDealDao {
         DealMessage::class,
         DealAuditLog::class
     ],
-    version = 11,
+    version = 23,
     exportSchema = false
 )
 abstract class JobaayaDatabase : RoomDatabase() {
