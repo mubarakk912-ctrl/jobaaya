@@ -405,7 +405,7 @@ fun NotesTabSection(
             properties = DialogProperties(usePlatformDefaultWidth = false)
         ) {
             Card(
-                modifier = Modifier.fillMaxWidth(0.95f).fillMaxHeight(0.95f),
+                modifier = Modifier.fillMaxWidth(0.95f).fillMaxHeight(0.75f),
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = Color(noteBgColor))
             ) {
