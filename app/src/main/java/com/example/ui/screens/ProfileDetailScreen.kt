@@ -346,7 +346,7 @@ fun ProfileDetailScreen(
                         val connectsActive = prof.followStatus == 2
                         QuickContactButton(
                             icon = Icons.Default.PersonAdd,
-                            label = if (connectsActive) "Connected" else "Connect",
+                            label = if (connectsActive) JobaayaLocalization.translate("connected", currentLang) else JobaayaLocalization.translate("connect", currentLang),
                             color = if (connectsActive) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outline,
                             onClick = { viewModel.toggleConnectWithUser(prof.id) }
                         )

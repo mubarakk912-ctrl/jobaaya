@@ -132,10 +132,11 @@ fun UtilitiesScreen(
                         text = JobaayaLocalization.translate("calculator", currentLang), 
                         modifier = Modifier.padding(top = 32.dp), 
                         fontWeight = FontWeight.Bold, 
-                        fontSize = 12.sp, // Slightly smaller to fit "Counter"
-                        color = if(selectedTab == 1) MaterialTheme.colorScheme.primary else Color.Gray, 
-                        maxLines = 1,
-                        softWrap = false,
+                        fontSize = 15.sp, // Reduced by ~10% (from 17sp to 15sp)
+                        color = if(selectedTab == 1) Color.White else Color(0xFFCCCCCC), 
+                        maxLines = 1, // Removed wrap (back to 1 line)
+                        softWrap = false, // Removed wrap
+                        textAlign = TextAlign.Center,
                         overflow = TextOverflow.Visible
                     ) 
                 }
@@ -148,10 +149,11 @@ fun UtilitiesScreen(
                         text = JobaayaLocalization.translate("notes", currentLang), 
                         modifier = Modifier.padding(top = 32.dp), 
                         fontWeight = FontWeight.Bold, 
-                        fontSize = 12.sp, 
-                        color = if(selectedTab == 0) MaterialTheme.colorScheme.primary else Color.Gray,
-                        maxLines = 1,
-                        softWrap = false,
+                        fontSize = 17.sp, 
+                        color = if(selectedTab == 0) Color.White else Color(0xFFCCCCCC),
+                        maxLines = 2,
+                        softWrap = true,
+                        textAlign = TextAlign.Center,
                         overflow = TextOverflow.Visible
                     ) 
                 }
@@ -164,10 +166,11 @@ fun UtilitiesScreen(
                         text = JobaayaLocalization.translate("currency_counter", currentLang), 
                         modifier = Modifier.padding(top = 32.dp), 
                         fontWeight = FontWeight.Bold, 
-                        fontSize = 12.sp, 
-                        color = if(selectedTab == 2) MaterialTheme.colorScheme.primary else Color.Gray,
-                        maxLines = 1,
-                        softWrap = false,
+                        fontSize = 17.sp, 
+                        color = if(selectedTab == 2) Color.White else Color(0xFFCCCCCC),
+                        maxLines = 2,
+                        softWrap = true,
+                        textAlign = TextAlign.Center,
                         overflow = TextOverflow.Visible
                     ) 
                 }

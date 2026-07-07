@@ -378,7 +378,7 @@ fun AuthContent(
                                 horizontalArrangement = Arrangement.Center
                             ) {
                                 Text(
-                                    text = "New to jobaaya?",
+                                    text = JobaayaLocalization.translate("new_to_app", currentLang),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.outline
                                 )

@@ -169,7 +169,7 @@ fun HomeContent(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = onSearchQueryChange,
-                placeholder = { Text("Search...", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)) },
+                placeholder = { Text(JobaayaLocalization.translate("search_placeholder", currentLang), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)) },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)) },
                 trailingIcon = {
                     Row(
@@ -189,7 +189,7 @@ fun HomeContent(
                             ) {
                                 Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(13.dp), tint = Color.White)
                                 Spacer(modifier = Modifier.width(3.dp))
-                                Text("Near Me", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                Text(JobaayaLocalization.translate("near_me", currentLang), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
                             }
                         }
                         
@@ -236,10 +236,10 @@ fun HomeContent(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f))
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(text = "Refine Network Search", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                    Text(text = JobaayaLocalization.translate("refine_search", currentLang), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    Text("Experience (Min: $selectedExp Years)", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface)
+                    Text("${JobaayaLocalization.translate("experience", currentLang)} (Min: $selectedExp Years)", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface)
                     Slider(value = selectedExp.toFloat(), onValueChange = { onFilterExpChange(it.toInt()) }, valueRange = 0f..20f, steps = 20)
 
                     Text("Max Distance Filters: ${selectedDistance.toInt()} km", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface)
