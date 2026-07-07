@@ -37,7 +37,9 @@ import androidx.compose.ui.res.painterResource
 import android.view.LayoutInflater
 import android.widget.ArrayAdapter
 import android.widget.Button
+import android.widget.EditText
 import android.widget.Spinner
+import android.content.Context
 import androidx.compose.ui.viewinterop.AndroidView
 import de.hdodenhof.circleimageview.CircleImageView
 import coil.compose.AsyncImage
@@ -60,6 +62,9 @@ fun MyProfileScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    // 1. SharedPreferences Initialization (इसे onCreate या onViewCreated की शुरुआत में डालें)
+    val sharedPreferences = context.getSharedPreferences("UserProfilePrefs", android.content.Context.MODE_PRIVATE)
+
     val currentLang by viewModel.currentLanguage.collectAsState()
     val myProfile by viewModel.myProfile.collectAsState()
     val serviceRadius by viewModel.serviceRadius.collectAsState()
@@ -193,6 +198,15 @@ fun MyProfileScreen(
                                 etPinCode.setText(editPinCode)
                                 etMobile.setText(editMobile)
 
+                                // 2. डेटा लोड करने का लॉजिक (इसे onCreate या onViewCreated में नीचे रखें ताकि ऐप खुलते ही बॉक्स भर जाएं)
+                                etAddress?.setText(sharedPreferences.getString("address", ""))
+                                etCity?.setText(sharedPreferences.getString("city", ""))
+                                etPinCode?.setText(sharedPreferences.getString("pincode", ""))
+                                etMobile?.setText(sharedPreferences.getString("mobilenumber", ""))
+
+                                val savedCountryPos = sharedPreferences.getInt("country_position", 0)
+                                spinnerCountry?.setSelection(savedCountryPos)
+
                                 val textWatcher = object : android.text.TextWatcher {
                                     override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
                                     override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
@@ -274,6 +288,22 @@ fun MyProfileScreen(
                         Text(text = "${JobaayaLocalization.translate("service_area", currentLang)}: ${serviceRadius.toInt()} km", fontWeight = FontWeight.Medium)
                         Slider(value = serviceRadius, onValueChange = { viewModel.setServiceRadius(it) }, valueRange = 1f..100f)
                         Button(onClick = {
+                            // 3. डेटा सेव करने का लॉजिक (इसे आपके पहले से मौजूद 'Save All Details' बटन के onClickListener के अंदर डालना है)
+                            // लोकल मेमोरी में डेटा सुरक्षित करना ताकि ऐप क्लोज होने पर भी बॉक्स खाली न हों
+                            val editor = sharedPreferences.edit()
+                            val activity = context as? android.app.Activity
+                            editor.putString("address", activity?.findViewById<EditText>(R.id.etAddressLine)?.text.toString())
+                            editor.putString("city", activity?.findViewById<EditText>(R.id.etCity)?.text.toString())
+                            editor.putString("pincode", activity?.findViewById<EditText>(R.id.etPinCode)?.text.toString())
+                            editor.putString("mobilenumber", activity?.findViewById<EditText>(R.id.etMobileNumber)?.text.toString())
+                            
+                            val currentSpinner = activity?.findViewById<Spinner>(R.id.spinnerCountry)
+                            if (currentSpinner != null) {
+                                editor.putInt("country_position", currentSpinner.selectedItemPosition)
+                            }
+                            editor.apply()
+                            
+                            // आपका पुराना सेविंग कोड इसके ठीक नीचे बिना किसी बदलाव के वैसा ही रहेगा...
                             val combinedAddress = if (editAddress.isNotBlank() || editCity.isNotBlank() || editPinCode.isNotBlank()) {
                                 "$editAddress, $editCity, $editPinCode"
                             } else {
