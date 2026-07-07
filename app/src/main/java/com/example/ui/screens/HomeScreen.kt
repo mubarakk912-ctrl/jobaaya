@@ -524,7 +524,7 @@ fun ProfileListItem(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = JobaayaLocalization.translate("skills", currentLang),
+                        text = "Expertise",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
