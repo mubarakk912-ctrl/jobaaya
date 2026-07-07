@@ -45,10 +45,19 @@ class SessionManager(context: Context) {
         _isLoggedIn.value = false
     }
 
+    fun saveLanguage(languageCode: String) {
+        sharedPreferences.edit().putString(KEY_LANGUAGE, languageCode).apply()
+    }
+
+    fun getLanguage(): String? {
+        return sharedPreferences.getString(KEY_LANGUAGE, null)
+    }
+
     companion object {
         private const val KEY_AUTH_TOKEN = "auth_token"
         private const val KEY_USER_ID = "user_id"
         private const val KEY_USER_EMAIL = "user_email"
         private const val KEY_USER_MOBILE = "user_mobile"
+        private const val KEY_LANGUAGE = "app_language"
     }
 }

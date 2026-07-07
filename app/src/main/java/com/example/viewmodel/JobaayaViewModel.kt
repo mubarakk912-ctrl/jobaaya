@@ -69,7 +69,11 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
     )
 
     // Current app-wide language state
-    private val _currentLanguage = MutableStateFlow(JobaayaLocalization.detectDeviceLanguage())
+    private val _currentLanguage = MutableStateFlow(
+        sessionManager.getLanguage()?.let { code ->
+            AppLanguage.entries.find { it.code == code }
+        } ?: JobaayaLocalization.detectDeviceLanguage()
+    )
     val currentLanguage: StateFlow<AppLanguage> = _currentLanguage.asStateFlow()
 
     // Auth states
@@ -283,6 +287,7 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
     // Change Language from UI
     fun changeLanguage(language: AppLanguage) {
         _currentLanguage.value = language
+        sessionManager.saveLanguage(language.code)
     }
 
     // Auth production APIs
