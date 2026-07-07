@@ -125,7 +125,7 @@ fun SettingsScreen(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "APP SETTINGS",
+                text = JobaayaLocalization.translate("settings", currentLang).uppercase(),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Black,
                 color = Color.White
@@ -154,7 +154,7 @@ fun SettingsScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Lock, null, tint = MaterialTheme.colorScheme.primary)
                             Spacer(Modifier.width(12.dp))
-                            Text(text = "Privacy Settings", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                            Text(text = JobaayaLocalization.translate("privacy_settings", currentLang), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
                         }
                         Icon(
                             imageVector = if (showPrivacyItems) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
@@ -166,16 +166,16 @@ fun SettingsScreen(
                         Column(modifier = Modifier.padding(start = 8.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                                 Column(Modifier.weight(1f)) {
-                                    Text("Public Mobile Number", fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
-                                    Text("Allow everyone to see your contact", fontSize = 11.sp, color = MaterialTheme.colorScheme.outline)
+                                    Text(JobaayaLocalization.translate("public_mobile", currentLang), fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+                                    Text(JobaayaLocalization.translate("public_mobile_desc", currentLang), fontSize = 11.sp, color = MaterialTheme.colorScheme.outline)
                                 }
                                 Switch(checked = isMobilePublic, onCheckedChange = { viewModel.setMobilePublic(it) })
                             }
                             
                             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                                 Column(Modifier.weight(1f)) {
-                                    Text("Private Account", fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
-                                    Text("Only connections can view full details", fontSize = 11.sp, color = MaterialTheme.colorScheme.outline)
+                                    Text(JobaayaLocalization.translate("private_account", currentLang), fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+                                    Text(JobaayaLocalization.translate("private_account_desc", currentLang), fontSize = 11.sp, color = MaterialTheme.colorScheme.outline)
                                 }
                                 Switch(checked = isAccountPrivate, onCheckedChange = { viewModel.setAccountPrivate(it) })
                             }
@@ -183,7 +183,7 @@ fun SettingsScreen(
                             Row(Modifier.fillMaxWidth().clickable { showBlockedDialog = true }.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.Block, null, tint = MaterialTheme.colorScheme.error)
                                 Spacer(Modifier.width(12.dp))
-                                Text("Blocked Users List", fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+                                Text(JobaayaLocalization.translate("blocked_list", currentLang), fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
                             }
 
                             Button(
@@ -193,42 +193,42 @@ fun SettingsScreen(
                             ) {
                                 Icon(Icons.Default.Delete, null)
                                 Spacer(Modifier.width(8.dp))
-                                Text("Delete Account Permanently")
+                                Text(JobaayaLocalization.translate("delete_account", currentLang))
                             }
                         }
                     }
 
                     HorizontalDivider(Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
                     
-                    Text(text = "App & Data", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                    Text(text = JobaayaLocalization.translate("app_data", currentLang), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
                     Row(Modifier.fillMaxWidth().clickable { showLanguagesDialog = true }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Language, null, tint = MaterialTheme.colorScheme.outline)
                         Spacer(Modifier.width(12.dp))
-                        Text("App Language: ${currentLang.displayName}", color = MaterialTheme.colorScheme.onSurface)
+                        Text("${JobaayaLocalization.translate("languages", currentLang)}: ${currentLang.displayName}", color = MaterialTheme.colorScheme.onSurface)
                     }
-                    Row(Modifier.fillMaxWidth().clickable { Toast.makeText(context, "Cache Cleared", Toast.LENGTH_SHORT).show() }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.fillMaxWidth().clickable { Toast.makeText(context, JobaayaLocalization.translate("clear_cache", currentLang), Toast.LENGTH_SHORT).show() }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.SdStorage, null, tint = MaterialTheme.colorScheme.outline)
                         Spacer(Modifier.width(12.dp))
-                        Text("Clear Cache", color = MaterialTheme.colorScheme.onSurface)
+                        Text(JobaayaLocalization.translate("clear_cache", currentLang), color = MaterialTheme.colorScheme.onSurface)
                     }
                     
                     HorizontalDivider(Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
                     
-                    Text(text = "Support & Social", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                    Text(text = JobaayaLocalization.translate("support_social", currentLang), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
                     Row(Modifier.fillMaxWidth().clickable { 
                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://jobaaya.com/support"))
                         context.startActivity(intent)
                     }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Help, null, tint = MaterialTheme.colorScheme.outline)
                         Spacer(Modifier.width(12.dp))
-                        Text("Help Center / Contact Us", color = MaterialTheme.colorScheme.onSurface)
+                        Text(JobaayaLocalization.translate("help_center", currentLang), color = MaterialTheme.colorScheme.onSurface)
                     }
                     Row(Modifier.fillMaxWidth().clickable { 
-                        Toast.makeText(context, "Bug reported. Thank you!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, JobaayaLocalization.translate("report_bug", currentLang), Toast.LENGTH_SHORT).show()
                     }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.BugReport, null, tint = MaterialTheme.colorScheme.outline)
                         Spacer(Modifier.width(12.dp))
-                        Text("Report a Bug", color = MaterialTheme.colorScheme.onSurface)
+                        Text(JobaayaLocalization.translate("report_bug", currentLang), color = MaterialTheme.colorScheme.onSurface)
                     }
                     Row(Modifier.fillMaxWidth().clickable { 
                         val sendIntent = Intent().apply {
@@ -240,7 +240,7 @@ fun SettingsScreen(
                     }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Share, null, tint = MaterialTheme.colorScheme.outline)
                         Spacer(Modifier.width(12.dp))
-                        Text("Share jobaaya App", color = MaterialTheme.colorScheme.onSurface)
+                        Text(JobaayaLocalization.translate("share_app", currentLang), color = MaterialTheme.colorScheme.onSurface)
                     }
                     Row(Modifier.fillMaxWidth().clickable { 
                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.example.jobaaya"))
@@ -248,7 +248,7 @@ fun SettingsScreen(
                     }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.ThumbUp, null, tint = MaterialTheme.colorScheme.outline)
                         Spacer(Modifier.width(12.dp))
-                        Text("Rate Us on Play Store", color = MaterialTheme.colorScheme.onSurface)
+                        Text(JobaayaLocalization.translate("rate_us", currentLang), color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
             }
@@ -260,7 +260,7 @@ fun SettingsScreen(
             ) {
                 Icon(Icons.Default.PowerSettingsNew, null, tint = Color.White)
                 Spacer(Modifier.width(8.dp))
-                Text("Logout", color = Color.White, fontWeight = FontWeight.Bold)
+                Text(JobaayaLocalization.translate("logout", currentLang), color = Color.White, fontWeight = FontWeight.Bold)
             }
         }
         Spacer(modifier = Modifier.height(24.dp))
@@ -276,7 +276,7 @@ fun SettingsScreen(
             ) {
                 Column(Modifier.padding(16.dp)) {
                     Text(
-                        text = "Select Language", 
+                        text = JobaayaLocalization.translate("select_language", currentLang),
                         fontWeight = FontWeight.Bold, 
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onSurface,
@@ -317,7 +317,7 @@ fun SettingsScreen(
                         onClick = { showLanguagesDialog = false }, 
                         modifier = Modifier.align(Alignment.End)
                     ) { 
-                        Text("CANCEL", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold) 
+                        Text(JobaayaLocalization.translate("cancel", currentLang).uppercase(), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     }
                 }
             }

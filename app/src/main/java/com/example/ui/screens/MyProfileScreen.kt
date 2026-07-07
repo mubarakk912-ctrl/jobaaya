@@ -50,6 +50,7 @@ import com.example.R
 import com.example.ui.components.ProfessionPicker
 import com.example.ui.components.PhotoFitDialog
 import com.example.ui.localization.AppLanguage
+import com.example.ui.localization.JobaayaLocalization
 import com.example.viewmodel.JobaayaViewModel
 
 @Composable
@@ -59,6 +60,7 @@ fun MyProfileScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val currentLang by viewModel.currentLanguage.collectAsState()
     val myProfile by viewModel.myProfile.collectAsState()
     val serviceRadius by viewModel.serviceRadius.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -125,7 +127,7 @@ fun MyProfileScreen(
     ) {
         Surface(modifier = Modifier.fillMaxWidth(), color = Color(0xFF0B3A51)) {
             Box(modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.Center) {
-                Text(text = "MY PROFESSIONAL PROFILE", style = MaterialTheme.typography.titleMedium, color = Color.White, fontWeight = FontWeight.Bold)
+                Text(text = JobaayaLocalization.translate("my_profile_title", currentLang), style = MaterialTheme.typography.titleMedium, color = Color.White, fontWeight = FontWeight.Bold)
             }
         }
 
@@ -171,9 +173,9 @@ fun MyProfileScreen(
 
                 Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(text = "Professional Details", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-                        OutlinedTextField(value = editName, onValueChange = { editName = it }, label = { Text("Full Name") }, modifier = Modifier.fillMaxWidth())
-                        ProfessionPicker(currentProfession = editProfession, onProfessionChange = { editProfession = it }, currentSkills = editSkills, onSkillsChange = { editSkills = it }, label = "Profession")
+                        Text(text = JobaayaLocalization.translate("prof_details", currentLang), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                        OutlinedTextField(value = editName, onValueChange = { editName = it }, label = { Text(JobaayaLocalization.translate("full_name", currentLang)) }, modifier = Modifier.fillMaxWidth())
+                        ProfessionPicker(currentProfession = editProfession, onProfessionChange = { editProfession = it }, currentSkills = editSkills, onSkillsChange = { editSkills = it }, label = JobaayaLocalization.translate("profession", currentLang))
                         
                         AndroidView(
                             factory = { ctx ->
@@ -251,25 +253,25 @@ fun MyProfileScreen(
                         OutlinedTextField(
                             value = editExperience, 
                             onValueChange = { editExperience = it }, 
-                            label = { Text("Years of Experience") }, 
+                            label = { Text(JobaayaLocalization.translate("experience", currentLang)) }, 
                             modifier = Modifier.fillMaxWidth(),
                             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
                         )
-                        OutlinedTextField(value = editEmail, onValueChange = { editEmail = it }, label = { Text("Email Address") }, modifier = Modifier.fillMaxWidth(), keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Email))
-                        OutlinedTextField(value = editLanguages, onValueChange = { editLanguages = it }, label = { Text("Languages (comma separated)") }, modifier = Modifier.fillMaxWidth())
-                        OutlinedTextField(value = editWorkingHours, onValueChange = { editWorkingHours = it }, label = { Text("Working Hours") }, modifier = Modifier.fillMaxWidth())
-                        OutlinedTextField(value = editAbout, onValueChange = { editAbout = it }, label = { Text("About Me") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
+                        OutlinedTextField(value = editEmail, onValueChange = { editEmail = it }, label = { Text(JobaayaLocalization.translate("email", currentLang)) }, modifier = Modifier.fillMaxWidth(), keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Email))
+                        OutlinedTextField(value = editLanguages, onValueChange = { editLanguages = it }, label = { Text(JobaayaLocalization.translate("lang_sep", currentLang)) }, modifier = Modifier.fillMaxWidth())
+                        OutlinedTextField(value = editWorkingHours, onValueChange = { editWorkingHours = it }, label = { Text(JobaayaLocalization.translate("working_hours", currentLang)) }, modifier = Modifier.fillMaxWidth())
+                        OutlinedTextField(value = editAbout, onValueChange = { editAbout = it }, label = { Text(JobaayaLocalization.translate("about", currentLang)) }, modifier = Modifier.fillMaxWidth(), minLines = 3)
                         
                         Button(
                             onClick = { onPreviewClick(me.id) },
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
                         ) {
-                            Text("Preview")
+                            Text(JobaayaLocalization.translate("preview", currentLang))
                         }
 
                         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-                        Text(text = "Service Area: ${serviceRadius.toInt()} km", fontWeight = FontWeight.Medium)
+                        Text(text = "${JobaayaLocalization.translate("service_area", currentLang)}: ${serviceRadius.toInt()} km", fontWeight = FontWeight.Medium)
                         Slider(value = serviceRadius, onValueChange = { viewModel.setServiceRadius(it) }, valueRange = 1f..100f)
                         Button(onClick = {
                             val combinedAddress = if (editAddress.isNotBlank() || editCity.isNotBlank() || editPinCode.isNotBlank()) {
@@ -296,11 +298,11 @@ fun MyProfileScreen(
                                     workingHours = editWorkingHours
                                 )
                             )
-                            Toast.makeText(context, "Saved", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, JobaayaLocalization.translate("saved_toast", currentLang), Toast.LENGTH_SHORT).show()
                         }, modifier = Modifier.fillMaxWidth()) {
                             Icon(Icons.Default.Save, null)
                             Spacer(Modifier.width(8.dp))
-                            Text("Save All Details")
+                            Text(JobaayaLocalization.translate("save_all", currentLang))
                         }
                     }
                 }

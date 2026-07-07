@@ -255,7 +255,7 @@ fun HomeContent(
                                     color = if (active) Color(0xFF0B3A51) else MaterialTheme.colorScheme.surfaceVariant,
                                     shape = CircleShape
                                 ) {
-                                    Text(text = if (stars == 0.0f) "All" else "$stars★", style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), color = if (active) Color.White else MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(text = if (stars == 0.0f) JobaayaLocalization.translate("all", currentLang) else "$stars★", style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), color = if (active) Color.White else MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                         }
@@ -281,7 +281,7 @@ fun HomeContent(
                     )
                 ) {
                     Text(
-                        text = cat,
+                        text = if (cat == "All") JobaayaLocalization.translate("all", currentLang) else cat,
                         style = MaterialTheme.typography.labelLarge,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                         color = if (active) Color(0xFF0B3A51) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
@@ -470,7 +470,7 @@ fun ProfileListItem(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "Get Direction",
+                        text = JobaayaLocalization.translate("directions", currentLang),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF00A38E)
@@ -490,7 +490,7 @@ fun ProfileListItem(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "Expertise & Custom Skills",
+                        text = JobaayaLocalization.translate("skills", currentLang),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -553,7 +553,7 @@ fun ProfileListItem(
                         tint = Color.White
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "Chat", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp)
+                    Text(text = JobaayaLocalization.translate("chats", currentLang), fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp)
                 }
 
                 Button(
@@ -578,7 +578,7 @@ fun ProfileListItem(
                         tint = Color.White
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "Call", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp)
+                    Text(text = JobaayaLocalization.translate("call", currentLang), fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp)
                 }
             }
         }

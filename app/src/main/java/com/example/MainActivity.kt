@@ -52,6 +52,7 @@ import com.example.viewmodel.JobaayaViewModel
 import com.example.viewmodel.ChatInbox
 import com.example.data.model.UserProfile
 import com.example.data.model.SystemNotification
+import com.example.ui.localization.JobaayaLocalization
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Notifications
@@ -124,6 +125,7 @@ class MainActivity : AppCompatActivity() {
 fun MainPlatformContainer(
     viewModel: JobaayaViewModel
 ) {
+    val currentLang by viewModel.currentLanguage.collectAsState()
     val myProfile by viewModel.myProfile.collectAsState()
     val inboxList by viewModel.chatInboxList.collectAsState()
     val notificationsList by viewModel.notifications.collectAsState()
@@ -174,8 +176,8 @@ fun MainPlatformContainer(
                 NavigationBarItem(
                     selected = activeViewRoute == "home" || (activeViewRoute == "detail" && detailedUserIdRoute.startsWith("prof_")),
                     onClick = { navigateTo("home") },
-                    icon = { Icon(Icons.Default.Home, contentDescription = "Home", modifier = Modifier.size(21.dp)) }, 
-                    label = { Text("Home", fontSize = 10.sp, fontWeight = FontWeight.Bold) }, 
+                    icon = { Icon(Icons.Default.Home, contentDescription = JobaayaLocalization.translate("home", currentLang), modifier = Modifier.size(21.dp)) }, 
+                    label = { Text(JobaayaLocalization.translate("home", currentLang), fontSize = 10.sp, fontWeight = FontWeight.Bold) }, 
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = Color.White,
                         selectedTextColor = Color.White,
@@ -191,7 +193,7 @@ fun MainPlatformContainer(
                     onClick = { navigateTo("chats") },
                     icon = {
                         Box {
-                            Icon(Icons.Default.Chat, contentDescription = "Chats", modifier = Modifier.size(21.dp)) 
+                            Icon(Icons.Default.Chat, contentDescription = JobaayaLocalization.translate("chats", currentLang), modifier = Modifier.size(21.dp)) 
                             if (totalInboxUnreadCount > 0) {
                                 Box(
                                     modifier = Modifier
@@ -210,7 +212,7 @@ fun MainPlatformContainer(
                             }
                         }
                     },
-                    label = { Text("Chats", fontSize = 10.sp, fontWeight = FontWeight.Bold) }, 
+                    label = { Text(JobaayaLocalization.translate("chats", currentLang), fontSize = 10.sp, fontWeight = FontWeight.Bold) }, 
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = Color.White,
                         selectedTextColor = Color.White,
@@ -224,8 +226,8 @@ fun MainPlatformContainer(
                 NavigationBarItem(
                     selected = activeViewRoute == "utilities",
                     onClick = { navigateTo("utilities") },
-                    icon = { Icon(Icons.Default.Build, contentDescription = "Utilities Tools", modifier = Modifier.size(21.dp)) }, 
-                    label = { Text("Tools", fontSize = 10.sp, fontWeight = FontWeight.Bold) },
+                    icon = { Icon(Icons.Default.Build, contentDescription = JobaayaLocalization.translate("tools", currentLang), modifier = Modifier.size(21.dp)) }, 
+                    label = { Text(JobaayaLocalization.translate("tools", currentLang), fontSize = 10.sp, fontWeight = FontWeight.Bold) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = Color.White,
                         selectedTextColor = Color.White,
@@ -239,8 +241,8 @@ fun MainPlatformContainer(
                 NavigationBarItem(
                     selected = activeViewRoute == "profile",
                     onClick = { navigateTo("profile") },
-                    icon = { Icon(Icons.Default.Person, contentDescription = "My Profile", modifier = Modifier.size(21.dp)) }, 
-                    label = { Text("Profile", fontSize = 10.sp, fontWeight = FontWeight.Bold) },
+                    icon = { Icon(Icons.Default.Person, contentDescription = JobaayaLocalization.translate("profile", currentLang), modifier = Modifier.size(21.dp)) }, 
+                    label = { Text(JobaayaLocalization.translate("profile", currentLang), fontSize = 10.sp, fontWeight = FontWeight.Bold) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = Color.White,
                         selectedTextColor = Color.White,
@@ -491,7 +493,7 @@ fun MainPlatformContainer(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Platform Activity Logs",
+                                text = JobaayaLocalization.translate("activity_logs", currentLang),
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.primary
@@ -519,7 +521,7 @@ fun MainPlatformContainer(
                             ) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Icon(Icons.Default.Notifications, null, tint = Color.Gray.copy(alpha = 0.3f), modifier = Modifier.size(48.dp))
-                                    Text("No recent activity logs", color = Color.Gray, fontSize = 12.sp)
+                                    Text(JobaayaLocalization.translate("no_activity_logs", currentLang), color = Color.Gray, fontSize = 12.sp)
                                 }
                             }
                         } else {

@@ -132,7 +132,7 @@ fun AdminUserManagementSection(
     onProfileClick: (String) -> Unit
 ) {
     var adminSearchQuery by remember { mutableStateOf("") }
-    var adminFilter by remember { mutableStateOf("All") } // "All", "Unverified", "Verified", "Blocked"
+    var adminFilter by remember { mutableStateOf(JobaayaLocalization.translate("all", currentLang)) } // "All", "Unverified", "Verified", "Blocked"
 
     val filteredList = remember(profileList, adminSearchQuery, adminFilter) {
         profileList.filter { user ->
@@ -142,9 +142,9 @@ fun AdminUserManagementSection(
                                 user.emailAddress.contains(adminSearchQuery, ignoreCase = true)
             
             val matchesFilter = when (adminFilter) {
-                "Unverified" -> !user.isVerified
-                "Verified" -> user.isVerified
-                "Blocked" -> user.isBlocked
+                JobaayaLocalization.translate("unverified", currentLang) -> !user.isVerified
+                JobaayaLocalization.translate("verified_filter", currentLang) -> user.isVerified
+                JobaayaLocalization.translate("blocked_filter", currentLang) -> user.isBlocked
                 else -> true
             }
             
@@ -180,7 +180,12 @@ fun AdminUserManagementSection(
             modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            val filters = listOf("All", "Unverified", "Verified", "Blocked")
+            val filters = listOf(
+                JobaayaLocalization.translate("all", currentLang), 
+                JobaayaLocalization.translate("unverified", currentLang), 
+                JobaayaLocalization.translate("verified_filter", currentLang), 
+                JobaayaLocalization.translate("blocked_filter", currentLang)
+            )
             items(filters) { filter ->
                 val isSelected = adminFilter == filter
                 Surface(

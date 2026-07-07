@@ -1027,7 +1027,7 @@ fun CurrencyTabSection(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Total Amount",
+                    text = JobaayaLocalization.translate("total_amount", currentLang),
                     style = MaterialTheme.typography.titleSmall,
                     color = Color.White.copy(alpha = 0.8f)
                 )

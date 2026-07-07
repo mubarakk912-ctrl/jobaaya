@@ -122,7 +122,7 @@ fun MapScreen(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Live Network Map - Find local experts nearby",
+                    text = JobaayaLocalization.translate("live_map_desc", currentLang),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline
                 )
@@ -206,13 +206,13 @@ fun MapScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(Icons.Default.MyLocation, contentDescription = null, modifier = Modifier.size(48.dp), tint = Color.Gray)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("Location Access Required", fontWeight = FontWeight.Bold)
-                        Text("Grant permission to see nearby tradespeople", fontSize = 12.sp, color = Color.Gray)
+                        Text(JobaayaLocalization.translate("loc_req", currentLang), fontWeight = FontWeight.Bold)
+                        Text(JobaayaLocalization.translate("loc_req_desc", currentLang), fontSize = 12.sp, color = Color.Gray)
                         androidx.compose.material3.Button(
                             onClick = { locationPermissionsState.launchMultiplePermissionRequest() },
                             modifier = Modifier.padding(top = 16.dp)
                         ) {
-                            Text("Grant Permission")
+                            Text(JobaayaLocalization.translate("grant_perm", currentLang))
                         }
                     }
                 }
@@ -284,7 +284,7 @@ fun MapScreen(
                 // Horizontal quick list scroll of nearby professionals
                 Column {
                     Text(
-                        text = "Professionals in Your Proximity",
+                        text = JobaayaLocalization.translate("prof_proximity", currentLang),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.outline,
