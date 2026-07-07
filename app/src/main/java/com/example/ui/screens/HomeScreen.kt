@@ -93,6 +93,7 @@ fun HomeScreen(
 ) {
     val currentLang by viewModel.currentLanguage.collectAsState()
     val myProfile by viewModel.myProfile.collectAsState()
+    val deviceLocation by viewModel.deviceLocation.collectAsState()
     val profiles by viewModel.filteredProfiles.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val categories by viewModel.availableCategories.collectAsState()
@@ -107,6 +108,7 @@ fun HomeScreen(
     HomeContent(
         currentLang = currentLang,
         myProfile = myProfile,
+        deviceLocation = deviceLocation,
         profiles = profiles,
         searchQuery = searchQuery,
         selectedAvail = selectedAvail,
@@ -131,6 +133,7 @@ fun HomeScreen(
 fun HomeContent(
     currentLang: AppLanguage,
     myProfile: UserProfile?,
+    deviceLocation: android.location.Location?,
     profiles: List<UserProfile>,
     searchQuery: String,
     selectedAvail: String,
@@ -305,6 +308,8 @@ fun HomeContent(
                         ProfileListItem(
                             profile = profile,
                             currentLang = currentLang,
+                            myProfile = myProfile,
+                            deviceLocation = deviceLocation,
                             onClick = { onProfileClick(profile.id) },
                             onChatClick = { onChatClick(profile.id) },
                             onBookmarkClick = { onBookmarkClick(profile.id) }
@@ -325,12 +330,36 @@ fun HomeContent(
 fun ProfileListItem(
     profile: UserProfile,
     currentLang: AppLanguage,
+    myProfile: UserProfile?,
+    deviceLocation: android.location.Location?,
     onClick: () -> Unit,
     onChatClick: () -> Unit,
     onBookmarkClick: () -> Unit
 ) {
     val context = LocalContext.current
     var showDetailedSkills by remember { mutableStateOf(false) }
+
+    val distanceText = remember(profile, myProfile, deviceLocation) {
+        val myLat = deviceLocation?.latitude ?: myProfile?.latitude ?: 0.0
+        val myLon = deviceLocation?.longitude ?: myProfile?.longitude ?: 0.0
+        
+        if (myLat != 0.0 && myLon != 0.0) {
+            val results = FloatArray(1)
+            android.location.Location.distanceBetween(
+                myLat, myLon,
+                profile.latitude, profile.longitude,
+                results
+            )
+            val distanceInMeters = results[0]
+            if (distanceInMeters < 1000) {
+                "${distanceInMeters.toInt()} mtr away"
+            } else {
+                String.format("%.1f km away", distanceInMeters / 1000f)
+            }
+        } else {
+            ""
+        }
+    }
 
     Card(
         modifier = Modifier
@@ -471,13 +500,15 @@ fun ProfileListItem(
                         modifier = Modifier.size(16.dp),
                         tint = Color(0xFF00A38E)
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = JobaayaLocalization.translate("directions", currentLang),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF00A38E)
-                    )
+                    if (distanceText.isNotEmpty()) {
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = distanceText,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF00A38E)
+                        )
+                    }
                 }
             }
 
@@ -595,6 +626,7 @@ fun HomeScreenPreview() {
         HomeContent(
             currentLang = AppLanguage.ENGLISH,
             myProfile = null,
+            deviceLocation = null,
             profiles = listOf(
                 UserProfile(
                     id = "1",

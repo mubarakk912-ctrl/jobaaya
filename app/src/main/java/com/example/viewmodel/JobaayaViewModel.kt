@@ -24,6 +24,9 @@ import com.example.data.repository.AuthRepository
 import com.example.data.repository.JobaayaRepository
 import com.example.ui.localization.AppLanguage
 import com.example.ui.localization.JobaayaLocalization
+import android.location.Location
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -96,6 +99,9 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val _deviceLocation = MutableStateFlow<Location?>(null)
+    val deviceLocation: StateFlow<Location?> = _deviceLocation.asStateFlow()
+
     // My own profile StateFlow
     val myProfile: StateFlow<UserProfile?> = repository.myProfile.stateIn(
         scope = viewModelScope,
@@ -143,31 +149,27 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
     val filteredProfiles: StateFlow<List<UserProfile>> = combine(
         repository.otherProfiles,
         filterSet1Flow,
-        filterSet2Flow
-    ) { profiles: List<UserProfile>, set1: FilterSet1, set2: FilterSet2 ->
+        filterSet2Flow,
+        _deviceLocation
+    ) { profiles: List<UserProfile>, set1: FilterSet1, set2: FilterSet2, deviceLoc: Location? ->
         val query = set1.query
         val availability = set1.avail
         val rating = set1.rating
         val exp = set1.exp
         
         val lang = set2.lang
-        val distance = set2.dist
         val myProf = set2.myProf
 
-        // Extract city from my address for local filtering
-        val myCity = myProf?.fullAddress?.split(",")?.lastOrNull()?.trim()
+        // Priority Location Logic: 1. Device GPS, 2. Profile Address, 3. Fallback Delhi
+        val myLat = deviceLoc?.latitude ?: myProf?.latitude ?: 28.6139
+        val myLon = deviceLoc?.longitude ?: myProf?.longitude ?: 77.2090
 
         profiles.filter { profile: UserProfile ->
             // Skip blocked profiles
             if (profile.isBlocked) return@filter false
 
-            // City Match (Only show profiles from same city if user has a city set)
-            val matchesCity = if (myCity != null && myCity.isNotEmpty()) {
-                val profileCity = profile.fullAddress.split(",").lastOrNull()?.trim()
-                profileCity.equals(myCity, ignoreCase = true)
-            } else {
-                true // Show all if user has no address/city
-            }
+            // City Match (Always true as per request to not limit by city fixed)
+            val matchesCity = true
 
             // Search query match (profession, name, skills)
             val matchesQuery = query.isBlank() || 
@@ -188,16 +190,12 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
             // Language match
             val matchesLanguage = lang == "ALL" || profile.languagesRaw.contains(lang, ignoreCase = true)
 
-            // Mock distance check relative to me
-            val calculatedDistance = if (myProf != null) {
-                calculateDistanceKm(myProf.latitude, myProf.longitude, profile.latitude, profile.longitude)
-            } else {
-                // assume central New Delhi relative distance
-                calculateDistanceKm(28.6139, 77.2090, profile.latitude, profile.longitude)
-            }
-            val matchesDistance = calculatedDistance <= distance
+            // Distance filtering is removed as per request to show even 500km away
+            val matchesDistance = true
 
             matchesCity && matchesQuery && matchesAvailability && matchesRating && matchesExperience && matchesLanguage && matchesDistance
+        }.sortedBy { profile ->
+            calculateDistanceKm(myLat, myLon, profile.latitude, profile.longitude)
         }
     }.stateIn(
         scope = viewModelScope,
@@ -282,6 +280,55 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
                 _serviceRadius.value = it.serviceRadius
             }
         }
+        startLocationTracking()
+    }
+
+    private fun startLocationTracking() {
+        try {
+            val fusedLocationClient = LocationServices.getFusedLocationProviderClient(getApplication<Application>())
+            
+            // Get last known location immediately
+            fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
+                if (location != null) {
+                    _deviceLocation.value = location
+                    updateMyProfileCoordinates(location.latitude, location.longitude)
+                }
+            }
+
+            // Request fresh location update
+            val locationRequest = com.google.android.gms.location.LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000)
+                .setWaitForAccurateLocation(false)
+                .setMinUpdateIntervalMillis(2000)
+                .setMaxUpdateDelayMillis(10000)
+                .build()
+
+            val locationCallback = object : com.google.android.gms.location.LocationCallback() {
+                override fun onLocationResult(locationResult: com.google.android.gms.location.LocationResult) {
+                    locationResult.lastLocation?.let { location ->
+                        _deviceLocation.value = location
+                        updateMyProfileCoordinates(location.latitude, location.longitude)
+                    }
+                }
+            }
+
+            fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, android.os.Looper.getMainLooper())
+            
+        } catch (e: SecurityException) {
+            // Priority 2 will naturally take over (profile location) if GPS is off/permission missing
+        } catch (e: Exception) {
+            // Other errors
+        }
+    }
+
+    private fun updateMyProfileCoordinates(lat: Double, lon: Double) {
+        viewModelScope.launch {
+            val profile = repository.getMyProfileDirect()
+            if (profile != null && (profile.latitude == 0.0 || profile.latitude == 28.7159)) {
+                // Only update if it's default or empty to avoid overwriting intentionally set addresses 
+                // but for this app's logic, sync with GPS is good.
+                repository.updateProfile(profile.copy(latitude = lat, longitude = lon))
+            }
+        }
     }
 
     // Change Language from UI
@@ -334,6 +381,23 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
             _isLoading.value = true
             val existing = repository.getMyProfileDirect()
             val finalId = existing?.id ?: UUID.randomUUID().toString()
+            
+            // Try to geocode address or use current GPS if available
+            var lat = _deviceLocation.value?.latitude ?: existing?.latitude ?: 28.7159
+            var lon = _deviceLocation.value?.longitude ?: existing?.longitude ?: 77.1006
+            
+            // Simple geocoding attempt
+            withContext(Dispatchers.IO) {
+                try {
+                    val geocoder = android.location.Geocoder(getApplication(), java.util.Locale.getDefault())
+                    val addresses = geocoder.getFromLocationName(address, 1)
+                    if (!addresses.isNullOrEmpty()) {
+                        lat = addresses[0].latitude
+                        lon = addresses[0].longitude
+                    }
+                } catch (e: Exception) {}
+            }
+
             val updated = UserProfile(
                 id = finalId,
                 name = name,
@@ -342,8 +406,8 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
                 mobileNumber = _loginMobileNumber.value.ifBlank { "+91 99999 88888" },
                 emailAddress = email,
                 fullAddress = address,
-                latitude = existing?.latitude ?: 28.7159,
-                longitude = existing?.longitude ?: 77.1006,
+                latitude = lat,
+                longitude = lon,
                 yearsOfExperience = exp,
                 languagesRaw = languages,
                 aboutSection = "Verified $profession providing customer success. Certified skills: $skills.",
@@ -364,13 +428,33 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
     fun updateMyProfessionalProfile(profile: UserProfile) {
         viewModelScope.launch {
             val existing = repository.getMyProfileDirect()
+            
+            var lat = profile.latitude
+            var lon = profile.longitude
+            
+            // If address changed and we have no GPS, try to geocode
+            if (existing?.fullAddress != profile.fullAddress) {
+                withContext(Dispatchers.IO) {
+                    try {
+                        val geocoder = android.location.Geocoder(getApplication(), java.util.Locale.getDefault())
+                        val addresses = geocoder.getFromLocationName(profile.fullAddress, 1)
+                        if (!addresses.isNullOrEmpty()) {
+                            lat = addresses[0].latitude
+                            lon = addresses[0].longitude
+                        }
+                    } catch (e: Exception) {}
+                }
+            }
+
             val finalProfile = if (existing != null) {
                 profile.copy(
                     profilePhotoUrl = existing.profilePhotoUrl,
-                    serviceRadius = _serviceRadius.value
+                    serviceRadius = _serviceRadius.value,
+                    latitude = lat,
+                    longitude = lon
                 )
             } else {
-                profile
+                profile.copy(latitude = lat, longitude = lon)
             }
             repository.updateProfile(finalProfile)
             addSystemNotification("Profile Alert", "Your professional profile details were updated.")
