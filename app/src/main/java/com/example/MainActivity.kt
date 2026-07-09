@@ -95,11 +95,8 @@ import de.hdodenhof.circleimageview.CircleImageView
 import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
-    private val cropImage = registerForActivityResult(CropImageContract()) { result ->
-        if (result.isSuccessful) {
-            // Compose application should handle URI updates in ViewModel, not by finding views in activity
-        }
-    }
+    // [गैलरी ट्रिगर करने वाला पुराना इमेज क्रॉपर लॉन्चर पूरी तरह निष्क्रिय कर दिया गया है ताकि प्रीव्यू रीड-ओनली रहे]
+    private val cropImage = registerForActivityResult(CropImageContract()) { result -> }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -161,7 +158,6 @@ fun MainPlatformContainer(
 
     Scaffold(
         bottomBar = {
-            // Standard Material 3 bottom navigation bar with Deep Teal background
             NavigationBar(
                 modifier = Modifier
                     .windowInsetsPadding(WindowInsets.navigationBars)
@@ -237,7 +233,7 @@ fun MainPlatformContainer(
             }
         },
         topBar = {
-            // Unified top bar with Deep Teal background and reduced vertical size
+            // Unified top bar with Deep Teal background
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -245,6 +241,42 @@ fun MainPlatformContainer(
                     .padding(top = 27.dp, bottom = 5.dp, start = 16.dp, end = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
+                // --- नया बदलाव: टॉप लेफ्ट कॉर्नर पर प्रोफाइल सर्कल फोटो, जो क्लिक करने पर सीधे प्रिव्यू (Detail Screen) दिखाएगी ---
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .clickable {
+                            myProfile?.let {
+                                detailedUserIdRoute = it.id
+                                navigateTo("detail")
+                            }
+                        },
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (myProfile?.profilePhotoUrl?.isNotEmpty() == true) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
+                                .data(java.io.File(myProfile!!.profilePhotoUrl))
+                                .crossfade(true)
+                                .diskCachePolicy(coil.request.CachePolicy.DISABLED)
+                                .memoryCachePolicy(coil.request.CachePolicy.DISABLED)
+                                .build(),
+                            contentDescription = "Profile Preview Logo",
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(CircleShape),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary)
+                        )
+                    }
+                }
+
                 // CENTER: App Brand Logo
                 Box(
                     modifier = Modifier
@@ -392,7 +424,6 @@ fun MainPlatformContainer(
                     }
                 }
 
-                // --- यहाँ एरर फिक्स किया गया है (onPreviewClick पास कर दिया है) ---
                 "settings" -> SettingsScreen(
                     viewModel = viewModel,
                     onPreviewClick = { id ->
@@ -412,7 +443,7 @@ fun MainPlatformContainer(
                 )
             }
 
-            // Notification drawer block intact
+            // Notification drawer block
             AnimatedVisibility(
                 visible = showNotificationDrawer,
                 enter = slideInVertically { -it } + fadeIn(),

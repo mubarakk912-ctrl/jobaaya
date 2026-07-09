@@ -111,7 +111,7 @@ fun ProfileDetailScreen(
     // Query specific profile details
     var profile by remember { mutableStateOf<UserProfile?>(null) }
     val profileReviews by (profile?.let { viewModel.getProfileReviews(it.id) } ?: kotlinx.coroutines.flow.flowOf(emptyList())).collectAsState(initial = emptyList())
-    
+
     // Seed and trigger tracking views
     LaunchedEffect(profileId, profiles, myProfile) {
         if (myProfile?.id == profileId) {
@@ -194,7 +194,7 @@ fun ProfileDetailScreen(
             }
         } else {
             val prof = profile!!
-            
+
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -217,13 +217,13 @@ fun ProfileDetailScreen(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             // Avatar representing single Allowed profile photo
+                            // [बदलाव: यहाँ से .clickable और लॉन्चर ट्रिगर हटा दिया गया है ताकि प्रीव्यू पूरी तरह रीड-ओनली रहे]
                             Box(
                                 modifier = Modifier
                                     .size(100.dp)
                                     .clip(CircleShape)
                                     .background(MaterialTheme.colorScheme.primary)
-                                    .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                                    .then(if (isMe) Modifier.clickable { launcher.launch("image/*") } else Modifier),
+                                    .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 if (prof.profilePhotoUrl.isNotBlank()) {
@@ -245,17 +245,6 @@ fun ProfileDetailScreen(
                                             .fillMaxSize()
                                             .background(MaterialTheme.colorScheme.primary)
                                     )
-                                }
-                                
-                                if (isMe) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .background(Color.Black.copy(alpha = 0.2f)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(Icons.Default.AddAPhoto, null, tint = Color.White.copy(alpha = 0.7f), modifier = Modifier.size(24.dp))
-                                    }
                                 }
                             }
 
@@ -312,44 +301,47 @@ fun ProfileDetailScreen(
                 }
 
                 // Interactive Contact Strip: Call, WhatsApp, Meet/Chat, Connect/Request
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        // Call launcher
-                        QuickContactButton(
-                            icon = Icons.Default.Call,
-                            label = JobaayaLocalization.translate("call", currentLang),
-                            color = Color(0xFF01796F),
-                            onClick = {
-                                try {
-                                    val dialIntent = Intent(Intent.ACTION_DIAL).apply {
-                                        data = Uri.parse("tel:${prof.mobileNumber}")
+                // [बदलाव: यदि यूजर खुद अपनी प्रोफाइल देख रहा है (isMe), तो कॉल/चैट/कनेक्ट बटन्स पूरी तरह छुप जाएंगे]
+                if (!isMe) {
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            // Call launcher
+                            QuickContactButton(
+                                icon = Icons.Default.Call,
+                                label = JobaayaLocalization.translate("call", currentLang),
+                                color = Color(0xFF01796F),
+                                onClick = {
+                                    try {
+                                        val dialIntent = Intent(Intent.ACTION_DIAL).apply {
+                                            data = Uri.parse("tel:${prof.mobileNumber}")
+                                        }
+                                        context.startActivity(dialIntent)
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, "DIAL Failed: ${prof.mobileNumber}", Toast.LENGTH_SHORT).show()
                                     }
-                                    context.startActivity(dialIntent)
-                                } catch (e: Exception) {
-                                    Toast.makeText(context, "DIAL Failed: ${prof.mobileNumber}", Toast.LENGTH_SHORT).show()
                                 }
-                            }
-                        )
+                            )
 
-                        // One-to-one Chat
-                        QuickContactButton(
-                            icon = Icons.Default.Chat,
-                            label = JobaayaLocalization.translate("chats", currentLang),
-                            color = Color(0xFF01796F),
-                            onClick = { onStartChat(prof.id) }
-                        )
+                            // One-to-one Chat
+                            QuickContactButton(
+                                icon = Icons.Default.Chat,
+                                label = JobaayaLocalization.translate("chats", currentLang),
+                                color = Color(0xFF01796F),
+                                onClick = { onStartChat(prof.id) }
+                            )
 
-                        // Follow / Connect
-                        val connectsActive = prof.followStatus == 2
-                        QuickContactButton(
-                            icon = Icons.Default.PersonAdd,
-                            label = if (connectsActive) JobaayaLocalization.translate("connected", currentLang) else JobaayaLocalization.translate("connect", currentLang),
-                            color = if (connectsActive) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outline,
-                            onClick = { viewModel.toggleConnectWithUser(prof.id) }
-                        )
+                            // Follow / Connect
+                            val connectsActive = prof.followStatus == 2
+                            QuickContactButton(
+                                icon = Icons.Default.PersonAdd,
+                                label = if (connectsActive) JobaayaLocalization.translate("connected", currentLang) else JobaayaLocalization.translate("connect", currentLang),
+                                color = if (connectsActive) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outline,
+                                onClick = { viewModel.toggleConnectWithUser(prof.id) }
+                            )
+                        }
                     }
                 }
 
@@ -380,9 +372,9 @@ fun ProfileDetailScreen(
                                     }
                                 }
                             }
-                            
+
                             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-                            
+
                             DetailRowLabel("Working Hours", prof.workingHours)
                             HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp))
 
@@ -545,119 +537,125 @@ fun ProfileDetailScreen(
                     }
                 }
 
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)),
-                        shape = RoundedCornerShape(20.dp),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(
-                                text = JobaayaLocalization.translate("write_review", currentLang),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(10.dp))
+                // [बदलाव: यदि यूजर खुद की प्रोफाइल का प्रीव्यू देख रहा है (isMe), तो नीचे वाला रिव्यू फॉर्म पूरी तरह छुप जाएगा]
+                if (!isMe) {
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)),
+                            shape = RoundedCornerShape(20.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text(
+                                    text = JobaayaLocalization.translate("write_review", currentLang),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
 
-                            // Name field
-                            OutlinedTextField(
-                                value = reviewerName,
-                                onValueChange = { reviewerName = it },
-                                label = { Text("Your Name") },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(10.dp)
-                            )
+                                // Name field
+                                OutlinedTextField(
+                                    value = reviewerName,
+                                    onValueChange = { reviewerName = it },
+                                    label = { Text("Your Name") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(10.dp)
+                                )
 
-                            Spacer(modifier = Modifier.height(8.dp))
+                                Spacer(modifier = Modifier.height(8.dp))
 
-                            // Star Selector Row
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text("Rating:")
-                                Row {
-                                    (1..5).forEach { starIdx ->
-                                        IconButton(onClick = { userRatingInput = starIdx.toFloat() }) {
-                                            Icon(
-                                                imageVector = if (userRatingInput >= starIdx) Icons.Default.Star else Icons.Default.StarBorder,
-                                                contentDescription = "$starIdx Stars",
-                                                tint = Color(0xFFFFB300)
-                                            )
+                                // Star Selector Row
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text("Rating:")
+                                    Row {
+                                        (1..5).forEach { starIdx ->
+                                            IconButton(onClick = { userRatingInput = starIdx.toFloat() }) {
+                                                Icon(
+                                                    imageVector = if (userRatingInput >= starIdx) Icons.Default.Star else Icons.Default.StarBorder,
+                                                    contentDescription = "$starIdx Stars",
+                                                    tint = Color(0xFFFFB300)
+                                                )
+                                            }
                                         }
                                     }
                                 }
-                            }
 
-                            Spacer(modifier = Modifier.height(6.dp))
+                                Spacer(modifier = Modifier.height(6.dp))
 
-                            // Comment field
-                            OutlinedTextField(
-                                value = reviewComment,
-                                onValueChange = { reviewComment = it },
-                                label = { Text("Describe experience...") },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(10.dp)
-                            )
+                                // Comment field
+                                OutlinedTextField(
+                                    value = reviewComment,
+                                    onValueChange = { reviewComment = it },
+                                    label = { Text("Describe experience...") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(10.dp)
+                                )
 
-                            Spacer(modifier = Modifier.height(12.dp))
+                                Spacer(modifier = Modifier.height(12.dp))
 
-                            Button(
-                                onClick = {
-                                    if (reviewerName.isNotBlank() && reviewComment.isNotBlank()) {
-                                        viewModel.submitClientReview(
-                                            profileId = prof.id,
-                                            reviewerName = reviewerName,
-                                            rating = userRatingInput,
-                                            comment = reviewComment
-                                        )
-                                        reviewerName = ""
-                                        reviewComment = ""
-                                    }
-                                },
-                                enabled = reviewerName.isNotBlank() && reviewComment.isNotBlank(),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(JobaayaLocalization.translate("submit_review", currentLang), fontWeight = FontWeight.Bold)
+                                Button(
+                                    onClick = {
+                                        if (reviewerName.isNotBlank() && reviewComment.isNotBlank()) {
+                                            viewModel.submitClientReview(
+                                                profileId = prof.id,
+                                                reviewerName = reviewerName,
+                                                rating = userRatingInput,
+                                                comment = reviewComment
+                                            )
+                                            reviewerName = ""
+                                            reviewComment = ""
+                                        }
+                                    },
+                                    enabled = reviewerName.isNotBlank() && reviewComment.isNotBlank(),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(JobaayaLocalization.translate("submit_review", currentLang), fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
                     }
                 }
 
                 // Safety buttons (Report user & Block user)
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = {
-                                viewModel.reportUserProfile(prof.id)
-                                Toast.makeText(context, JobaayaLocalization.translate("sp_report_success", currentLang), Toast.LENGTH_LONG).show()
-                            },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red),
-                            border = BorderStroke(1.dp, Color.Red.copy(alpha = 0.5f))
+                // [बदलाव: खुद की प्रोफाइल पर ब्लॉक और रिपोर्ट बटन्स का कोई तुक नहीं बनता, इसलिए इन्हें भी !isMe में डाल दिया गया है]
+                if (!isMe) {
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            Icon(Icons.Default.Report, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(JobaayaLocalization.translate("report", currentLang), style = MaterialTheme.typography.bodyMedium)
-                        }
+                            OutlinedButton(
+                                onClick = {
+                                    viewModel.reportUserProfile(prof.id)
+                                    Toast.makeText(context, JobaayaLocalization.translate("sp_report_success", currentLang), Toast.LENGTH_LONG).show()
+                                },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red),
+                                border = BorderStroke(1.dp, Color.Red.copy(alpha = 0.5f))
+                            ) {
+                                Icon(Icons.Default.Report, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(JobaayaLocalization.translate("report", currentLang), style = MaterialTheme.typography.bodyMedium)
+                            }
 
-                        OutlinedButton(
-                            onClick = {
-                                viewModel.blockUserProfile(prof.id)
-                                Toast.makeText(context, JobaayaLocalization.translate("sp_block_success", currentLang), Toast.LENGTH_LONG).show()
-                                onBack()
-                            },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.DarkGray)
-                        ) {
-                            Icon(Icons.Default.Block, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(JobaayaLocalization.translate("block", currentLang), style = MaterialTheme.typography.bodyMedium)
+                            OutlinedButton(
+                                onClick = {
+                                    viewModel.blockUserProfile(prof.id)
+                                    Toast.makeText(context, JobaayaLocalization.translate("sp_block_success", currentLang), Toast.LENGTH_LONG).show()
+                                    onBack()
+                                },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.DarkGray)
+                            ) {
+                                Icon(Icons.Default.Block, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(JobaayaLocalization.translate("block", currentLang), style = MaterialTheme.typography.bodyMedium)
+                            }
                         }
                     }
                 }
@@ -838,7 +836,7 @@ fun ProfileDetailPreview() {
         averageRating = 5.0f,
         reviewCount = 3
     )
-    
+
     MaterialTheme {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text("Profile Preview (Mock Data)", style = MaterialTheme.typography.titleLarge)
@@ -860,5 +858,5 @@ fun DetailRowLabel(label: String, valText: String) {
 
 // Custom Border stroke to avoid imports clashes
 @Composable
-fun BorderStroke(width: androidx.compose.ui.unit.Dp, color: Color) = 
+fun BorderStroke(width: androidx.compose.ui.unit.Dp, color: Color) =
     androidx.compose.foundation.BorderStroke(width, color)
