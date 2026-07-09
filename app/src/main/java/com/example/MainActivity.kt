@@ -95,30 +95,29 @@ import de.hdodenhof.circleimageview.CircleImageView
 import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
-  private val cropImage = registerForActivityResult(CropImageContract()) { result ->
-    if (result.isSuccessful) {
-        // Compose application should handle URI updates in ViewModel, not by finding views in activity
-        // findViewById<CircleImageView>(R.id.profile_image)?.setImageURI(result.uriContent)
-    }
-  }
-
-  override fun onCreate(savedInstanceState: Bundle?) {
-    super.onCreate(savedInstanceState)
-    androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES)
-    enableEdgeToEdge()
-    setContent {
-      val rootViewModel: JobaayaViewModel = viewModel()
-      MyApplicationTheme(darkTheme = true) {
-        val isLoggedIn by rootViewModel.isLoggedIn.collectAsState()
-        
-        if (!isLoggedIn) {
-          AuthScreen(viewModel = rootViewModel)
-        } else {
-          MainPlatformContainer(viewModel = rootViewModel)
+    private val cropImage = registerForActivityResult(CropImageContract()) { result ->
+        if (result.isSuccessful) {
+            // Compose application should handle URI updates in ViewModel, not by finding views in activity
         }
-      }
     }
-  }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES)
+        enableEdgeToEdge()
+        setContent {
+            val rootViewModel: JobaayaViewModel = viewModel()
+            MyApplicationTheme(darkTheme = true) {
+                val isLoggedIn by rootViewModel.isLoggedIn.collectAsState()
+
+                if (!isLoggedIn) {
+                    AuthScreen(viewModel = rootViewModel)
+                } else {
+                    MainPlatformContainer(viewModel = rootViewModel)
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -131,7 +130,7 @@ fun MainPlatformContainer(
     val notificationsList by viewModel.notifications.collectAsState()
 
     var activeViewRoute by remember { mutableStateOf("home") } // "home", "map", "chats", "utilities", "admin", "settings", "detail"
-    var previousViewRoute by remember { mutableStateOf("home") } 
+    var previousViewRoute by remember { mutableStateOf("home") }
     var detailedUserIdRoute by remember { mutableStateOf("") }
     var activeDealId by remember { mutableIntStateOf(0) }
     var showNotificationDrawer by remember { mutableStateOf(false) }
@@ -150,7 +149,6 @@ fun MainPlatformContainer(
             showNotificationDrawer = false
         } else if (activeViewRoute == "detail") {
             activeViewRoute = previousViewRoute
-            // Prevent recursive back loops
             if (previousViewRoute == "detail") activeViewRoute = "home"
         } else {
             activeViewRoute = "home"
@@ -167,7 +165,7 @@ fun MainPlatformContainer(
             NavigationBar(
                 modifier = Modifier
                     .windowInsetsPadding(WindowInsets.navigationBars)
-                    .height(58.dp), // Reduced height by 10%
+                    .height(58.dp),
                 tonalElevation = 0.dp,
                 containerColor = Color(0xFF0B3A51),
                 contentColor = Color.White
@@ -176,14 +174,14 @@ fun MainPlatformContainer(
                 NavigationBarItem(
                     selected = activeViewRoute == "home" || (activeViewRoute == "detail" && detailedUserIdRoute.startsWith("prof_")),
                     onClick = { navigateTo("home") },
-                    icon = { Icon(Icons.Default.Home, contentDescription = JobaayaLocalization.translate("home", currentLang), modifier = Modifier.size(21.dp)) }, 
-                    label = { Text(JobaayaLocalization.translate("home", currentLang), fontSize = 10.sp, fontWeight = FontWeight.Bold) }, 
+                    icon = { Icon(Icons.Default.Home, contentDescription = JobaayaLocalization.translate("home", currentLang), modifier = Modifier.size(21.dp)) },
+                    label = { Text(JobaayaLocalization.translate("home", currentLang), fontSize = 10.sp, fontWeight = FontWeight.Bold) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = Color.White,
                         selectedTextColor = Color.White,
                         unselectedIconColor = Color.White.copy(alpha = 0.6f),
                         unselectedTextColor = Color.White.copy(alpha = 0.6f),
-                        indicatorColor = Color.Transparent // Removed indicator to prevent cutting and keep it clean
+                        indicatorColor = Color.Transparent
                     )
                 )
 
@@ -193,7 +191,7 @@ fun MainPlatformContainer(
                     onClick = { navigateTo("chats") },
                     icon = {
                         Box {
-                            Icon(Icons.Default.Chat, contentDescription = JobaayaLocalization.translate("chats", currentLang), modifier = Modifier.size(21.dp)) 
+                            Icon(Icons.Default.Chat, contentDescription = JobaayaLocalization.translate("chats", currentLang), modifier = Modifier.size(21.dp))
                             if (totalInboxUnreadCount > 0) {
                                 Box(
                                     modifier = Modifier
@@ -212,7 +210,7 @@ fun MainPlatformContainer(
                             }
                         }
                     },
-                    label = { Text(JobaayaLocalization.translate("chats", currentLang), fontSize = 10.sp, fontWeight = FontWeight.Bold) }, 
+                    label = { Text(JobaayaLocalization.translate("chats", currentLang), fontSize = 10.sp, fontWeight = FontWeight.Bold) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = Color.White,
                         selectedTextColor = Color.White,
@@ -226,23 +224,8 @@ fun MainPlatformContainer(
                 NavigationBarItem(
                     selected = activeViewRoute == "utilities",
                     onClick = { navigateTo("utilities") },
-                    icon = { Icon(Icons.Default.Build, contentDescription = JobaayaLocalization.translate("tools", currentLang), modifier = Modifier.size(21.dp)) }, 
+                    icon = { Icon(Icons.Default.Build, contentDescription = JobaayaLocalization.translate("tools", currentLang), modifier = Modifier.size(21.dp)) },
                     label = { Text(JobaayaLocalization.translate("tools", currentLang), fontSize = 10.sp, fontWeight = FontWeight.Bold) },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Color.White,
-                        selectedTextColor = Color.White,
-                        unselectedIconColor = Color.White.copy(alpha = 0.6f),
-                        unselectedTextColor = Color.White.copy(alpha = 0.6f),
-                        indicatorColor = Color.Transparent
-                    )
-                )
-
-                // Profile Tab
-                NavigationBarItem(
-                    selected = activeViewRoute == "profile",
-                    onClick = { navigateTo("profile") },
-                    icon = { Icon(Icons.Default.Person, contentDescription = JobaayaLocalization.translate("profile", currentLang), modifier = Modifier.size(21.dp)) }, 
-                    label = { Text(JobaayaLocalization.translate("profile", currentLang), fontSize = 10.sp, fontWeight = FontWeight.Bold) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = Color.White,
                         selectedTextColor = Color.White,
@@ -262,40 +245,6 @@ fun MainPlatformContainer(
                     .padding(top = 27.dp, bottom = 5.dp, start = 16.dp, end = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
-                // Left side: Profile
-                Row(
-                    modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .clickable {
-                            navigateTo("profile")
-                        },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (myProfile?.profilePhotoUrl?.isNotEmpty() == true) {
-                        AsyncImage(
-                            model = ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
-                                .data(java.io.File(myProfile!!.profilePhotoUrl))
-                                .crossfade(true)
-                                .diskCachePolicy(coil.request.CachePolicy.DISABLED)
-                                .memoryCachePolicy(coil.request.CachePolicy.DISABLED)
-                                .build(),
-                            contentDescription = "Profile Logo",
-                            modifier = Modifier
-                                .size(28.dp)
-                                .clip(CircleShape),
-                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                        )
-                    } else {
-                        // Pura khali placeholder with Calculator Action color
-                        Box(
-                            modifier = Modifier
-                                .size(28.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary)
-                        )
-                    }
-                }
-
                 // CENTER: App Brand Logo
                 Box(
                     modifier = Modifier
@@ -317,9 +266,8 @@ fun MainPlatformContainer(
                     modifier = Modifier.align(Alignment.CenterEnd),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Admin Icon - ONLY visible to owner/admin
                     val isAdmin = myProfile?.mobileNumber == "+919630981234" || myProfile?.emailAddress == "mubarakk912@gmail.com"
-                    
+
                     if (isAdmin) {
                         IconButton(onClick = { navigateTo("admin") }, modifier = Modifier.size(36.dp)) {
                             Icon(
@@ -331,8 +279,8 @@ fun MainPlatformContainer(
                         }
                     }
 
-                    IconButton(onClick = { 
-                        showNotificationDrawer = !showNotificationDrawer 
+                    IconButton(onClick = {
+                        showNotificationDrawer = !showNotificationDrawer
                         if (showNotificationDrawer) {
                             viewModel.markNotificationsAsRead()
                         }
@@ -381,7 +329,6 @@ fun MainPlatformContainer(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Central route layout coordinator
             when (activeViewRoute) {
                 "home" -> HomeScreen(
                     viewModel = viewModel,
@@ -431,7 +378,6 @@ fun MainPlatformContainer(
                             }
                         )
                     } else {
-                        // Redirect unauthorized users to home
                         HomeScreen(
                             viewModel = viewModel,
                             onProfileClick = { id: String ->
@@ -446,11 +392,8 @@ fun MainPlatformContainer(
                     }
                 }
 
+                // --- यहाँ एरर फिक्स किया गया है (onPreviewClick पास कर दिया है) ---
                 "settings" -> SettingsScreen(
-                    viewModel = viewModel
-                )
-
-                "profile" -> MyProfileScreen(
                     viewModel = viewModel,
                     onPreviewClick = { id ->
                         detailedUserIdRoute = id
@@ -469,7 +412,7 @@ fun MainPlatformContainer(
                 )
             }
 
-            // Slide out Alerts / Notifications dynamic overlay drawer
+            // Notification drawer block intact
             AnimatedVisibility(
                 visible = showNotificationDrawer,
                 enter = slideInVertically { -it } + fadeIn(),
@@ -557,12 +500,12 @@ fun MainPlatformContainer(
                                                     color = MaterialTheme.colorScheme.onSurface
                                                 )
                                             }
-                                            
+
                                             val timeString = try {
                                                 val sdf = java.text.SimpleDateFormat("hh:mm a", java.util.Locale.getDefault())
                                                 sdf.format(java.util.Date(alert.timestamp))
                                             } catch (e: Exception) { "" }
-                                            
+
                                             Text(
                                                 text = timeString,
                                                 fontSize = 10.sp,
