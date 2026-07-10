@@ -41,7 +41,7 @@ import java.util.*
 fun InboxItemRow(inbox: ChatInbox, onClick: () -> Unit) {
     val partner = inbox.partnerProfile
     val lastMsg = inbox.lastMessage
-    
+
     val timeLabel = remember(lastMsg.timestamp) {
         val now = System.currentTimeMillis()
         val diff = now - lastMsg.timestamp
@@ -80,8 +80,7 @@ fun InboxItemRow(inbox: ChatInbox, onClick: () -> Unit) {
                         )
                     }
                 }
-                
-                // Online Status Indicator
+
                 Box(
                     modifier = Modifier
                         .size(14.dp)
@@ -133,7 +132,7 @@ fun InboxItemRow(inbox: ChatInbox, onClick: () -> Unit) {
                     )
                     Spacer(Modifier.width(4.dp))
                 }
-                
+
                 val previewPrefix = when (lastMsg.mediaType) {
                     "PHOTO" -> "📷 Photo"
                     "VIDEO" -> "🎥 Video"
@@ -144,7 +143,7 @@ fun InboxItemRow(inbox: ChatInbox, onClick: () -> Unit) {
                     "POLL" -> "📊 Poll"
                     else -> ""
                 }
-                
+
                 Text(
                     text = if (previewPrefix.isNotEmpty()) previewPrefix else lastMsg.text,
                     maxLines = 1,
@@ -235,7 +234,7 @@ fun ChatBubble(
 
     Row(
         modifier = Modifier.fillMaxWidth().background(
-            if (isSelected) MaterialTheme.colorScheme.primary.copy(0.1f) 
+            if (isSelected) MaterialTheme.colorScheme.primary.copy(0.1f)
             else if (isHighlighted) MaterialTheme.colorScheme.secondary.copy(0.2f)
             else Color.Transparent
         )
@@ -273,15 +272,15 @@ fun ChatBubble(
                             }
                         }
                     },
-                    onLongClick = { 
+                    onLongClick = {
                         if (!isSelected) onToggleSelection()
-                        showMenu = true 
+                        showMenu = true
                     }
                 )
             ) {
                 Column {
                     if (message.replyToId != null) {
-                        Box(modifier = Modifier.padding(4.dp).fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(0.15f)).clickable { 
+                        Box(modifier = Modifier.padding(4.dp).fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(0.15f)).clickable {
                             onReplyClicked(message.replyToId)
                         }.padding(8.dp)) {
                             Text(message.replyToText ?: "Original Message", fontSize = 10.sp, color = Color.White.copy(0.8f), maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -292,7 +291,7 @@ fun ChatBubble(
                             if (message.isStarred) {
                                 Icon(Icons.Default.Star, null, modifier = Modifier.size(10.dp).align(Alignment.End), tint = Color(0xFFFFD700))
                             }
-                            
+
                             Box(modifier = Modifier.widthIn(min = 60.dp)) {
                                 Column {
                                     when (message.mediaType) {
@@ -355,12 +354,12 @@ fun ChatBubble(
         DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
             if (selectedCount <= 1) {
                 DropdownMenuItem(
-                    text = { Text("Copy") }, 
-                    onClick = { 
+                    text = { Text("Copy") },
+                    onClick = {
                         showMenu = false
                         clipboardManager.setText(AnnotatedString(message.text))
                         android.widget.Toast.makeText(context, "Text copied to clipboard", android.widget.Toast.LENGTH_SHORT).show()
-                    }, 
+                    },
                     leadingIcon = { Icon(Icons.Default.ContentCopy, null) }
                 )
                 DropdownMenuItem(text = { Text("Reply") }, onClick = { showMenu = false; onReply() }, leadingIcon = { Icon(Icons.AutoMirrored.Filled.Reply, null) })
@@ -399,7 +398,7 @@ fun VoiceMessageVisualizer(
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val grayColor = Color.Gray.copy(0.3f)
-    
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(vertical = 4.dp)
@@ -410,19 +409,17 @@ fun VoiceMessageVisualizer(
             tint = if (isMe) Color.White else primaryColor,
             modifier = Modifier.size(32.dp)
         )
-        
+
         Box(modifier = Modifier.width(150.dp).height(30.dp).padding(horizontal = 8.dp)) {
-            // Background Bars
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val barCount = 20
                 val barWidth = 4f
                 val spacing = (size.width - (barCount * barWidth)) / (barCount - 1)
-                
+
                 repeat(barCount) { i ->
                     val h = (10..25).random().dp.toPx()
                     val x = i * (barWidth + spacing)
-                    
-                    // Determine color based on progress
+
                     val isPlayed = (i.toFloat() / barCount) < progress
                     val color = if (isMe) {
                         if (isPlayed) Color.White else Color.White.copy(0.4f)
@@ -439,7 +436,7 @@ fun VoiceMessageVisualizer(
                 }
             }
         }
-        
+
         Text(
             text = durationLabel,
             fontSize = 11.sp,
@@ -512,51 +509,51 @@ fun DirectDealVisualizer(isMe: Boolean, text: String) {
     val budget = parts.getOrNull(1) ?: "N/A"
     val deadline = parts.getOrNull(2) ?: "N/A"
     Card(
-        colors = CardDefaults.cardColors(containerColor = if (isMe) Color.White.copy(0.1f) else Color.White.copy(0.5f)),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)), // यहाँ गहरा ग्रे-ब्लैक शेड दिया गया है
         modifier = Modifier.fillMaxWidth().padding(4.dp)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(
-                "Business Proposal", 
-                fontSize = 14.sp, 
-                fontWeight = FontWeight.Black, 
-                color = MaterialTheme.colorScheme.primary
+                "Business Proposal",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Black,
+                color = Color.White // टेक्स्ट का रंग सफ़ेद
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                title, 
-                fontSize = 18.sp, 
-                fontWeight = FontWeight.Bold, 
+                title,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
                 color = if (isMe) Color.White else Color.Black
             )
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "Budget: ", 
-                    fontSize = 15.sp, 
+                    "Budget: ",
+                    fontSize = 15.sp,
                     color = if (isMe) Color.White.copy(0.7f) else Color.Gray
                 )
                 Text(
-                    budget, 
-                    fontSize = 16.sp, 
-                    fontWeight = FontWeight.ExtraBold, 
+                    budget,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.ExtraBold,
                     color = if (isMe) Color.White else Color.Black
                 )
             }
             Text(
-                "Deadline: $deadline", 
-                fontSize = 15.sp, 
+                "Deadline: $deadline",
+                fontSize = 15.sp,
                 color = if (isMe) Color.White.copy(0.7f) else Color.Gray
             )
             Spacer(Modifier.height(16.dp))
             Button(
-                onClick = { /* View details */ }, 
+                onClick = { /* Button Active */ },
                 modifier = Modifier.fillMaxWidth().height(48.dp),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(
-                    "Review Proposal", 
-                    fontSize = 15.sp, 
+                    "Review Proposal",
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Visible
