@@ -161,6 +161,8 @@ fun ChatScreen(
     val currentChatMessages by viewModel.activeChatMessages.collectAsState()
     val isTyping by viewModel.isPartnerTyping.collectAsState()
     val otherProfiles by viewModel.filteredProfiles.collectAsState()
+    val myProfile by viewModel.myProfile.collectAsState()
+    val deviceLocation by viewModel.deviceLocation.collectAsState()
 
     var chatTextInput by remember { mutableStateOf("") }
     var showAttachmentSheet by remember { mutableStateOf(false) }
@@ -182,6 +184,9 @@ fun ChatScreen(
     var showDealDialog by remember { mutableStateOf(false) }
     var showPollDialog by remember { mutableStateOf(false) }
     var showNewChatDialog by remember { mutableStateOf(false) }
+
+    var pendingImageUri by remember { mutableStateOf<Uri?>(null) }
+    var imageCaption by remember { mutableStateOf("") }
 
     var inboxSearchQuery by remember { mutableStateOf("") }
     var selectedInboxTab by remember { mutableIntStateOf(0) } // 0: All, 1: Unread, 2: Pinned, 3: Starred
@@ -373,7 +378,7 @@ fun ChatScreen(
 
     // Activity Result Launchers
     val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { viewModel.sendChatMessage("", "PHOTO", it.toString()) }
+        uri?.let { pendingImageUri = it }
     }
     val videoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let { viewModel.sendChatMessage("Video Attachment", "VIDEO", it.toString()) }
@@ -383,6 +388,18 @@ fun ChatScreen(
     }
     val audioPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let { viewModel.sendChatMessage("Audio Attachment", "VOICE", it.toString()) }
+    }
+    
+    val contactPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickContact()) { uri ->
+        uri?.let {
+            context.contentResolver.query(it, null, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val nameIndex = cursor.getColumnIndex(android.provider.ContactsContract.Contacts.DISPLAY_NAME)
+                    val name = if (nameIndex >= 0) cursor.getString(nameIndex) else "Unknown Contact"
+                    viewModel.sendContactMessage(name, "Shared from phone")
+                }
+            }
+        }
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -673,7 +690,7 @@ fun ChatScreen(
                         }
                         Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
                             MediaAttachmentItem(Icons.Default.LocationOn, "Location", Color(0xFF4CAF50)) { showLocationPicker = true; showAttachmentSheet = false }
-                            MediaAttachmentItem(Icons.Default.ContactPage, "Contact", Color(0xFFFF9800)) { showContactPicker = true; showAttachmentSheet = false }
+                            MediaAttachmentItem(Icons.Default.ContactPage, "Contact", Color(0xFFFF9800)) { contactPicker.launch(null); showAttachmentSheet = false }
                             MediaAttachmentItem(Icons.Default.BusinessCenter, "Direct Deal", Color(0xFF673AB7)) { showDealDialog = true; showAttachmentSheet = false }
                             MediaAttachmentItem(Icons.Default.Poll, "Poll", Color(0xFFE91E63)) { showPollDialog = true; showAttachmentSheet = false }
                         }
@@ -871,7 +888,8 @@ fun ChatScreen(
                             text = {
                                 Text(
                                     text = title,
-                                    fontSize = 13.sp,
+                                    fontSize = 17.sp,
+                                    color = Color.White,
                                     fontWeight = if (selectedInboxTab == index) FontWeight.Bold else FontWeight.Medium
                                 )
                             }
@@ -1009,11 +1027,27 @@ fun ChatScreen(
             Card(shape = RoundedCornerShape(16.dp)) {
                 Column(Modifier.padding(20.dp)) {
                     Text("Share Location", fontWeight = FontWeight.Bold)
-                    Text("Mocking location fetch...", fontSize = 12.sp)
-                    Button(onClick = { 
-                        viewModel.sendLocationMessage(28.6139, 77.2090, "Connaught Place, New Delhi")
-                        showLocationPicker = false 
-                    }, Modifier.align(Alignment.End)) { Text("Send CP, Delhi") }
+                    
+                    val locToShare = deviceLocation
+                    val profileToShare = myProfile
+                    
+                    if (locToShare != null) {
+                        Text("Real-time device location detected.", fontSize = 12.sp)
+                        Button(onClick = { 
+                            viewModel.sendLocationMessage(locToShare.latitude, locToShare.longitude, "Current Device Location")
+                            showLocationPicker = false 
+                        }, Modifier.align(Alignment.End)) { Text("Send Live Location") }
+                    } else if (profileToShare != null) {
+                        Text("Location off. Sharing your profile address.", fontSize = 12.sp)
+                        Text(profileToShare.fullAddress, fontSize = 11.sp, color = Color.Gray)
+                        Button(onClick = { 
+                            viewModel.sendLocationMessage(profileToShare.latitude, profileToShare.longitude, profileToShare.fullAddress)
+                            showLocationPicker = false 
+                        }, Modifier.align(Alignment.End)) { Text("Send Profile Address") }
+                    } else {
+                        Text("Location unavailable. Please enable GPS.", fontSize = 12.sp)
+                        Button(onClick = { showLocationPicker = false }, Modifier.align(Alignment.End)) { Text("Close") }
+                    }
                 }
             }
         }
@@ -1264,6 +1298,51 @@ fun ChatScreen(
                     ) {
                         Text("CANCEL")
                     }
+                }
+            }
+        }
+    }
+
+    // Image Preview Dialog before sending
+    if (pendingImageUri != null) {
+        Dialog(onDismissRequest = { pendingImageUri = null }) {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth().padding(16.dp)
+            ) {
+                Column(Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Send Image", fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(12.dp))
+                    Box(modifier = Modifier.size(300.dp).clip(RoundedCornerShape(8.dp))) {
+                        AsyncImage(
+                            model = pendingImageUri,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit
+                        )
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = imageCaption,
+                        onValueChange = { imageCaption = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("Add a caption...") },
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        androidx.compose.material3.TextButton(onClick = { pendingImageUri = null; imageCaption = "" }) {
+                            Text("CANCEL")
+                        }
+                        Button(onClick = { 
+                            viewModel.sendChatMessage(imageCaption, "PHOTO", pendingImageUri.toString())
+                            pendingImageUri = null
+                            imageCaption = ""
+                        }) {
+                            Text("SEND")
+                        }
+                    }
+                    Text("(Crop functionality coming soon)", fontSize = 10.sp, color = Color.Gray)
                 }
             }
         }
@@ -1745,18 +1824,56 @@ fun DirectDealVisualizer(isMe: Boolean, text: String) {
     val title = parts.getOrNull(0) ?: "Project Deal"
     val budget = parts.getOrNull(1) ?: "N/A"
     val deadline = parts.getOrNull(2) ?: "N/A"
-    Card(colors = CardDefaults.cardColors(containerColor = if (isMe) Color.White.copy(0.1f) else Color.White.copy(0.5f))) {
-        Column(modifier = Modifier.padding(8.dp)) {
-            Text("Business Proposal", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-            Text(title, fontWeight = FontWeight.Bold, color = if (isMe) Color.White else Color.Black)
-            Row {
-                Text("Budget: ", fontSize = 11.sp, color = if (isMe) Color.White.copy(0.7f) else Color.Gray)
-                Text(budget, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (isMe) Color.White else Color.Black)
-            }
-            Text("Deadline: $deadline", fontSize = 11.sp, color = if (isMe) Color.White.copy(0.7f) else Color.Gray)
+    Card(
+        colors = CardDefaults.cardColors(containerColor = if (isMe) Color.White.copy(0.1f) else Color.White.copy(0.5f)),
+        modifier = Modifier.fillMaxWidth().padding(4.dp)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                "Business Proposal", 
+                fontSize = 14.sp, 
+                fontWeight = FontWeight.Black, 
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                title, 
+                fontSize = 18.sp, 
+                fontWeight = FontWeight.Bold, 
+                color = if (isMe) Color.White else Color.Black
+            )
             Spacer(Modifier.height(8.dp))
-            Button(onClick = { /* View details */ }, modifier = Modifier.fillMaxWidth().height(32.dp)) {
-                Text("Review Proposal", fontSize = 10.sp)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "Budget: ", 
+                    fontSize = 15.sp, 
+                    color = if (isMe) Color.White.copy(0.7f) else Color.Gray
+                )
+                Text(
+                    budget, 
+                    fontSize = 16.sp, 
+                    fontWeight = FontWeight.ExtraBold, 
+                    color = if (isMe) Color.White else Color.Black
+                )
+            }
+            Text(
+                "Deadline: $deadline", 
+                fontSize = 15.sp, 
+                color = if (isMe) Color.White.copy(0.7f) else Color.Gray
+            )
+            Spacer(Modifier.height(16.dp))
+            Button(
+                onClick = { /* View details */ }, 
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    "Review Proposal", 
+                    fontSize = 15.sp, 
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Visible
+                )
             }
         }
     }
