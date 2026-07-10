@@ -365,7 +365,7 @@ fun ChatBubble(
                 DropdownMenuItem(text = { Text("Reply") }, onClick = { showMenu = false; onReply() }, leadingIcon = { Icon(Icons.AutoMirrored.Filled.Reply, null) })
                 DropdownMenuItem(text = { Text(if (message.isStarred) "Unstar" else "Star") }, onClick = { showMenu = false; onStarMessage(message) }, leadingIcon = { Icon(if (message.isStarred) Icons.Default.StarBorder else Icons.Default.Star, null) })
                 if (isMe) {
-                    DropdownMenuItem(text = { Text("Edit") }, onClick = { showMenu = false; onEdit() }, leadingIcon = { Icon(Icons.Default.Edit, null) })
+                    DropdownMenuItem(text = { Text("Edit") }, onClick = { showMenu = false; onEdit() }, leadingIcon = { Icon(Icons.Default.Edit, null) } )
                 }
             }
             DropdownMenuItem(text = { Text(if (selectedCount > 1) "Delete Selection" else "Delete") }, onClick = { showMenu = false; onDelete() }, leadingIcon = { Icon(Icons.Default.Delete, null, tint = Color.Red) })
@@ -477,8 +477,14 @@ fun LocationAttachmentVisualizer(isMe: Boolean, address: String, coords: String?
             Text(address, fontWeight = FontWeight.Bold, color = if (isMe) Color.White else Color.Black)
         }
         Spacer(Modifier.height(8.dp))
-        Button(onClick = { /* Open maps intent */ }, modifier = Modifier.fillMaxWidth().height(32.dp), shape = RoundedCornerShape(8.dp)) {
-            Text("Open Maps", fontSize = 10.sp)
+        // बटन की ऊंचाई बढ़ाई है और फुल विड्थ दी है
+        Button(
+            onClick = { /* Open maps intent */ },
+            modifier = Modifier.fillMaxWidth().height(40.dp),
+            shape = RoundedCornerShape(8.dp),
+            contentPadding = PaddingValues(horizontal = 8.dp)
+        ) {
+            Text("Open Maps", fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Visible)
         }
     }
 }
@@ -509,7 +515,7 @@ fun DirectDealVisualizer(isMe: Boolean, text: String) {
     val budget = parts.getOrNull(1) ?: "N/A"
     val deadline = parts.getOrNull(2) ?: "N/A"
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)), // यहाँ गहरा ग्रे-ब्लैक शेड दिया गया है
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)),
         modifier = Modifier.fillMaxWidth().padding(4.dp)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
@@ -517,7 +523,7 @@ fun DirectDealVisualizer(isMe: Boolean, text: String) {
                 "Business Proposal",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Black,
-                color = Color.White // टेक्स्ट का रंग सफ़ेद
+                color = Color.White
             )
             Spacer(Modifier.height(4.dp))
             Text(
