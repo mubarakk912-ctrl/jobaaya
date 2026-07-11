@@ -14,6 +14,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -134,17 +136,17 @@ fun LocationPickerDialog(
         Card(shape = RoundedCornerShape(16.dp)) {
             Column(Modifier.padding(20.dp)) {
                 Text("Share Location", fontWeight = FontWeight.Bold)
-                
+
                 if (deviceLocation != null) {
                     Text("Real-time device location detected.", fontSize = 12.sp)
-                    Button(onClick = { 
+                    Button(onClick = {
                         onSendLocation(deviceLocation.latitude, deviceLocation.longitude, "Current Device Location")
                         onDismiss()
                     }, Modifier.align(Alignment.End)) { Text("Send Live Location") }
                 } else if (myProfile != null) {
                     Text("Location off. Sharing your profile address.", fontSize = 12.sp)
                     Text(myProfile.fullAddress, fontSize = 11.sp, color = Color.Gray)
-                    Button(onClick = { 
+                    Button(onClick = {
                         onSendLocation(myProfile.latitude, myProfile.longitude, myProfile.fullAddress)
                         onDismiss()
                     }, Modifier.align(Alignment.End)) { Text("Send Profile Address") }
@@ -170,7 +172,7 @@ fun ContactPickerDialog(
                 var phone by remember { mutableStateOf("") }
                 OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Name") })
                 OutlinedTextField(value = phone, onValueChange = { phone = it }, label = { Text("Phone") })
-                Button(onClick = { 
+                Button(onClick = {
                     onSendContact(name, phone)
                     onDismiss()
                 }, Modifier.align(Alignment.End)) { Text("Share") }
@@ -194,7 +196,7 @@ fun DirectDealDialog(
                 OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Project Title") })
                 OutlinedTextField(value = budget, onValueChange = { budget = it }, label = { Text("Budget (INR)") })
                 OutlinedTextField(value = date, onValueChange = { date = it }, label = { Text("Completion Date") })
-                Button(onClick = { 
+                Button(onClick = {
                     onSendDeal(title, budget, date)
                     onDismiss()
                 }, Modifier.align(Alignment.End)) { Text("Send Proposal") }
@@ -218,7 +220,7 @@ fun PollCreationDialog(
                 OutlinedTextField(value = q, onValueChange = { q = it }, label = { Text("Question") })
                 OutlinedTextField(value = opt1, onValueChange = { opt1 = it }, label = { Text("Option 1") })
                 OutlinedTextField(value = opt2, onValueChange = { opt2 = it }, label = { Text("Option 2") })
-                Button(onClick = { 
+                Button(onClick = {
                     onSendPoll(q, listOf(opt1, opt2))
                     onDismiss()
                 }, Modifier.align(Alignment.End)) { Text("Create Poll") }
@@ -269,9 +271,9 @@ fun DeleteMessagesDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(Modifier.height(24.dp))
-                
+
                 Button(
-                    onClick = { 
+                    onClick = {
                         onDeleteMessages(selectedMessages)
                         onDismiss()
                     },
@@ -286,19 +288,19 @@ fun DeleteMessagesDialog(
                 if (allFromMe) {
                     Spacer(Modifier.height(8.dp))
                     OutlinedButton(
-                        onClick = { 
+                        onClick = {
                             onDeleteMessages(selectedMessages)
                             onDismiss()
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
-                    ) { 
+                    ) {
                         Text(
-                            "Delete for everyone", 
+                            "Delete for everyone",
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold
-                        ) 
+                        )
                     }
                 }
 
@@ -306,12 +308,12 @@ fun DeleteMessagesDialog(
                 TextButton(
                     onClick = onDismiss,
                     modifier = Modifier.fillMaxWidth()
-                ) { 
+                ) {
                     Text(
-                        "Cancel", 
+                        "Cancel",
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold
-                    ) 
+                    )
                 }
             }
         }
@@ -343,9 +345,9 @@ fun CallingSimulationDialog(
                 Spacer(Modifier.height(24.dp))
                 Text(activePartner?.name ?: "User", color = Color.White, style = MaterialTheme.typography.headlineMedium)
                 Text(if (type == "VIDEO") "Video Calling..." else "Voice Calling...", color = Color.White.copy(0.7f))
-                
+
                 Spacer(Modifier.weight(1f))
-                
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
@@ -430,17 +432,40 @@ fun ImagePreviewDialog(
     caption: String,
     onCaptionChange: (String) -> Unit,
     onSend: () -> Unit,
-    onDismiss: () -> Unit
+    onCrop: () -> Unit = {}, // 5th parameter
+    onDismiss: () -> Unit      // 6th parameter
 ) {
     Dialog(onDismissRequest = onDismiss) {
         Card(
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxWidth().padding(16.dp)
+            shape = RoundedCornerShape(24.dp),
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFF1C1C1E), // Dark Theme Background
+                contentColor = Color.White          // Pure White Text
+            )
         ) {
-            Column(Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Send Image", fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(12.dp))
-                Box(modifier = Modifier.size(300.dp).clip(RoundedCornerShape(8.dp))) {
+            Column(Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Send Image", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color.White)
+
+                    // CROP BUTTON (White Icon)
+                    IconButton(onClick = onCrop) {
+                        Icon(
+                            imageVector = Icons.Default.Crop,
+                            contentDescription = "Crop",
+                            tint = Color.White,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                Box(modifier = Modifier.fillMaxWidth().height(250.dp).clip(RoundedCornerShape(12.dp)).background(Color.Black)) {
                     AsyncImage(
                         model = uri,
                         contentDescription = null,
@@ -448,24 +473,39 @@ fun ImagePreviewDialog(
                         contentScale = ContentScale.Fit
                     )
                 }
-                Spacer(Modifier.height(12.dp))
+
+                Spacer(Modifier.height(16.dp))
+
                 OutlinedTextField(
                     value = caption,
                     onValueChange = onCaptionChange,
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Add a caption...") },
-                    shape = RoundedCornerShape(12.dp)
+                    placeholder = { Text("Add a caption...", color = Color.Gray) },
+                    shape = RoundedCornerShape(16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        cursorColor = Color.White,
+                        focusedBorderColor = Color.White,
+                        unfocusedBorderColor = Color.DarkGray
+                    )
                 )
-                Spacer(Modifier.height(12.dp))
+
+                Spacer(Modifier.height(20.dp))
+
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = onDismiss) {
-                        Text("CANCEL")
+                        Text("CANCEL", color = Color.White, fontWeight = FontWeight.Bold)
                     }
-                    Button(onClick = onSend) {
-                        Text("SEND")
+                    Spacer(Modifier.width(8.dp))
+                    Button(
+                        onClick = onSend,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black)
+                    ) {
+                        Text("SEND", fontWeight = FontWeight.ExtraBold)
                     }
                 }
-                Text("(Crop functionality coming soon)", fontSize = 10.sp, color = Color.Gray)
             }
         }
     }

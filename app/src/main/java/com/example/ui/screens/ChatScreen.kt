@@ -34,7 +34,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import coil.compose.AsyncImage
+import com.canhub.cropper.CropImageContract
+import com.canhub.cropper.CropImageContractOptions
+import com.canhub.cropper.CropImageOptions
+import com.canhub.cropper.CropImageView
 import com.example.viewmodel.JobaayaViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -64,10 +70,10 @@ fun ChatScreen(
     var showChatMenu by remember { mutableStateOf(false) }
     var showCallingDialog by remember { mutableStateOf<String?>(null) } // "VOICE" or "VIDEO"
     var highlightedMessageId by remember { mutableStateOf<Int?>(null) }
-    
+
     var chatSearchQuery by remember { mutableStateOf("") }
     var isSearching by remember { mutableStateOf(false) }
-    
+
     var showLocationPicker by remember { mutableStateOf(false) }
     var showDealDialog by remember { mutableStateOf(false) }
     var showPollDialog by remember { mutableStateOf(false) }
@@ -92,12 +98,12 @@ fun ChatScreen(
             matchesSearch && matchesTab
         }
     }
-    
+
     val filteredMessages = remember(currentChatMessages, chatSearchQuery) {
         if (chatSearchQuery.isBlank()) currentChatMessages
         else currentChatMessages.filter { it.text.contains(chatSearchQuery, ignoreCase = true) }
     }
-    
+
     // Media Playback & Recording State
     var activePlayingId by remember { mutableStateOf<Int?>(null) }
     var activePlayingUri by remember { mutableStateOf<String?>(null) }
@@ -110,7 +116,7 @@ fun ChatScreen(
     var isRecording by remember { mutableStateOf(false) }
     var isPaused by remember { mutableStateOf(false) }
     var recordingTime by remember { mutableIntStateOf(0) }
-    
+
     val coroutineScope = rememberCoroutineScope()
     val listState = rememberLazyListState()
     val mediaPlayer = remember { MediaPlayer() }
@@ -179,12 +185,12 @@ fun ChatScreen(
                 val durationSecs = try { msg?.text?.split("|")?.get(1)?.toInt() ?: 10 } catch(e: Exception) { 10 }
                 totalDuration = durationSecs * 1000
                 val startTime = System.currentTimeMillis()
-                
+
                 while (activePlayingId != null && activePlayingUri == "simulated_audio_uri") {
                     val elapsed = (System.currentTimeMillis() - startTime).toInt()
                     currentPosition = elapsed
                     playbackProgress = (elapsed.toFloat() / totalDuration).coerceIn(0f, 1f)
-                    
+
                     if (playbackProgress >= 1f) {
                         activePlayingId = null
                         activePlayingUri = null
@@ -234,7 +240,7 @@ fun ChatScreen(
                 else mediaPlayer.setDataSource(context, Uri.parse(uriString))
                 mediaPlayer.prepare()
                 mediaPlayer.start()
-                mediaPlayer.setOnCompletionListener { 
+                mediaPlayer.setOnCompletionListener {
                     activePlayingId = null
                     activePlayingUri = null
                 }
@@ -275,6 +281,12 @@ fun ChatScreen(
         if (permissions[Manifest.permission.RECORD_AUDIO] == true) startRecording()
     }
 
+    val cropImageLauncher = rememberLauncherForActivityResult(CropImageContract()) { result ->
+        if (result.isSuccessful) {
+            pendingImageUri = result.uriContent
+        }
+    }
+
     fun checkAndStartRecording() {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) startRecording()
         else permissionLauncher.launch(arrayOf(Manifest.permission.RECORD_AUDIO))
@@ -285,7 +297,7 @@ fun ChatScreen(
 
     if (!activeChatUserId.isNullOrEmpty()) {
         val activePartner = inboxList.find { it.partnerProfile.id == activeChatUserId }?.partnerProfile ?: otherProfiles.find { it.id == activeChatUserId }
-        
+
         Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
             // Selection Bar
             AnimatedVisibility(visible = isSelectionMode) {
@@ -303,7 +315,7 @@ fun ChatScreen(
                             val selectedMsg = currentChatMessages.find { it.id == selectedMessageIds.first() }
                             if (selectedMsg != null) {
                                 if (selectedMsg.isFromMe && selectedMsg.mediaType == null) {
-                                    IconButton(onClick = { 
+                                    IconButton(onClick = {
                                         editingMessage = selectedMsg
                                         chatTextInput = selectedMsg.text
                                         selectedMessageIds = emptySet()
@@ -381,7 +393,7 @@ fun ChatScreen(
                         onPlayAudio = { id, uri -> playAudio(id, uri) },
                         onShowVideo = { fullscreenVideoUri = it },
                         onShowImage = { fullscreenImageUri = it },
-                        onDelete = { 
+                        onDelete = {
                             if (selectedMessageIds.contains(msg.id)) {
                                 viewModel.deleteChatMessages(currentChatMessages.filter { it.id in selectedMessageIds })
                                 selectedMessageIds = emptySet()
@@ -506,5 +518,33 @@ fun ChatScreen(
         CallingSimulationDialog(activePartner, showCallingDialog!!) { showCallingDialog = null }
     }
     if (showNewChatDialog) NewChatDialog(otherProfiles, { id -> viewModel.selectActiveChat(id) }) { showNewChatDialog = false }
-    if (pendingImageUri != null) ImagePreviewDialog(pendingImageUri!!, imageCaption, { imageCaption = it }, { viewModel.sendChatMessage(imageCaption, "PHOTO", pendingImageUri.toString()); pendingImageUri = null; imageCaption = "" }) { pendingImageUri = null; imageCaption = "" }
+    if (pendingImageUri != null) {
+        ImagePreviewDialog(
+            uri = pendingImageUri!!,
+            caption = imageCaption,
+            onCaptionChange = { imageCaption = it },
+            onSend = {
+                viewModel.sendChatMessage(imageCaption, "PHOTO", pendingImageUri.toString())
+                pendingImageUri = null
+                imageCaption = ""
+            },
+            onCrop = {
+                cropImageLauncher.launch(
+                    CropImageContractOptions(
+                        uri = pendingImageUri,
+                        cropImageOptions = CropImageOptions(
+                            guidelines = CropImageView.Guidelines.ON,
+                            fixAspectRatio = false, // Yahan 'false' kar diya gaya hai
+                            aspectRatioX = 16,
+                            aspectRatioY = 9
+                        )
+                    )
+                )
+            },
+            onDismiss = {
+                pendingImageUri = null
+                imageCaption = ""
+            }
+        )
+    }
 }
