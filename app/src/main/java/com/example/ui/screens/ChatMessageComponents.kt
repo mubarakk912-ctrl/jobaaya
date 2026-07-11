@@ -15,6 +15,8 @@ import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -448,8 +450,17 @@ fun VoiceMessageVisualizer(
 
 @Composable
 fun PhotoAttachmentVisualizer(url: String?, isMe: Boolean, time: String, isRead: Boolean) {
-    Box(modifier = Modifier.size(240.dp, 240.dp).clip(RoundedCornerShape(12.dp)).background(Color.LightGray)) {
-        AsyncImage(url, null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+    Box(modifier = Modifier
+        .width(240.dp)
+        .wrapContentHeight()
+        .clip(RoundedCornerShape(12.dp))
+        .background(Color.LightGray)) {
+        AsyncImage(
+            model = url,
+            contentDescription = null,
+            modifier = Modifier.fillMaxWidth(),
+            contentScale = ContentScale.FillWidth
+        )
         Row(modifier = Modifier.align(Alignment.BottomEnd).padding(4.dp).background(Color.Black.copy(0.4f), RoundedCornerShape(8.dp)).padding(4.dp)) {
             Text(time, fontSize = 9.sp, color = Color.White)
             if (isMe) Text(if (isRead) " ✓✓" else " ✓", fontSize = 10.sp, color = if (isRead) Color.Green else Color.White)
@@ -459,7 +470,11 @@ fun PhotoAttachmentVisualizer(url: String?, isMe: Boolean, time: String, isRead:
 
 @Composable
 fun VideoAttachmentVisualizer(url: String?, isMe: Boolean, time: String, isRead: Boolean) {
-    Box(modifier = Modifier.size(240.dp, 240.dp).clip(RoundedCornerShape(12.dp)).background(Color.Black)) {
+    Box(modifier = Modifier
+        .width(240.dp)
+        .aspectRatio(1f)
+        .clip(RoundedCornerShape(12.dp))
+        .background(Color.Black)) {
         Icon(Icons.Default.SmartDisplay, null, modifier = Modifier.size(48.dp).align(Alignment.Center), tint = Color.Red)
         Row(modifier = Modifier.align(Alignment.BottomEnd).padding(4.dp).background(Color.Black.copy(0.4f), RoundedCornerShape(8.dp)).padding(4.dp)) {
             Text(time, fontSize = 9.sp, color = Color.White)
@@ -477,7 +492,6 @@ fun LocationAttachmentVisualizer(isMe: Boolean, address: String, coords: String?
             Text(address, fontWeight = FontWeight.Bold, color = if (isMe) Color.White else Color.Black)
         }
         Spacer(Modifier.height(8.dp))
-        // बटन की ऊंचाई बढ़ाई है और फुल विड्थ दी है
         Button(
             onClick = { /* Open maps intent */ },
             modifier = Modifier.fillMaxWidth().height(40.dp),

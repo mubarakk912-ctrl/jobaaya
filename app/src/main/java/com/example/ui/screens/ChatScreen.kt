@@ -68,7 +68,7 @@ fun ChatScreen(
     var showInfoMessage by remember { mutableStateOf<com.example.data.model.ChatMessage?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showChatMenu by remember { mutableStateOf(false) }
-    var showCallingDialog by remember { mutableStateOf<String?>(null) } // "VOICE" or "VIDEO"
+    var showCallingDialog by remember { mutableStateOf<String?>(null) }
     var highlightedMessageId by remember { mutableStateOf<Int?>(null) }
 
     var chatSearchQuery by remember { mutableStateOf("") }
@@ -83,7 +83,7 @@ fun ChatScreen(
     var imageCaption by remember { mutableStateOf("") }
 
     var inboxSearchQuery by remember { mutableStateOf("") }
-    var selectedInboxTab by remember { mutableIntStateOf(0) } // 0: All, 1: Unread, 2: Pinned, 3: Starred
+    var selectedInboxTab by remember { mutableIntStateOf(0) }
 
     val filteredInbox = remember(inboxList, inboxSearchQuery, selectedInboxTab) {
         inboxList.filter {
@@ -104,7 +104,6 @@ fun ChatScreen(
         else currentChatMessages.filter { it.text.contains(chatSearchQuery, ignoreCase = true) }
     }
 
-    // Media Playback & Recording State
     var activePlayingId by remember { mutableStateOf<Int?>(null) }
     var activePlayingUri by remember { mutableStateOf<String?>(null) }
     var currentPosition by remember { mutableIntStateOf(0) }
@@ -299,7 +298,6 @@ fun ChatScreen(
         val activePartner = inboxList.find { it.partnerProfile.id == activeChatUserId }?.partnerProfile ?: otherProfiles.find { it.id == activeChatUserId }
 
         Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-            // Selection Bar
             AnimatedVisibility(visible = isSelectionMode) {
                 Row(
                     modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.primaryContainer).padding(horizontal = 12.dp, vertical = 8.dp),
@@ -330,7 +328,6 @@ fun ChatScreen(
                 }
             }
 
-            // Chat Header
             if (!isSelectionMode) {
                 Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = { viewModel.selectActiveChat(null) }) { Icon(Icons.Default.Close, "Back") }
@@ -378,7 +375,6 @@ fun ChatScreen(
                 }
             }
 
-            // Message List
             LazyColumn(state = listState, modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.Bottom)) {
                 items(filteredMessages, key = { it.id }) { msg ->
                     ChatBubble(
@@ -418,7 +414,6 @@ fun ChatScreen(
                 if (isTyping) item { TypingIndicator() }
             }
 
-            // Reply Preview
             if (replyingToMessage != null) {
                 Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant).padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Box(modifier = Modifier.width(4.dp).height(40.dp).background(MaterialTheme.colorScheme.primary))
@@ -431,7 +426,6 @@ fun ChatScreen(
                 }
             }
 
-            // Attachment Sheet
             AnimatedVisibility(visible = showAttachmentSheet) {
                 Card(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
                     Column {
@@ -451,7 +445,6 @@ fun ChatScreen(
                 }
             }
 
-            // Input Bar
             Box(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).padding(8.dp)) {
                 if (isRecording) {
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
@@ -504,7 +497,6 @@ fun ChatScreen(
         }
     }
 
-    // Dialogs
     if (fullscreenVideoUri != null) FullscreenVideoDialog(fullscreenVideoUri!!) { fullscreenVideoUri = null }
     if (fullscreenImageUri != null) FullscreenImageDialog(fullscreenImageUri!!) { fullscreenImageUri = null }
     if (showForwardDialog != null) ForwardMessageDialog(showForwardDialog!!, otherProfiles, { msgs, id -> viewModel.forwardChatMessages(msgs, id) }) { showForwardDialog = null; selectedMessageIds = emptySet() }
@@ -534,7 +526,8 @@ fun ChatScreen(
                         uri = pendingImageUri,
                         cropImageOptions = CropImageOptions(
                             guidelines = CropImageView.Guidelines.ON,
-                            fixAspectRatio = false, // Yahan 'false' kar diya gaya hai
+                            fixAspectRatio = false,
+                            initialCropWindowPaddingRatio = 0.1f, // 10% padding jisse frame atakna band ho jaye
                             aspectRatioX = 16,
                             aspectRatioY = 9
                         )
