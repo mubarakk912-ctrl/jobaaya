@@ -321,14 +321,14 @@ fun ChatBubble(
                                         "DEAL" -> DirectDealVisualizer(isMe, message.text, timeLabel, message.isRead)
                                         "POLL" -> PollVisualizer(isMe, message.text, timeLabel, message.isRead)
                                         else -> {
-                                            Box(modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 4.dp)) {
-                                                Column {
+                                            Box(modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 4.dp).fillMaxWidth()) {
+                                                Column(modifier = Modifier.fillMaxWidth()) {
                                                     Text(
                                                         text = message.text,
                                                         color = Color.White,
                                                         style = MaterialTheme.typography.bodyLarge
                                                     )
-                                                    Spacer(modifier = Modifier.height(14.dp)) // Space for timestamp shift
+                                                    Spacer(modifier = Modifier.height(20.dp)) // Increased space for timestamp
                                                 }
                                                 Row(
                                                     modifier = Modifier.align(Alignment.BottomEnd).offset(y = 2.dp),
@@ -477,7 +477,7 @@ fun PhotoAttachmentVisualizer(url: String?, caption: String, isMe: Boolean, time
             Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
                 Column {
                     Text(text = caption, color = Color.White, fontSize = 14.sp)
-                    Spacer(Modifier.height(14.dp))
+                    Spacer(Modifier.height(20.dp)) // Space for timestamp
                 }
                 Row(
                     modifier = Modifier.align(Alignment.BottomEnd).offset(y = 2.dp),
@@ -516,7 +516,7 @@ fun VideoAttachmentVisualizer(url: String?, caption: String, isMe: Boolean, time
             Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
                 Column {
                     Text(text = caption, color = Color.White, fontSize = 14.sp)
-                    Spacer(Modifier.height(14.dp))
+                    Spacer(Modifier.height(20.dp)) // Space for timestamp
                 }
                 Row(
                     modifier = Modifier.align(Alignment.BottomEnd).offset(y = 2.dp),
@@ -546,7 +546,7 @@ fun LocationAttachmentVisualizer(isMe: Boolean, address: String, coords: String?
             Button(onClick = { }, modifier = Modifier.fillMaxWidth().height(40.dp), shape = RoundedCornerShape(8.dp)) {
                 Text("Open Maps", fontSize = 12.sp)
             }
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(20.dp)) // Space for timestamp
         }
         Row(
             modifier = Modifier.align(Alignment.BottomEnd).offset(y = 2.dp),
@@ -578,7 +578,7 @@ fun ContactAttachmentVisualizer(isMe: Boolean, text: String, time: String, isRea
             Button(onClick = { }, modifier = Modifier.fillMaxWidth().height(32.dp), shape = RoundedCornerShape(8.dp)) {
                 Text("Save Contact", fontSize = 10.sp)
             }
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(20.dp)) // Space for timestamp
         }
         Row(
             modifier = Modifier.align(Alignment.BottomEnd).offset(y = 2.dp),
@@ -618,7 +618,7 @@ fun DirectDealVisualizer(isMe: Boolean, text: String, time: String, isRead: Bool
                 Button(onClick = { }, modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(12.dp)) {
                     Text("Review Proposal", fontSize = 15.sp, fontWeight = FontWeight.Bold)
                 }
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(20.dp)) // Space for timestamp
             }
             Row(
                 modifier = Modifier.align(Alignment.BottomEnd).offset(y = 2.dp),
@@ -648,7 +648,7 @@ fun PollVisualizer(isMe: Boolean, text: String, time: String, isRead: Boolean) {
                     Text(option, fontSize = 11.sp, color = if (isMe) Color.White else Color.Black)
                 }
             }
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(20.dp)) // Space for timestamp
         }
         Row(
             modifier = Modifier.align(Alignment.BottomEnd).offset(y = 2.dp),
@@ -672,7 +672,7 @@ fun DocumentAttachmentVisualizer(isMe: Boolean, name: String, time: String, isRe
             Column {
                 Text(name, fontWeight = FontWeight.Bold, color = if (isMe) Color.White else Color.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text("Open Document", fontSize = 10.sp, color = if (isMe) Color.White.copy(0.7f) else Color.Gray)
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(20.dp)) // Space for timestamp
             }
         }
         Row(
