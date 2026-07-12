@@ -80,6 +80,7 @@ fun ChatScreen(
     var showNewChatDialog by remember { mutableStateOf(false) }
 
     var pendingImageUri by remember { mutableStateOf<Uri?>(null) }
+    var pendingAudioUri by remember { mutableStateOf<Uri?>(null) }
     var imageCaption by remember { mutableStateOf("") }
 
     var inboxSearchQuery by remember { mutableStateOf("") }
@@ -169,7 +170,7 @@ fun ChatScreen(
                     totalDuration = mediaPlayer.duration
                     playbackProgress = if (totalDuration > 0) currentPosition.toFloat() / totalDuration else 0f
                 } else if (!mediaPlayer.isPlaying && playbackProgress < 0.99f && activePlayingId != null) {
-                    // Stay active while paused
+                    // Keep seeker active
                 } else if (playbackProgress >= 0.99f) {
                     activePlayingId = null
                     activePlayingUri = null
@@ -204,7 +205,7 @@ fun ChatScreen(
     val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri -> uri?.let { pendingImageUri = it } }
     val videoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri -> uri?.let { viewModel.sendChatMessage("Video Attachment", "VIDEO", it.toString()) } }
     val docPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri -> uri?.let { viewModel.sendChatMessage("Document Shared", "DOCUMENT", it.toString()) } }
-    val audioPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri -> uri?.let { viewModel.sendChatMessage("Audio Attachment", "VOICE", it.toString()) } }
+    val audioPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri -> uri?.let { pendingAudioUri = it } }
     val contactPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickContact()) { uri ->
         uri?.let {
             context.contentResolver.query(it, null, null, null, null)?.use { cursor ->
@@ -293,7 +294,7 @@ fun ChatScreen(
             }
 
             LazyColumn(state = listState, modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.Bottom)) {
-                items(filteredMessages, key = { it.id }) { msg: com.example.data.model.ChatMessage ->
+                items(filteredMessages, key = { it.id }) { msg ->
                     ChatBubble(
                         message = msg,
                         isSelected = selectedMessageIds.contains(msg.id),
@@ -303,24 +304,20 @@ fun ChatScreen(
                         playbackProgress = if (activePlayingId == msg.id) playbackProgress else 0f,
                         currentPosition = if (activePlayingId == msg.id) currentPosition else 0,
                         selectedCount = selectedMessageIds.size,
-                        onPlayAudio = { id: Int, uri: String -> playAudio(id, uri) },
-                        onShowVideo = { uri: String -> fullscreenVideoUri = uri },
-                        onShowImage = { uri: String -> fullscreenImageUri = uri },
+                        onPlayAudio = { id, uri -> playAudio(id, uri) },
+                        onShowVideo = { fullscreenVideoUri = it },
+                        onShowImage = { fullscreenImageUri = it },
                         onDelete = { if (selectedMessageIds.contains(msg.id)) { viewModel.deleteChatMessages(currentChatMessages.filter { it.id in selectedMessageIds }); selectedMessageIds = emptySet() } else viewModel.deleteChatMessage(msg) },
                         onEdit = { editingMessage = msg; chatTextInput = msg.text },
                         onForward = { showForwardDialog = if (selectedMessageIds.contains(msg.id)) currentChatMessages.filter { it.id in selectedMessageIds } else listOf(msg) },
                         onReply = { replyingToMessage = msg },
                         onToggleSelection = { if (selectedMessageIds.contains(msg.id)) selectedMessageIds -= msg.id else selectedMessageIds += msg.id },
-                        onReplyClicked = { replyId: Int ->
+                        onReplyClicked = { replyId ->
                             val index = currentChatMessages.indexOfFirst { it.id == replyId }
                             if (index != -1) coroutineScope.launch { listState.animateScrollToItem(index); highlightedMessageId = replyId; delay(2000); if (highlightedMessageId == replyId) highlightedMessageId = null }
                         },
-                        onStarMessage = { it: com.example.data.model.ChatMessage -> viewModel.toggleStarMessage(it) },
-                        onSeekAudio = { pos: Float ->
-                            if (activePlayingId == msg.id) {
-                                mediaPlayer.seekTo((pos * totalDuration).toInt())
-                            }
-                        }
+                        onStarMessage = { viewModel.toggleStarMessage(it) },
+                        onSeekAudio = { pos -> if (activePlayingId == msg.id) { mediaPlayer.seekTo((pos * totalDuration).toInt()) } }
                     )
                 }
                 if (isTyping) item { TypingIndicator() }
@@ -357,7 +354,7 @@ fun ChatScreen(
                 if (isRecording) {
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                            Icon(Icons.Default.Mic, null, tint = Color.Red, modifier = Modifier.size(20.dp)); Spacer(Modifier.width(8.dp)); Text(text = "${recordingTime}s", color = Color.Red, fontWeight = FontWeight.Bold)
+                            Icon(Icons.Default.Mic, null, tint = Color.Red, modifier = Modifier.size(20.dp)); Spacer(Modifier.width(8.dp)); Text(text = String.format("%02d:%02d", recordingTime / 60, recordingTime % 60), color = Color.Red, fontWeight = FontWeight.Bold)
                             if (isPaused) Text(" (Paused)", fontSize = 10.sp, color = Color.Gray)
                         }
                         Row {
@@ -404,14 +401,12 @@ fun ChatScreen(
     if (showDeleteDialog) DeleteMessagesDialog(currentChatMessages.filter { it.id in selectedMessageIds }, { msgs -> viewModel.deleteChatMessages(msgs); selectedMessageIds = emptySet() }) { showDeleteDialog = false }
     if (showCallingDialog != null) { val activePartner = inboxList.find { it.partnerProfile.id == activeChatUserId }?.partnerProfile ?: otherProfiles.find { it.id == activeChatUserId }; CallingSimulationDialog(activePartner, showCallingDialog!!) { showCallingDialog = null } }
     if (showNewChatDialog) NewChatDialog(otherProfiles, { id -> viewModel.selectActiveChat(id) }) { showNewChatDialog = false }
+
     if (pendingImageUri != null) {
-        ImagePreviewDialog(
-            uri = pendingImageUri!!,
-            caption = imageCaption,
-            onCaptionChange = { imageCaption = it },
-            onSend = { viewModel.sendChatMessage(imageCaption, "PHOTO", pendingImageUri.toString()); pendingImageUri = null; imageCaption = "" },
-            onCrop = { cropImageLauncher.launch(CropImageContractOptions(uri = pendingImageUri, cropImageOptions = CropImageOptions(guidelines = CropImageView.Guidelines.ON, fixAspectRatio = false, initialCropWindowPaddingRatio = 0.1f, aspectRatioX = 16, aspectRatioY = 9))) },
-            onDismiss = { pendingImageUri = null; imageCaption = "" }
-        )
+        ImagePreviewDialog(uri = pendingImageUri!!, caption = imageCaption, onCaptionChange = { imageCaption = it }, onSend = { viewModel.sendChatMessage(imageCaption, "PHOTO", pendingImageUri.toString()); pendingImageUri = null; imageCaption = "" }, onCrop = { cropImageLauncher.launch(CropImageContractOptions(uri = pendingImageUri, cropImageOptions = CropImageOptions(guidelines = CropImageView.Guidelines.ON, fixAspectRatio = false, initialCropWindowPaddingRatio = 0.1f, aspectRatioX = 16, aspectRatioY = 9))) }, onDismiss = { pendingImageUri = null; imageCaption = "" })
+    }
+
+    if (pendingAudioUri != null) {
+        AudioPreviewDialog(uri = pendingAudioUri!!, onSend = { viewModel.sendChatMessage("Audio Attachment", "VOICE", pendingAudioUri.toString()); pendingAudioUri = null }, onDismiss = { pendingAudioUri = null })
     }
 }

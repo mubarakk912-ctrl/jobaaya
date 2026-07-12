@@ -238,7 +238,14 @@ fun ChatBubble(
                                         "VOICE", "AUDIO" -> {
                                             val parts = message.text.split("|")
                                             val totalSecs = if (parts.size > 1) parts[1].toIntOrNull() ?: 0 else 0
-                                            val durationLabel = if (isAudioPlaying) "${currentPosition / 1000}s" else "${totalSecs}s"
+
+                                            // FIX: MM:SS Format (0:59 -> 1:00)
+                                            val durationLabel = if (isAudioPlaying) {
+                                                val s = currentPosition / 1000
+                                                String.format("%02d:%02d", s / 60, s % 60)
+                                            } else {
+                                                String.format("%02d:%02d", totalSecs / 60, totalSecs % 60)
+                                            }
 
                                             VoiceMessageVisualizer(
                                                 isMe = isMe,
@@ -355,7 +362,7 @@ fun VoiceMessageVisualizer(
                     )
                 }
             }
-            Text(text = durationLabel, fontSize = 11.sp, color = if (isMe) Color.White else Color.Black, modifier = Modifier.width(35.dp))
+            Text(text = durationLabel, fontSize = 11.sp, color = if (isMe) Color.White else Color.Black, modifier = Modifier.width(40.dp))
         }
         Row(modifier = Modifier.align(Alignment.End).padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(timeLabel, fontSize = 9.sp, color = if (isMe) Color.White.copy(0.7f) else Color.Gray)

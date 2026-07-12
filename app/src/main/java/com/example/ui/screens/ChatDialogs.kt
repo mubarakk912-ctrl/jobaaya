@@ -65,66 +65,23 @@ fun FullscreenVideoDialog(uri: String, onDismiss: () -> Unit) {
 fun FullscreenImageDialog(uri: String, onDismiss: () -> Unit) {
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
-
     Dialog(onDismissRequest = onDismiss) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.8f))
-                .pointerInput(Unit) {
-                    detectTransformGestures { _, pan, zoom, _ ->
-                        scale = (scale * zoom).coerceIn(1f, 5f)
-                        if (scale > 1f) {
-                            offset += pan
-                        } else {
-                            offset = Offset.Zero
-                        }
-                    }
-                },
-            contentAlignment = Alignment.Center
-        ) {
-            AsyncImage(
-                model = uri,
-                contentDescription = null,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .graphicsLayer(
-                        scaleX = scale,
-                        scaleY = scale,
-                        translationX = offset.x,
-                        translationY = offset.y
-                    ),
-                contentScale = ContentScale.Fit
-            )
-            IconButton(
-                onClick = onDismiss,
-                modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)
-            ) {
-                Icon(Icons.Default.Close, null, tint = Color.White)
-            }
+        Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.8f)).pointerInput(Unit) { detectTransformGestures { _, pan, zoom, _ -> scale = (scale * zoom).coerceIn(1f, 5f); if (scale > 1f) offset += pan else offset = Offset.Zero } }, contentAlignment = Alignment.Center) {
+            AsyncImage(model = uri, contentDescription = null, modifier = Modifier.fillMaxWidth().graphicsLayer(scaleX = scale, scaleY = scale, translationX = offset.x, translationY = offset.y), contentScale = ContentScale.Fit)
+            IconButton(onClick = onDismiss, modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)) { Icon(Icons.Default.Close, null, tint = Color.White) }
         }
     }
 }
 
 @Composable
-fun ForwardMessageDialog(
-    messages: List<ChatMessage>,
-    profiles: List<UserProfile>,
-    onForward: (List<ChatMessage>, String) -> Unit,
-    onDismiss: () -> Unit
-) {
+fun ForwardMessageDialog(messages: List<ChatMessage>, profiles: List<UserProfile>, onForward: (List<ChatMessage>, String) -> Unit, onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
         Card(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text("Forward to...", fontWeight = FontWeight.Bold)
                 LazyColumn(modifier = Modifier.height(300.dp)) {
                     items(profiles) { profile ->
-                        Row(modifier = Modifier.fillMaxWidth().clickable {
-                            onForward(messages, profile.id)
-                            onDismiss()
-                        }.padding(12.dp)) {
-                            Text(profile.name)
-                        }
+                        Row(modifier = Modifier.fillMaxWidth().clickable { onForward(messages, profile.id); onDismiss() }.padding(12.dp)) { Text(profile.name) }
                         HorizontalDivider()
                     }
                 }
@@ -148,30 +105,18 @@ fun MessageInfoDialog(message: ChatMessage, onDismiss: () -> Unit) {
 }
 
 @Composable
-fun LocationPickerDialog(
-    deviceLocation: android.location.Location?,
-    myProfile: UserProfile?,
-    onSendLocation: (Double, Double, String) -> Unit,
-    onDismiss: () -> Unit
-) {
+fun LocationPickerDialog(deviceLocation: android.location.Location?, myProfile: UserProfile?, onSendLocation: (Double, Double, String) -> Unit, onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
         Card(shape = RoundedCornerShape(16.dp)) {
             Column(Modifier.padding(20.dp)) {
                 Text("Share Location", fontWeight = FontWeight.Bold)
-
                 if (deviceLocation != null) {
                     Text("Real-time device location detected.", fontSize = 12.sp)
-                    Button(onClick = {
-                        onSendLocation(deviceLocation.latitude, deviceLocation.longitude, "Current Device Location")
-                        onDismiss()
-                    }, Modifier.align(Alignment.End)) { Text("Send Live Location") }
+                    Button(onClick = { onSendLocation(deviceLocation.latitude, deviceLocation.longitude, "Current Device Location"); onDismiss() }, Modifier.align(Alignment.End)) { Text("Send Live Location") }
                 } else if (myProfile != null) {
                     Text("Location off. Sharing your profile address.", fontSize = 12.sp)
                     Text(myProfile.fullAddress, fontSize = 11.sp, color = Color.Gray)
-                    Button(onClick = {
-                        onSendLocation(myProfile.latitude, myProfile.longitude, myProfile.fullAddress)
-                        onDismiss()
-                    }, Modifier.align(Alignment.End)) { Text("Send Profile Address") }
+                    Button(onClick = { onSendLocation(myProfile.latitude, myProfile.longitude, myProfile.fullAddress); onDismiss() }, Modifier.align(Alignment.End)) { Text("Send Profile Address") }
                 } else {
                     Text("Location unavailable. Please enable GPS.", fontSize = 12.sp)
                     Button(onClick = onDismiss, Modifier.align(Alignment.End)) { Text("Close") }
@@ -182,32 +127,7 @@ fun LocationPickerDialog(
 }
 
 @Composable
-fun ContactPickerDialog(
-    onSendContact: (String, String) -> Unit,
-    onDismiss: () -> Unit
-) {
-    Dialog(onDismissRequest = onDismiss) {
-        Card(shape = RoundedCornerShape(16.dp)) {
-            Column(Modifier.padding(20.dp)) {
-                Text("Share Contact", fontWeight = FontWeight.Bold)
-                var name by remember { mutableStateOf("") }
-                var phone by remember { mutableStateOf("") }
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Name") })
-                OutlinedTextField(value = phone, onValueChange = { phone = it }, label = { Text("Phone") })
-                Button(onClick = {
-                    onSendContact(name, phone)
-                    onDismiss()
-                }, Modifier.align(Alignment.End)) { Text("Share") }
-            }
-        }
-    }
-}
-
-@Composable
-fun DirectDealDialog(
-    onSendDeal: (String, String, String) -> Unit,
-    onDismiss: () -> Unit
-) {
+fun DirectDealDialog(onSendDeal: (String, String, String) -> Unit, onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
         Card(shape = RoundedCornerShape(16.dp)) {
             Column(Modifier.padding(20.dp)) {
@@ -218,20 +138,14 @@ fun DirectDealDialog(
                 OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Project Title") })
                 OutlinedTextField(value = budget, onValueChange = { budget = it }, label = { Text("Budget (INR)") })
                 OutlinedTextField(value = date, onValueChange = { date = it }, label = { Text("Completion Date") })
-                Button(onClick = {
-                    onSendDeal(title, budget, date)
-                    onDismiss()
-                }, Modifier.align(Alignment.End)) { Text("Send Proposal") }
+                Button(onClick = { onSendDeal(title, budget, date); onDismiss() }, Modifier.align(Alignment.End)) { Text("Send Proposal") }
             }
         }
     }
 }
 
 @Composable
-fun PollCreationDialog(
-    onSendPoll: (String, List<String>) -> Unit,
-    onDismiss: () -> Unit
-) {
+fun PollCreationDialog(onSendPoll: (String, List<String>) -> Unit, onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
         Card(shape = RoundedCornerShape(16.dp)) {
             Column(Modifier.padding(20.dp)) {
@@ -242,206 +156,86 @@ fun PollCreationDialog(
                 OutlinedTextField(value = q, onValueChange = { q = it }, label = { Text("Question") })
                 OutlinedTextField(value = opt1, onValueChange = { opt1 = it }, label = { Text("Option 1") })
                 OutlinedTextField(value = opt2, onValueChange = { opt2 = it }, label = { Text("Option 2") })
-                Button(onClick = {
-                    onSendPoll(q, listOf(opt1, opt2))
-                    onDismiss()
-                }, Modifier.align(Alignment.End)) { Text("Create Poll") }
+                Button(onClick = { onSendPoll(q, listOf(opt1, opt2)); onDismiss() }, Modifier.align(Alignment.End)) { Text("Create Poll") }
             }
         }
     }
 }
 
 @Composable
-fun DeleteMessagesDialog(
-    selectedMessages: List<ChatMessage>,
-    onDeleteMessages: (List<ChatMessage>) -> Unit,
-    onDismiss: () -> Unit
-) {
+fun DeleteMessagesDialog(selectedMessages: List<ChatMessage>, onDeleteMessages: (List<ChatMessage>) -> Unit, onDismiss: () -> Unit) {
     val allFromMe = selectedMessages.all { it.isFromMe }
-
     Dialog(onDismissRequest = onDismiss) {
-        Card(
-            shape = RoundedCornerShape(28.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.onSurface
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
-        ) {
-            Column(
-                Modifier.padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(32.dp)
-                )
-                Spacer(Modifier.height(16.dp))
-                Text(
-                    "Delete Messages?",
-                    fontWeight = FontWeight.SemiBold,
-                    style = MaterialTheme.typography.headlineSmall,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(Modifier.height(12.dp))
-                Text(
-                    "Are you sure you want to delete the selected messages?",
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        Card(shape = RoundedCornerShape(28.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface), elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)) {
+            Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(32.dp))
+                Spacer(Modifier.height(16.dp)); Text("Delete Messages?", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
+                Spacer(Modifier.height(12.dp)); Text("Are you sure you want to delete the selected messages?", style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(24.dp))
-
-                Button(
-                    onClick = {
-                        onDeleteMessages(selectedMessages)
-                        onDismiss()
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer
-                    ),
-                    shape = RoundedCornerShape(12.dp)
-                ) { Text("Delete for me", fontWeight = FontWeight.Bold) }
-
-                if (allFromMe) {
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedButton(
-                        onClick = {
-                            onDeleteMessages(selectedMessages)
-                            onDismiss()
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
-                    ) {
-                        Text(
-                            "Delete for everyone",
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(12.dp))
-                TextButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        "Cancel",
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                Button(onClick = { onDeleteMessages(selectedMessages); onDismiss() }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer), shape = RoundedCornerShape(12.dp)) { Text("Delete for me", fontWeight = FontWeight.Bold) }
+                if (allFromMe) { Spacer(Modifier.height(8.dp)); OutlinedButton(onClick = { onDeleteMessages(selectedMessages); onDismiss() }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)) { Text("Delete for everyone", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold) } }
+                Spacer(Modifier.height(12.dp)); TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Cancel", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold) }
             }
         }
     }
 }
 
 @Composable
-fun CallingSimulationDialog(
-    activePartner: UserProfile?,
-    type: String, // "VOICE" or "VIDEO"
-    onDismiss: () -> Unit
-) {
+fun CallingSimulationDialog(activePartner: UserProfile?, type: String, onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
-        Card(
-            modifier = Modifier.fillMaxSize(),
-            shape = RoundedCornerShape(0.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.DarkGray)
-        ) {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Box(modifier = Modifier.size(120.dp).clip(CircleShape).background(Color.Gray)) {
-                    if (activePartner?.profilePhotoUrl?.isNotBlank() == true) {
-                        AsyncImage(activePartner.profilePhotoUrl, null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                    }
-                }
-                Spacer(Modifier.height(24.dp))
-                Text(activePartner?.name ?: "User", color = Color.White, style = MaterialTheme.typography.headlineMedium)
+        Card(modifier = Modifier.fillMaxSize(), shape = RoundedCornerShape(0.dp), colors = CardDefaults.cardColors(containerColor = Color.DarkGray)) {
+            Column(modifier = Modifier.fillMaxSize().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                Box(modifier = Modifier.size(120.dp).clip(CircleShape).background(Color.Gray)) { if (activePartner?.profilePhotoUrl?.isNotBlank() == true) { AsyncImage(activePartner.profilePhotoUrl, null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop) } }
+                Spacer(Modifier.height(24.dp)); Text(activePartner?.name ?: "User", color = Color.White, style = MaterialTheme.typography.headlineMedium)
                 Text(if (type == "VIDEO") "Video Calling..." else "Voice Calling...", color = Color.White.copy(0.7f))
-
                 Spacer(Modifier.weight(1f))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.size(64.dp).background(Color.Red, CircleShape)
-                    ) {
-                        Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.size(32.dp))
-                    }
-                }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) { IconButton(onClick = onDismiss, modifier = Modifier.size(64.dp).background(Color.Red, CircleShape)) { Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.size(32.dp)) } }
             }
         }
     }
 }
 
 @Composable
-fun NewChatDialog(
-    profiles: List<UserProfile>,
-    onSelectProfile: (String) -> Unit,
-    onDismiss: () -> Unit
-) {
+fun NewChatDialog(profiles: List<UserProfile>, onSelectProfile: (String) -> Unit, onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
-        Card(
-            shape = RoundedCornerShape(24.dp),
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
+        Card(shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth().padding(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(20.dp)) {
-                Text(
-                    "Start New Conversation",
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.titleLarge
-                )
+                Text("Start New Conversation", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
                 Spacer(Modifier.height(16.dp))
                 LazyColumn(modifier = Modifier.height(400.dp)) {
                     items(profiles) { profile ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    onSelectProfile(profile.id)
-                                    onDismiss()
-                                }
-                                .padding(vertical = 12.dp, horizontal = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primaryContainer)
-                            ) {
-                                if (profile.profilePhotoUrl.isNotBlank()) {
-                                    AsyncImage(profile.profilePhotoUrl, null, contentScale = ContentScale.Crop)
-                                }
-                            }
+                        Row(modifier = Modifier.fillMaxWidth().clickable { onSelectProfile(profile.id); onDismiss() }.padding(vertical = 12.dp, horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer)) { if (profile.profilePhotoUrl.isNotBlank()) { AsyncImage(profile.profilePhotoUrl, null, contentScale = ContentScale.Crop) } }
                             Spacer(Modifier.width(12.dp))
-                            Column {
-                                Text(profile.name, fontWeight = FontWeight.Bold)
-                                Text(profile.profession, fontSize = 12.sp, color = Color.Gray)
-                            }
+                            Column { Text(profile.name, fontWeight = FontWeight.Bold); Text(profile.profession, fontSize = 12.sp, color = Color.Gray) }
                         }
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
                     }
                 }
+                Spacer(Modifier.height(16.dp)); TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) { Text("CANCEL") }
+            }
+        }
+    }
+}
+
+@Composable
+fun ImagePreviewDialog(uri: Uri, caption: String, onCaptionChange: (String) -> Unit, onSend: () -> Unit, onCrop: () -> Unit = {}, onDismiss: () -> Unit) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth().padding(16.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E), contentColor = Color.White)) {
+            Column(Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("Send Image", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color.White)
+                    IconButton(onClick = onCrop) { Icon(Icons.Default.Crop, "Crop", tint = Color.White, modifier = Modifier.size(28.dp)) }
+                }
                 Spacer(Modifier.height(16.dp))
-                TextButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.align(Alignment.End)
-                ) {
-                    Text("CANCEL")
+                Box(modifier = Modifier.fillMaxWidth().height(250.dp).clip(RoundedCornerShape(12.dp)).background(Color.Black)) { AsyncImage(model = uri, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit) }
+                Spacer(Modifier.height(16.dp))
+                OutlinedTextField(value = caption, onValueChange = onCaptionChange, modifier = Modifier.fillMaxWidth(), placeholder = { Text("Add a caption...", color = Color.Gray) }, shape = RoundedCornerShape(16.dp), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, cursorColor = Color.White, focusedBorderColor = Color.White, unfocusedBorderColor = Color.DarkGray))
+                Spacer(Modifier.height(20.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onDismiss) { Text("CANCEL", color = Color.White, fontWeight = FontWeight.Bold) }
+                    Spacer(Modifier.width(8.dp))
+                    Button(onClick = onSend, shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black)) { Text("SEND", fontWeight = FontWeight.ExtraBold) }
                 }
             }
         }
@@ -449,84 +243,19 @@ fun NewChatDialog(
 }
 
 @Composable
-fun ImagePreviewDialog(
-    uri: Uri,
-    caption: String,
-    onCaptionChange: (String) -> Unit,
-    onSend: () -> Unit,
-    onCrop: () -> Unit = {}, // 5th parameter
-    onDismiss: () -> Unit      // 6th parameter
-) {
+fun AudioPreviewDialog(uri: Uri, onSend: () -> Unit, onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
-        Card(
-            shape = RoundedCornerShape(24.dp),
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = Color(0xFF1C1C1E), // Dark Theme Background
-                contentColor = Color.White          // Pure White Text
-            )
-        ) {
-            Column(Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Send Image", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color.White)
-
-                    // CROP BUTTON (White Icon)
-                    IconButton(onClick = onCrop) {
-                        Icon(
-                            imageVector = Icons.Default.Crop,
-                            contentDescription = "Crop",
-                            tint = Color.White,
-                            modifier = Modifier.size(28.dp)
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(16.dp))
-
-                Box(modifier = Modifier.fillMaxWidth().height(250.dp).clip(RoundedCornerShape(12.dp)).background(Color.Black)) {
-                    AsyncImage(
-                        model = uri,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Fit
-                    )
-                }
-
-                Spacer(Modifier.height(16.dp))
-
-                OutlinedTextField(
-                    value = caption,
-                    onValueChange = onCaptionChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Add a caption...", color = Color.Gray) },
-                    shape = RoundedCornerShape(16.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        cursorColor = Color.White,
-                        focusedBorderColor = Color.White,
-                        unfocusedBorderColor = Color.DarkGray
-                    )
-                )
-
+        Card(shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth().padding(16.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E), contentColor = Color.White)) {
+            Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Send Audio", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
                 Spacer(Modifier.height(20.dp))
-
+                Box(modifier = Modifier.size(80.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.1f)), contentAlignment = Alignment.Center) { Icon(Icons.Default.AudioFile, null, modifier = Modifier.size(40.dp), tint = Color.White) }
+                Spacer(Modifier.height(16.dp)); Text("Audio file selected", fontSize = 14.sp, color = Color.Gray)
+                Spacer(Modifier.height(24.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = onDismiss) {
-                        Text("CANCEL", color = Color.White, fontWeight = FontWeight.Bold)
-                    }
-                    Spacer(Modifier.width(8.dp))
-                    Button(
-                        onClick = onSend,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black)
-                    ) {
-                        Text("SEND", fontWeight = FontWeight.ExtraBold)
-                    }
+                    TextButton(onClick = onDismiss) { Text("CANCEL", color = Color.White, fontWeight = FontWeight.Bold) }
+                    Spacer(Modifier.width(12.dp))
+                    Button(onClick = onSend, shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black)) { Text("SEND", fontWeight = FontWeight.Bold) }
                 }
             }
         }
