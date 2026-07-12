@@ -127,14 +127,13 @@ fun ChatScreen(
         try {
             val file = File(context.cacheDir, "recording_${System.currentTimeMillis()}.mp3")
             audioFile = file
-            mediaRecorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                MediaRecorder(context)
-            } else {
-                MediaRecorder()
-            }.apply {
+            mediaRecorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) MediaRecorder(context) else MediaRecorder()
+            mediaRecorder?.apply {
                 setAudioSource(MediaRecorder.AudioSource.MIC)
                 setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
                 setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                setAudioEncodingBitRate(128000)
+                setAudioSamplingRate(44100)
                 setOutputFile(file.absolutePath)
                 prepare()
                 start()
@@ -142,128 +141,70 @@ fun ChatScreen(
             isRecording = true
             isPaused = false
             recordingTime = 0
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        } catch (e: Exception) { e.printStackTrace() }
     }
 
     fun stopRecording(): String? {
         return try {
-            mediaRecorder?.apply {
-                stop()
-                release()
-            }
+            mediaRecorder?.apply { stop(); release() }
             mediaRecorder = null
             isRecording = false
             audioFile?.absolutePath
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
+        } catch (e: Exception) { e.printStackTrace(); null }
     }
 
-    LaunchedEffect(currentChatMessages.size) {
-        if (currentChatMessages.isNotEmpty()) {
-            listState.animateScrollToItem(currentChatMessages.size - 1)
-        }
-    }
+    LaunchedEffect(currentChatMessages.size) { if (currentChatMessages.isNotEmpty()) listState.animateScrollToItem(currentChatMessages.size - 1) }
 
     LaunchedEffect(isRecording, isPaused) {
         if (isRecording && !isPaused) {
-            while (isRecording) {
-                delay(1000)
-                recordingTime++
-            }
+            while (isRecording) { delay(1000); recordingTime++ }
         }
     }
 
     LaunchedEffect(activePlayingId, activePlayingUri) {
         if (activePlayingId != null && activePlayingUri != null) {
-            if (activePlayingUri == "simulated_audio_uri") {
-                val msg = currentChatMessages.find { it.id == activePlayingId }
-                val durationSecs = try { msg?.text?.split("|")?.get(1)?.toInt() ?: 10 } catch(e: Exception) { 10 }
-                totalDuration = durationSecs * 1000
-                val startTime = System.currentTimeMillis()
-
-                while (activePlayingId != null && activePlayingUri == "simulated_audio_uri") {
-                    val elapsed = (System.currentTimeMillis() - startTime).toInt()
-                    currentPosition = elapsed
-                    playbackProgress = (elapsed.toFloat() / totalDuration).coerceIn(0f, 1f)
-
-                    if (playbackProgress >= 1f) {
-                        activePlayingId = null
-                        activePlayingUri = null
-                        break
-                    }
-                    delay(100)
+            while (activePlayingId != null && activePlayingUri != null) {
+                if (mediaPlayer.isPlaying) {
+                    currentPosition = mediaPlayer.currentPosition
+                    totalDuration = mediaPlayer.duration
+                    playbackProgress = if (totalDuration > 0) currentPosition.toFloat() / totalDuration else 0f
+                } else if (!mediaPlayer.isPlaying && playbackProgress < 0.99f && activePlayingId != null) {
+                    // Stay active while paused
+                } else if (playbackProgress >= 0.99f) {
+                    activePlayingId = null
+                    activePlayingUri = null
                 }
-            } else {
-                while (activePlayingId != null && activePlayingUri != null) {
-                    if (mediaPlayer.isPlaying) {
-                        currentPosition = mediaPlayer.currentPosition
-                        totalDuration = mediaPlayer.duration
-                        playbackProgress = if (totalDuration > 0) currentPosition.toFloat() / totalDuration else 0f
-                    }
-                    delay(100)
-                }
+                delay(100)
             }
-        } else {
-            playbackProgress = 0f
-            currentPosition = 0
-        }
+        } else { playbackProgress = 0f; currentPosition = 0 }
     }
 
-    DisposableEffect(Unit) {
-        onDispose {
-            mediaPlayer.release()
-        }
-    }
+    DisposableEffect(Unit) { onDispose { mediaPlayer.release() } }
 
     fun playAudio(messageId: Int, uriString: String) {
         if (uriString.isBlank()) return
         if (activePlayingId == messageId) {
-            if (uriString == "simulated_audio_uri") {
-                activePlayingId = null
-                activePlayingUri = null
-            } else {
-                if (mediaPlayer.isPlaying) mediaPlayer.pause() else mediaPlayer.start()
-            }
+            if (mediaPlayer.isPlaying) mediaPlayer.pause() else mediaPlayer.start()
             return
         }
         activePlayingId = messageId
         activePlayingUri = uriString
-        if (uriString != "simulated_audio_uri") {
-            try {
-                mediaPlayer.reset()
-                if (uriString.startsWith("/")) mediaPlayer.setDataSource(uriString)
-                else mediaPlayer.setDataSource(context, Uri.parse(uriString))
-                mediaPlayer.prepare()
-                mediaPlayer.start()
-                mediaPlayer.setOnCompletionListener {
-                    activePlayingId = null
-                    activePlayingUri = null
-                }
-            } catch (e: Exception) {
-                activePlayingId = null
-                activePlayingUri = null
-            }
-        }
+        try {
+            mediaPlayer.reset()
+            if (uriString.startsWith("/")) mediaPlayer.setDataSource(uriString)
+            else mediaPlayer.setDataSource(context, Uri.parse(uriString))
+            mediaPlayer.prepare()
+            mediaPlayer.start()
+            mediaPlayer.setOnCompletionListener { activePlayingId = null; activePlayingUri = null }
+        } catch (e: Exception) { activePlayingId = null; activePlayingUri = null }
     }
 
     val isSelectionMode = selectedMessageIds.isNotEmpty()
 
-    val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { pendingImageUri = it }
-    }
-    val videoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { viewModel.sendChatMessage("Video Attachment", "VIDEO", it.toString()) }
-    }
-    val docPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { viewModel.sendChatMessage("Document Shared", "DOCUMENT", it.toString()) }
-    }
-    val audioPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { viewModel.sendChatMessage("Audio Attachment", "VOICE", it.toString()) }
-    }
+    val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri -> uri?.let { pendingImageUri = it } }
+    val videoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri -> uri?.let { viewModel.sendChatMessage("Video Attachment", "VIDEO", it.toString()) } }
+    val docPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri -> uri?.let { viewModel.sendChatMessage("Document Shared", "DOCUMENT", it.toString()) } }
+    val audioPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri -> uri?.let { viewModel.sendChatMessage("Audio Attachment", "VOICE", it.toString()) } }
     val contactPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickContact()) { uri ->
         uri?.let {
             context.contentResolver.query(it, null, null, null, null)?.use { cursor ->
@@ -281,9 +222,7 @@ fun ChatScreen(
     }
 
     val cropImageLauncher = rememberLauncherForActivityResult(CropImageContract()) { result ->
-        if (result.isSuccessful) {
-            pendingImageUri = result.uriContent
-        }
+        if (result.isSuccessful) pendingImageUri = result.uriContent
     }
 
     fun checkAndStartRecording() {
@@ -299,11 +238,7 @@ fun ChatScreen(
 
         Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
             AnimatedVisibility(visible = isSelectionMode) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.primaryContainer).padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
+                Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.primaryContainer).padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = { selectedMessageIds = emptySet() }) { Icon(Icons.Default.Close, null) }
                         Text("${selectedMessageIds.size} selected", fontWeight = FontWeight.Bold)
@@ -313,11 +248,7 @@ fun ChatScreen(
                             val selectedMsg = currentChatMessages.find { it.id == selectedMessageIds.first() }
                             if (selectedMsg != null) {
                                 if (selectedMsg.isFromMe && selectedMsg.mediaType == null) {
-                                    IconButton(onClick = {
-                                        editingMessage = selectedMsg
-                                        chatTextInput = selectedMsg.text
-                                        selectedMessageIds = emptySet()
-                                    }) { Icon(Icons.Default.Edit, "Edit") }
+                                    IconButton(onClick = { editingMessage = selectedMsg; chatTextInput = selectedMsg.text; selectedMessageIds = emptySet() }) { Icon(Icons.Default.Edit, "Edit") }
                                 }
                                 IconButton(onClick = { showInfoMessage = selectedMsg }) { Icon(Icons.Default.Info, "Info") }
                             }
@@ -332,18 +263,13 @@ fun ChatScreen(
                 Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = { viewModel.selectActiveChat(null) }) { Icon(Icons.Default.Close, "Back") }
                     Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer).clickable { onNavigateToProfile(activeChatUserId!!) }) {
-                        if (activePartner?.profilePhotoUrl?.isNotBlank() == true) {
-                            AsyncImage(model = activePartner.profilePhotoUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                        }
+                        if (activePartner?.profilePhotoUrl?.isNotBlank() == true) { AsyncImage(model = activePartner.profilePhotoUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
                     }
                     Spacer(Modifier.width(10.dp))
                     Column(modifier = Modifier.weight(1f).clickable { onNavigateToProfile(activeChatUserId!!) }) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(activePartner?.name ?: "Professional Chat", fontWeight = FontWeight.Bold)
-                            if (activePartner?.isMuted == true) {
-                                Spacer(Modifier.width(4.dp))
-                                Icon(Icons.Default.NotificationsOff, null, modifier = Modifier.size(14.dp), tint = Color.Gray)
-                            }
+                            if (activePartner?.isMuted == true) { Spacer(Modifier.width(4.dp)); Icon(Icons.Default.NotificationsOff, null, modifier = Modifier.size(14.dp), tint = Color.Gray) }
                         }
                         Text(text = if (isTyping) "Typing..." else "Online", style = MaterialTheme.typography.labelSmall, color = if (isTyping) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline)
                     }
@@ -362,53 +288,39 @@ fun ChatScreen(
                 }
                 HorizontalDivider()
                 if (isSearching) {
-                    OutlinedTextField(
-                        value = chatSearchQuery,
-                        onValueChange = { chatSearchQuery = it },
-                        modifier = Modifier.fillMaxWidth().padding(8.dp),
-                        placeholder = { Text("Search messages...") },
-                        leadingIcon = { Icon(Icons.Default.Search, null) },
-                        trailingIcon = { IconButton(onClick = { isSearching = false; chatSearchQuery = "" }) { Icon(Icons.Default.Close, null) } },
-                        shape = RoundedCornerShape(12.dp),
-                        singleLine = true
-                    )
+                    OutlinedTextField(value = chatSearchQuery, onValueChange = { chatSearchQuery = it }, modifier = Modifier.fillMaxWidth().padding(8.dp), placeholder = { Text("Search messages...") }, leadingIcon = { Icon(Icons.Default.Search, null) }, trailingIcon = { IconButton(onClick = { isSearching = false; chatSearchQuery = "" }) { Icon(Icons.Default.Close, null) } }, shape = RoundedCornerShape(12.dp), singleLine = true)
                 }
             }
 
             LazyColumn(state = listState, modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.Bottom)) {
-                items(filteredMessages, key = { it.id }) { msg ->
+                items(filteredMessages, key = { it.id }) { msg: com.example.data.model.ChatMessage ->
                     ChatBubble(
                         message = msg,
                         isSelected = selectedMessageIds.contains(msg.id),
                         isHighlighted = highlightedMessageId == msg.id,
                         isSelectionMode = isSelectionMode,
-                        isAudioPlaying = activePlayingId == msg.id && (mediaPlayer.isPlaying || msg.mediaUrl == "simulated_audio_uri"),
+                        isAudioPlaying = activePlayingId == msg.id && (mediaPlayer.isPlaying || playbackProgress < 0.99f),
                         playbackProgress = if (activePlayingId == msg.id) playbackProgress else 0f,
                         currentPosition = if (activePlayingId == msg.id) currentPosition else 0,
                         selectedCount = selectedMessageIds.size,
-                        onPlayAudio = { id, uri -> playAudio(id, uri) },
-                        onShowVideo = { fullscreenVideoUri = it },
-                        onShowImage = { fullscreenImageUri = it },
-                        onDelete = {
-                            if (selectedMessageIds.contains(msg.id)) {
-                                viewModel.deleteChatMessages(currentChatMessages.filter { it.id in selectedMessageIds })
-                                selectedMessageIds = emptySet()
-                            } else viewModel.deleteChatMessage(msg)
-                        },
+                        onPlayAudio = { id: Int, uri: String -> playAudio(id, uri) },
+                        onShowVideo = { uri: String -> fullscreenVideoUri = uri },
+                        onShowImage = { uri: String -> fullscreenImageUri = uri },
+                        onDelete = { if (selectedMessageIds.contains(msg.id)) { viewModel.deleteChatMessages(currentChatMessages.filter { it.id in selectedMessageIds }); selectedMessageIds = emptySet() } else viewModel.deleteChatMessage(msg) },
                         onEdit = { editingMessage = msg; chatTextInput = msg.text },
                         onForward = { showForwardDialog = if (selectedMessageIds.contains(msg.id)) currentChatMessages.filter { it.id in selectedMessageIds } else listOf(msg) },
                         onReply = { replyingToMessage = msg },
                         onToggleSelection = { if (selectedMessageIds.contains(msg.id)) selectedMessageIds -= msg.id else selectedMessageIds += msg.id },
-                        onReplyClicked = { replyId ->
+                        onReplyClicked = { replyId: Int ->
                             val index = currentChatMessages.indexOfFirst { it.id == replyId }
-                            if (index != -1) coroutineScope.launch {
-                                listState.animateScrollToItem(index)
-                                highlightedMessageId = replyId
-                                delay(2000)
-                                if (highlightedMessageId == replyId) highlightedMessageId = null
-                            }
+                            if (index != -1) coroutineScope.launch { listState.animateScrollToItem(index); highlightedMessageId = replyId; delay(2000); if (highlightedMessageId == replyId) highlightedMessageId = null }
                         },
-                        onStarMessage = { viewModel.toggleStarMessage(it) }
+                        onStarMessage = { it: com.example.data.model.ChatMessage -> viewModel.toggleStarMessage(it) },
+                        onSeekAudio = { pos: Float ->
+                            if (activePlayingId == msg.id) {
+                                mediaPlayer.seekTo((pos * totalDuration).toInt())
+                            }
+                        }
                     )
                 }
                 if (isTyping) item { TypingIndicator() }
@@ -416,12 +328,8 @@ fun ChatScreen(
 
             if (replyingToMessage != null) {
                 Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant).padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.width(4.dp).height(40.dp).background(MaterialTheme.colorScheme.primary))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(if (replyingToMessage!!.isFromMe) "You" else activePartner?.name ?: "User", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                        Text(replyingToMessage!!.text.ifEmpty { "Media" }, maxLines = 1, style = MaterialTheme.typography.bodySmall)
-                    }
+                    Box(modifier = Modifier.width(4.dp).height(40.dp).background(MaterialTheme.colorScheme.primary)); Spacer(modifier = Modifier.width(8.dp))
+                    Column(modifier = Modifier.weight(1f)) { Text(if (replyingToMessage!!.isFromMe) "You" else activePartner?.name ?: "User", fontWeight = FontWeight.Bold, fontSize = 12.sp); Text(replyingToMessage!!.text.ifEmpty { "Media" }, maxLines = 1, style = MaterialTheme.typography.bodySmall) }
                     IconButton(onClick = { replyingToMessage = null }) { Icon(Icons.Default.Close, null, modifier = Modifier.size(16.dp)) }
                 }
             }
@@ -449,9 +357,7 @@ fun ChatScreen(
                 if (isRecording) {
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                            Icon(Icons.Default.Mic, null, tint = Color.Red, modifier = Modifier.size(20.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text(text = String.format("%02d:%02d", recordingTime / 60, recordingTime % 60), color = Color.Red, fontWeight = FontWeight.Bold)
+                            Icon(Icons.Default.Mic, null, tint = Color.Red, modifier = Modifier.size(20.dp)); Spacer(Modifier.width(8.dp)); Text(text = "${recordingTime}s", color = Color.Red, fontWeight = FontWeight.Bold)
                             if (isPaused) Text(" (Paused)", fontSize = 10.sp, color = Color.Gray)
                         }
                         Row {
@@ -475,24 +381,15 @@ fun ChatScreen(
         Scaffold(floatingActionButton = { FloatingActionButton(onClick = { showNewChatDialog = true }, containerColor = MaterialTheme.colorScheme.primary, contentColor = Color.White, shape = CircleShape) { Icon(Icons.Default.PersonAdd, "New Chat") } }) { padding ->
             Column(modifier = Modifier.fillMaxSize().padding(padding)) {
                 Column(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).padding(horizontal = 16.dp, vertical = 8.dp)) {
-                    Text(text = "Messages", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
-                    Spacer(Modifier.height(12.dp))
+                    Text(text = "Messages", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface); Spacer(Modifier.height(12.dp))
                     OutlinedTextField(value = inboxSearchQuery, onValueChange = { inboxSearchQuery = it }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp), placeholder = { Text("Search conversations...", fontSize = 14.sp) }, leadingIcon = { Icon(Icons.Default.Search, null, modifier = Modifier.size(20.dp)) }, trailingIcon = { if (inboxSearchQuery.isNotEmpty()) IconButton(onClick = { inboxSearchQuery = "" }) { Icon(Icons.Default.Close, null, modifier = Modifier.size(18.dp)) } }, shape = RoundedCornerShape(12.dp), singleLine = true, colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary, unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)))
                 }
                 ScrollableTabRow(selectedTabIndex = selectedInboxTab, containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.primary, edgePadding = 16.dp, divider = {}, indicator = { tabPositions -> if (selectedInboxTab < tabPositions.size) TabRowDefaults.SecondaryIndicator(modifier = Modifier.tabIndicatorOffset(tabPositions[selectedInboxTab]), color = MaterialTheme.colorScheme.primary) }) {
-                    listOf("All", "Unread", "Pinned", "Starred").forEachIndexed { index, title -> Tab(selected = selectedInboxTab == index, onClick = { selectedInboxTab = index }, text = { Text(text = title, fontSize = 17.sp, color = Color.White, fontWeight = if (selectedInboxTab == index) FontWeight.Bold else FontWeight.Medium) }) }
+                    listOf("All", "Unread", "Pinned", "Starred").forEachIndexed { index: Int, title: String -> Tab(selected = selectedInboxTab == index, onClick = { selectedInboxTab = index }, text = { Text(text = title, fontSize = 17.sp, color = Color.White, fontWeight = if (selectedInboxTab == index) FontWeight.Bold else FontWeight.Medium) }) }
                 }
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
-                if (filteredInbox.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Column(horizontalAlignment = Alignment.CenterHorizontally) { Icon(imageVector = Icons.Default.Chat, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)); Spacer(Modifier.height(12.dp)); Text("No conversations found", color = MaterialTheme.colorScheme.outline) } }
-                } else {
-                    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = WindowInsets.navigationBars.asPaddingValues()) {
-                        items(filteredInbox, key = { it.partnerProfile.id }) { inbox ->
-                            InboxItemRow(inbox) { viewModel.selectActiveChat(inbox.partnerProfile.id) }
-                            HorizontalDivider(modifier = Modifier.padding(start = 76.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.05f))
-                        }
-                    }
-                }
+                if (filteredInbox.isEmpty()) { Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Column(horizontalAlignment = Alignment.CenterHorizontally) { Icon(imageVector = Icons.Default.Chat, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)); Spacer(Modifier.height(12.dp)); Text("No conversations found", color = MaterialTheme.colorScheme.outline) } } }
+                else { LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = WindowInsets.navigationBars.asPaddingValues()) { items(filteredInbox, key = { it.partnerProfile.id }) { inbox -> InboxItemRow(inbox) { viewModel.selectActiveChat(inbox.partnerProfile.id) }; HorizontalDivider(modifier = Modifier.padding(start = 76.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.05f)) } } }
             }
         }
     }
@@ -505,39 +402,16 @@ fun ChatScreen(
     if (showDealDialog) DirectDealDialog({ t, b, d -> viewModel.sendDirectDealMessage(t, b, d) }) { showDealDialog = false }
     if (showPollDialog) PollCreationDialog({ q, opts -> viewModel.sendPollMessage(q, opts) }) { showPollDialog = false }
     if (showDeleteDialog) DeleteMessagesDialog(currentChatMessages.filter { it.id in selectedMessageIds }, { msgs -> viewModel.deleteChatMessages(msgs); selectedMessageIds = emptySet() }) { showDeleteDialog = false }
-    if (showCallingDialog != null) {
-        val activePartner = inboxList.find { it.partnerProfile.id == activeChatUserId }?.partnerProfile ?: otherProfiles.find { it.id == activeChatUserId }
-        CallingSimulationDialog(activePartner, showCallingDialog!!) { showCallingDialog = null }
-    }
+    if (showCallingDialog != null) { val activePartner = inboxList.find { it.partnerProfile.id == activeChatUserId }?.partnerProfile ?: otherProfiles.find { it.id == activeChatUserId }; CallingSimulationDialog(activePartner, showCallingDialog!!) { showCallingDialog = null } }
     if (showNewChatDialog) NewChatDialog(otherProfiles, { id -> viewModel.selectActiveChat(id) }) { showNewChatDialog = false }
     if (pendingImageUri != null) {
         ImagePreviewDialog(
             uri = pendingImageUri!!,
             caption = imageCaption,
             onCaptionChange = { imageCaption = it },
-            onSend = {
-                viewModel.sendChatMessage(imageCaption, "PHOTO", pendingImageUri.toString())
-                pendingImageUri = null
-                imageCaption = ""
-            },
-            onCrop = {
-                cropImageLauncher.launch(
-                    CropImageContractOptions(
-                        uri = pendingImageUri,
-                        cropImageOptions = CropImageOptions(
-                            guidelines = CropImageView.Guidelines.ON,
-                            fixAspectRatio = false,
-                            initialCropWindowPaddingRatio = 0.1f, // 10% padding jisse frame atakna band ho jaye
-                            aspectRatioX = 16,
-                            aspectRatioY = 9
-                        )
-                    )
-                )
-            },
-            onDismiss = {
-                pendingImageUri = null
-                imageCaption = ""
-            }
+            onSend = { viewModel.sendChatMessage(imageCaption, "PHOTO", pendingImageUri.toString()); pendingImageUri = null; imageCaption = "" },
+            onCrop = { cropImageLauncher.launch(CropImageContractOptions(uri = pendingImageUri, cropImageOptions = CropImageOptions(guidelines = CropImageView.Guidelines.ON, fixAspectRatio = false, initialCropWindowPaddingRatio = 0.1f, aspectRatioX = 16, aspectRatioY = 9))) },
+            onDismiss = { pendingImageUri = null; imageCaption = "" }
         )
     }
 }

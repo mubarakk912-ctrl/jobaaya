@@ -39,12 +39,12 @@ import com.example.data.model.ChatMessage
 import com.example.viewmodel.ChatInbox
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.random.Random
 
 @Composable
 fun StraightTick(color: Color) {
     Canvas(modifier = Modifier.size(12.dp)) {
         val strokeWidth = 1.8.dp.toPx()
-        // एकदम सीधा (Sharp Upright) Checkmark
         drawLine(
             color = color,
             start = Offset(size.width * 0.15f, size.height * 0.52f),
@@ -66,7 +66,6 @@ fun StraightTick(color: Color) {
 fun MessageStatusTicks(isRead: Boolean, readAt: Long? = null) {
     val tickColor = if (isRead) Color(0xFF00E676) else Color.White.copy(alpha = 0.5f)
     val isDouble = isRead || readAt != null
-
     Row(
         modifier = Modifier.padding(start = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -81,7 +80,6 @@ fun MessageStatusTicks(isRead: Boolean, readAt: Long? = null) {
 fun InboxItemRow(inbox: ChatInbox, onClick: () -> Unit) {
     val partner = inbox.partnerProfile
     val lastMsg = inbox.lastMessage
-
     val timeLabel = remember(lastMsg.timestamp) {
         val now = System.currentTimeMillis()
         val diff = now - lastMsg.timestamp
@@ -93,71 +91,29 @@ fun InboxItemRow(inbox: ChatInbox, onClick: () -> Unit) {
     }
 
     ListItem(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
+        modifier = Modifier.fillMaxWidth().clickable { onClick() },
         leadingContent = {
             Box {
-                Box(
-                    modifier = Modifier
-                        .size(52.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer)
-                ) {
+                Box(modifier = Modifier.size(52.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer)) {
                     if (partner.profilePhotoUrl.isNotBlank()) {
-                        AsyncImage(
-                            model = partner.profilePhotoUrl,
-                            contentDescription = null,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
+                        AsyncImage(model = partner.profilePhotoUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                     } else {
-                        Icon(
-                            Icons.Default.PersonAdd,
-                            contentDescription = null,
-                            modifier = Modifier.align(Alignment.Center),
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
+                        Icon(Icons.Default.PersonAdd, null, modifier = Modifier.align(Alignment.Center), tint = MaterialTheme.colorScheme.onPrimaryContainer)
                     }
                 }
-
-                Box(
-                    modifier = Modifier
-                        .size(14.dp)
-                        .align(Alignment.BottomEnd)
-                        .background(Color.White, CircleShape)
-                        .padding(2.dp)
-                        .background(Color(0xFF4CAF50), CircleShape)
-                )
+                Box(modifier = Modifier.size(14.dp).align(Alignment.BottomEnd).background(Color.White, CircleShape).padding(2.dp).background(Color(0xFF4CAF50), CircleShape))
             }
         },
         headlineContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = partner.name,
-                    fontWeight = if (inbox.unreadCount > 0) FontWeight.ExtraBold else FontWeight.Bold,
-                    fontSize = 16.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false)
-                )
+                Text(text = partner.name, fontWeight = if (inbox.unreadCount > 0) FontWeight.ExtraBold else FontWeight.Bold, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                 if (partner.isVerified) {
                     Spacer(Modifier.width(4.dp))
-                    Icon(
-                        Icons.Default.Verified,
-                        contentDescription = "Verified",
-                        tint = Color(0xFF1E88E5),
-                        modifier = Modifier.size(14.dp)
-                    )
+                    Icon(Icons.Default.Verified, "Verified", tint = Color(0xFF1E88E5), modifier = Modifier.size(14.dp))
                 }
                 if (partner.isPinned) {
                     Spacer(Modifier.width(6.dp))
-                    Icon(
-                        Icons.Default.PushPin,
-                        null,
-                        modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+                    Icon(Icons.Default.PushPin, null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
                 }
             }
         },
@@ -167,7 +123,6 @@ fun InboxItemRow(inbox: ChatInbox, onClick: () -> Unit) {
                     MessageStatusTicks(lastMsg.isRead, lastMsg.readAt)
                     Spacer(Modifier.width(4.dp))
                 }
-
                 val previewPrefix = when (lastMsg.mediaType) {
                     "PHOTO" -> "📷 Photo"
                     "VIDEO" -> "🎥 Video"
@@ -178,52 +133,23 @@ fun InboxItemRow(inbox: ChatInbox, onClick: () -> Unit) {
                     "POLL" -> "📊 Poll"
                     else -> ""
                 }
-
-                Text(
-                    text = if (previewPrefix.isNotEmpty()) previewPrefix else lastMsg.text,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (inbox.unreadCount > 0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline
-                )
+                Text(text = if (previewPrefix.isNotEmpty()) previewPrefix else lastMsg.text, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium, color = if (inbox.unreadCount > 0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline)
             }
         },
         trailingContent = {
             Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = timeLabel,
-                    fontSize = 11.sp,
-                    color = if (inbox.unreadCount > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-                    fontWeight = if (inbox.unreadCount > 0) FontWeight.Bold else FontWeight.Normal
-                )
+                Text(text = timeLabel, fontSize = 11.sp, color = if (inbox.unreadCount > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline, fontWeight = if (inbox.unreadCount > 0) FontWeight.Bold else FontWeight.Normal)
                 Spacer(Modifier.height(6.dp))
                 if (inbox.unreadCount > 0) {
-                    Box(
-                        modifier = Modifier
-                            .size(20.dp)
-                            .background(MaterialTheme.colorScheme.primary, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "${inbox.unreadCount}",
-                            color = Color.White,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                    Box(modifier = Modifier.size(20.dp).background(MaterialTheme.colorScheme.primary, CircleShape), contentAlignment = Alignment.Center) {
+                        Text(text = "${inbox.unreadCount}", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     }
                 } else if (partner.isMuted) {
-                    Icon(
-                        Icons.Default.NotificationsOff,
-                        null,
-                        modifier = Modifier.size(14.dp),
-                        tint = Color.Gray.copy(alpha = 0.6f)
-                    )
+                    Icon(Icons.Default.NotificationsOff, null, modifier = Modifier.size(14.dp), tint = Color.Gray.copy(alpha = 0.6f))
                 }
             }
         },
-        colors = ListItemDefaults.colors(
-            containerColor = if (partner.isPinned) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f) else Color.Transparent
-        )
+        colors = ListItemDefaults.colors(containerColor = if (partner.isPinned) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f) else Color.Transparent)
     )
 }
 
@@ -252,7 +178,8 @@ fun ChatBubble(
     onReply: () -> Unit,
     onToggleSelection: () -> Unit,
     onReplyClicked: (Int) -> Unit,
-    onStarMessage: (ChatMessage) -> Unit
+    onStarMessage: (ChatMessage) -> Unit,
+    onSeekAudio: (Float) -> Unit = {}
 ) {
     val isMe = message.isFromMe
     var showMenu by remember { mutableStateOf(false) }
@@ -261,19 +188,10 @@ fun ChatBubble(
     val clipboardManager = LocalClipboardManager.current
     val timeLabel = remember(message.timestamp) { SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(message.timestamp)) }
 
-    val bubbleColor = if (isHighlighted) {
-        Color(0xFF0B3A51).copy(alpha = 0.8f)
-    } else {
-        if (isMe) Color(0xFF0B3A51) else Color(0xFF1E1E1E)
-    }
+    val bubbleColor = if (isHighlighted) Color(0xFF0B3A51).copy(alpha = 0.8f) else if (isMe) Color(0xFF0B3A51) else Color(0xFF1E1E1E)
 
     Row(
-        modifier = Modifier.fillMaxWidth().background(
-            if (isSelected) MaterialTheme.colorScheme.primary.copy(0.1f)
-            else if (isHighlighted) MaterialTheme.colorScheme.secondary.copy(0.2f)
-            else Color.Transparent
-        )
-            .padding(vertical = 2.dp, horizontal = 4.dp),
+        modifier = Modifier.fillMaxWidth().background(if (isSelected) MaterialTheme.colorScheme.primary.copy(0.1f) else if (isHighlighted) MaterialTheme.colorScheme.secondary.copy(0.2f) else Color.Transparent).padding(vertical = 2.dp, horizontal = 4.dp),
         horizontalArrangement = if (isMe) Arrangement.End else Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -297,53 +215,41 @@ fun ChatBubble(
                                 "VOICE", "AUDIO" -> message.mediaUrl?.let { onPlayAudio(message.id, it) }
                                 "PHOTO" -> message.mediaUrl?.let { onShowImage(it) }
                                 "VIDEO" -> message.mediaUrl?.let { onShowVideo(it) }
-                                "DOCUMENT" -> {
-                                    try {
-                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(message.mediaUrl))
-                                        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                        context.startActivity(intent)
-                                    } catch (e: Exception) {}
-                                }
+                                "DOCUMENT" -> { try { val intent = Intent(Intent.ACTION_VIEW, Uri.parse(message.mediaUrl)); intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION); context.startActivity(intent) } catch (e: Exception) {} }
                             }
                         }
                     },
-                    onLongClick = {
-                        if (!isSelected) onToggleSelection()
-                        showMenu = true
-                    }
+                    onLongClick = { if (!isSelected) onToggleSelection(); showMenu = true }
                 )
             ) {
                 Column {
                     if (message.replyToId != null) {
-                        Box(modifier = Modifier.padding(4.dp).fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(0.15f)).clickable {
-                            onReplyClicked(message.replyToId)
-                        }.padding(8.dp)) {
+                        Box(modifier = Modifier.padding(4.dp).fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(0.15f)).clickable { onReplyClicked(message.replyToId) }.padding(8.dp)) {
                             Text(message.replyToText ?: "Original Message", fontSize = 10.sp, color = Color.White.copy(0.8f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                     }
                     Box(modifier = Modifier.padding(if (message.mediaType == "PHOTO") 2.dp else 4.dp)) {
                         Column {
-                            if (message.isStarred) {
-                                Icon(Icons.Default.Star, null, modifier = Modifier.size(10.dp).align(Alignment.End), tint = Color(0xFFFFD700))
-                            }
+                            if (message.isStarred) Icon(Icons.Default.Star, null, modifier = Modifier.size(10.dp).align(Alignment.End), tint = Color(0xFFFFD700))
 
                             Box(modifier = Modifier.widthIn(min = 60.dp)) {
                                 Column {
                                     when (message.mediaType) {
                                         "VOICE", "AUDIO" -> {
                                             val parts = message.text.split("|")
-                                            val staticDuration = if (parts.size > 1) {
-                                                val secs = parts[1].toIntOrNull() ?: 0
-                                                String.format("%02d:%02d", secs / 60, secs % 60)
-                                            } else "0:00"
+                                            val totalSecs = if (parts.size > 1) parts[1].toIntOrNull() ?: 0 else 0
+                                            val durationLabel = if (isAudioPlaying) "${currentPosition / 1000}s" else "${totalSecs}s"
 
                                             VoiceMessageVisualizer(
                                                 isMe = isMe,
                                                 isPlaying = isAudioPlaying,
                                                 progress = playbackProgress,
-                                                durationLabel = if (isAudioPlaying && message.mediaUrl != "simulated_audio_uri") {
-                                                    String.format("%02d:%02d", (currentPosition / 1000) / 60, (currentPosition / 1000) % 60)
-                                                } else staticDuration
+                                                durationLabel = durationLabel,
+                                                messageId = message.id,
+                                                onSeek = onSeekAudio,
+                                                timeLabel = timeLabel,
+                                                isRead = message.isRead,
+                                                readAt = message.readAt
                                             )
                                         }
                                         "PHOTO" -> PhotoAttachmentVisualizer(message.mediaUrl, message.text, isMe, timeLabel, message.isRead, message.readAt)
@@ -354,24 +260,12 @@ fun ChatBubble(
                                         "DEAL" -> DirectDealVisualizer(isMe, message.text, timeLabel, message.isRead, message.readAt)
                                         "POLL" -> PollVisualizer(isMe, message.text, timeLabel, message.isRead, message.readAt)
                                         else -> {
-                                            // Text Message - बीमारी ठीक कर दी गई है!
                                             Column(modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 4.dp).wrapContentWidth()) {
-                                                Text(
-                                                    text = message.text,
-                                                    color = Color.White,
-                                                    style = MaterialTheme.typography.bodyLarge,
-                                                    modifier = Modifier.widthIn(min = 40.dp)
-                                                )
-                                                // Corner Alignment with End logic
-                                                Row(
-                                                    modifier = Modifier.align(Alignment.End).padding(top = 8.dp),
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
+                                                Text(text = message.text, color = Color.White, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.widthIn(min = 40.dp))
+                                                Row(modifier = Modifier.align(Alignment.End).padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                                                     if (message.isEdited) Text("Edited ", fontSize = 8.sp, color = Color.White.copy(0.5f))
                                                     Text(timeLabel, fontSize = 9.sp, color = Color.White.copy(0.7f), fontWeight = FontWeight.Medium)
-                                                    if (isMe) {
-                                                        MessageStatusTicks(message.isRead, message.readAt)
-                                                    }
+                                                    if (isMe) MessageStatusTicks(message.isRead, message.readAt)
                                                 }
                                             }
                                         }
@@ -389,20 +283,10 @@ fun ChatBubble(
 
         DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
             if (selectedCount <= 1) {
-                DropdownMenuItem(
-                    text = { Text("Copy") },
-                    onClick = {
-                        showMenu = false
-                        clipboardManager.setText(AnnotatedString(message.text))
-                        android.widget.Toast.makeText(context, "Text copied to clipboard", android.widget.Toast.LENGTH_SHORT).show()
-                    },
-                    leadingIcon = { Icon(Icons.Default.ContentCopy, null) }
-                )
+                DropdownMenuItem(text = { Text("Copy") }, onClick = { showMenu = false; clipboardManager.setText(AnnotatedString(message.text)); android.widget.Toast.makeText(context, "Text copied to clipboard", android.widget.Toast.LENGTH_SHORT).show() }, leadingIcon = { Icon(Icons.Default.ContentCopy, null) })
                 DropdownMenuItem(text = { Text("Reply") }, onClick = { showMenu = false; onReply() }, leadingIcon = { Icon(Icons.AutoMirrored.Filled.Reply, null) })
                 DropdownMenuItem(text = { Text(if (message.isStarred) "Unstar" else "Star") }, onClick = { showMenu = false; onStarMessage(message) }, leadingIcon = { Icon(if (message.isStarred) Icons.Default.StarBorder else Icons.Default.Star, null) })
-                if (isMe) {
-                    DropdownMenuItem(text = { Text("Edit") }, onClick = { showMenu = false; onEdit() }, leadingIcon = { Icon(Icons.Default.Edit, null) } )
-                }
+                if (isMe) DropdownMenuItem(text = { Text("Edit") }, onClick = { showMenu = false; onEdit() }, leadingIcon = { Icon(Icons.Default.Edit, null) } )
             }
             DropdownMenuItem(text = { Text(if (selectedCount > 1) "Delete Selection" else "Delete") }, onClick = { showMenu = false; onDelete() }, leadingIcon = { Icon(Icons.Default.Delete, null, tint = Color.Red) })
             DropdownMenuItem(text = { Text(if (selectedCount > 1) "Forward Selection" else "Forward") }, onClick = { showMenu = false; onForward() }, leadingIcon = { Icon(Icons.Default.Shortcut, null) })
@@ -430,55 +314,53 @@ fun VoiceMessageVisualizer(
     isMe: Boolean,
     isPlaying: Boolean,
     progress: Float,
-    durationLabel: String
+    durationLabel: String,
+    messageId: Int,
+    onSeek: (Float) -> Unit,
+    timeLabel: String,
+    isRead: Boolean,
+    readAt: Long?
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val grayColor = Color.Gray.copy(0.3f)
+    val barHeights = remember(messageId) {
+        val random = Random(messageId)
+        List(24) { random.nextInt(6, 26).dp }
+    }
 
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(vertical = 4.dp)
-    ) {
-        Icon(
-            if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-            null,
-            tint = if (isMe) Color.White else primaryColor,
-            modifier = Modifier.size(32.dp)
-        )
-
-        Box(modifier = Modifier.width(150.dp).height(30.dp).padding(horizontal = 8.dp)) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val barCount = 20
-                val barWidth = 4f
-                val spacing = (size.width - (barCount * barWidth)) / (barCount - 1)
-
-                repeat(barCount) { i ->
-                    val h = (10..25).random().dp.toPx()
-                    val x = i * (barWidth + spacing)
-
-                    val isPlayed = (i.toFloat() / barCount) < progress
-                    val color = if (isMe) {
-                        if (isPlayed) Color.White else Color.White.copy(0.4f)
-                    } else {
-                        if (isPlayed) primaryColor else grayColor
+    Column(modifier = Modifier.padding(8.dp).width(250.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, null, tint = if (isMe) Color.White else primaryColor, modifier = Modifier.size(34.dp))
+            Column(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
+                Box(modifier = Modifier.fillMaxWidth().height(28.dp)) {
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val barCount = barHeights.size
+                        val barWidth = 4f
+                        val spacing = (size.width - (barCount * barWidth)) / (barCount - 1)
+                        barHeights.forEachIndexed { i, h ->
+                            val x = i * (barWidth + spacing)
+                            val barColor = if (isMe) {
+                                if ((i.toFloat() / barCount) < progress) Color.White else Color.White.copy(0.3f)
+                            } else {
+                                if ((i.toFloat() / barCount) < progress) primaryColor else grayColor
+                            }
+                            drawLine(color = barColor, start = Offset(x, (size.height - h.toPx()) / 2), end = Offset(x, (size.height + h.toPx()) / 2), strokeWidth = barWidth, cap = StrokeCap.Round)
+                        }
                     }
-
-                    drawLine(
-                        color = color,
-                        start = Offset(x, (size.height - h) / 2),
-                        end = Offset(x, (size.height + h) / 2),
-                        strokeWidth = barWidth
+                    Slider(
+                        value = progress,
+                        onValueChange = { pos: Float -> onSeek(pos) },
+                        modifier = Modifier.fillMaxSize().offset(y = 2.dp),
+                        colors = SliderDefaults.colors(thumbColor = if (isMe) Color.White else primaryColor, activeTrackColor = Color.Transparent, inactiveTrackColor = Color.Transparent)
                     )
                 }
             }
+            Text(text = durationLabel, fontSize = 11.sp, color = if (isMe) Color.White else Color.Black, modifier = Modifier.width(35.dp))
         }
-
-        Text(
-            text = durationLabel,
-            fontSize = 11.sp,
-            color = if (isMe) Color.White else Color.Black,
-            modifier = Modifier.width(35.dp)
-        )
+        Row(modifier = Modifier.align(Alignment.End).padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(timeLabel, fontSize = 9.sp, color = if (isMe) Color.White.copy(0.7f) else Color.Gray)
+            if (isMe) MessageStatusTicks(isRead, readAt)
+        }
     }
 }
 
@@ -486,35 +368,20 @@ fun VoiceMessageVisualizer(
 fun PhotoAttachmentVisualizer(url: String?, caption: String, isMe: Boolean, time: String, isRead: Boolean, readAt: Long? = null) {
     Column(modifier = Modifier.width(240.dp).clip(RoundedCornerShape(12.dp))) {
         Box(modifier = Modifier.fillMaxWidth().wrapContentHeight()) {
-            AsyncImage(
-                model = url,
-                contentDescription = null,
-                modifier = Modifier.fillMaxWidth(),
-                contentScale = ContentScale.FillWidth
-            )
+            AsyncImage(model = url, contentDescription = null, modifier = Modifier.fillMaxWidth(), contentScale = ContentScale.FillWidth)
             if (caption.isBlank()) {
-                Row(
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(6.dp).background(Color.Black.copy(0.4f), RoundedCornerShape(8.dp)).padding(horizontal = 6.dp, vertical = 2.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(modifier = Modifier.align(Alignment.BottomEnd).padding(6.dp).background(Color.Black.copy(0.4f), RoundedCornerShape(8.dp)).padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(time, fontSize = 9.sp, color = Color.White)
-                    if (isMe) {
-                        MessageStatusTicks(isRead, readAt)
-                    }
+                    if (isMe) MessageStatusTicks(isRead, readAt)
                 }
             }
         }
         if (caption.isNotBlank()) {
             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
                 Text(text = caption, color = Color.White, fontSize = 14.sp)
-                Row(
-                    modifier = Modifier.align(Alignment.End).padding(top = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(modifier = Modifier.align(Alignment.End).padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(time, fontSize = 9.sp, color = Color.White.copy(0.7f))
-                    if (isMe) {
-                        MessageStatusTicks(isRead, readAt)
-                    }
+                    if (isMe) MessageStatusTicks(isRead, readAt)
                 }
             }
         }
@@ -527,28 +394,18 @@ fun VideoAttachmentVisualizer(url: String?, caption: String, isMe: Boolean, time
         Box(modifier = Modifier.fillMaxWidth().aspectRatio(1f).background(Color.Black)) {
             Icon(Icons.Default.SmartDisplay, null, modifier = Modifier.size(48.dp).align(Alignment.Center), tint = Color.Red)
             if (caption.isBlank()) {
-                Row(
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(6.dp).background(Color.Black.copy(0.4f), RoundedCornerShape(8.dp)).padding(horizontal = 6.dp, vertical = 2.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(modifier = Modifier.align(Alignment.BottomEnd).padding(6.dp).background(Color.Black.copy(0.4f), RoundedCornerShape(8.dp)).padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(time, fontSize = 9.sp, color = Color.White)
-                    if (isMe) {
-                        MessageStatusTicks(isRead, readAt)
-                    }
+                    if (isMe) MessageStatusTicks(isRead, readAt)
                 }
             }
         }
         if (caption.isNotBlank()) {
             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
                 Text(text = caption, color = Color.White, fontSize = 14.sp)
-                Row(
-                    modifier = Modifier.align(Alignment.End).padding(top = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(modifier = Modifier.align(Alignment.End).padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(time, fontSize = 9.sp, color = Color.White.copy(0.7f))
-                    if (isMe) {
-                        MessageStatusTicks(isRead, readAt)
-                    }
+                    if (isMe) MessageStatusTicks(isRead, readAt)
                 }
             }
         }
@@ -564,17 +421,10 @@ fun LocationAttachmentVisualizer(isMe: Boolean, address: String, coords: String?
             Text(address, fontWeight = FontWeight.Bold, color = if (isMe) Color.White else Color.Black)
         }
         Spacer(Modifier.height(8.dp))
-        Button(onClick = { }, modifier = Modifier.fillMaxWidth().height(40.dp), shape = RoundedCornerShape(8.dp)) {
-            Text("Open Maps", fontSize = 12.sp)
-        }
-        Row(
-            modifier = Modifier.align(Alignment.End).padding(top = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Button(onClick = { }, modifier = Modifier.fillMaxWidth().height(40.dp), shape = RoundedCornerShape(8.dp)) { Text("Open Maps", fontSize = 12.sp) }
+        Row(modifier = Modifier.align(Alignment.End).padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(time, fontSize = 9.sp, color = if (isMe) Color.White.copy(0.7f) else Color.Gray)
-            if (isMe) {
-                MessageStatusTicks(isRead, readAt)
-            }
+            if (isMe) MessageStatusTicks(isRead, readAt)
         }
     }
 }
@@ -592,17 +442,10 @@ fun ContactAttachmentVisualizer(isMe: Boolean, text: String, time: String, isRea
         }
         Text(phone, fontSize = 11.sp, color = if (isMe) Color.White.copy(0.7f) else Color.Gray)
         Spacer(Modifier.height(8.dp))
-        Button(onClick = { }, modifier = Modifier.fillMaxWidth().height(32.dp), shape = RoundedCornerShape(8.dp)) {
-            Text("Save Contact", fontSize = 10.sp)
-        }
-        Row(
-            modifier = Modifier.align(Alignment.End).padding(top = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Button(onClick = { }, modifier = Modifier.fillMaxWidth().height(32.dp), shape = RoundedCornerShape(8.dp)) { Text("Save Contact", fontSize = 10.sp) }
+        Row(modifier = Modifier.align(Alignment.End).padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(time, fontSize = 9.sp, color = if (isMe) Color.White.copy(0.7f) else Color.Gray)
-            if (isMe) {
-                MessageStatusTicks(isRead, readAt)
-            }
+            if (isMe) MessageStatusTicks(isRead, readAt)
         }
     }
 }
@@ -613,32 +456,21 @@ fun DirectDealVisualizer(isMe: Boolean, text: String, time: String, isRead: Bool
     val title = parts.getOrNull(0) ?: "Project Deal"
     val budget = parts.getOrNull(1) ?: "N/A"
     val deadline = parts.getOrNull(2) ?: "N/A"
-    Card(
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)),
-        modifier = Modifier.fillMaxWidth().padding(4.dp)
-    ) {
+    Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)), modifier = Modifier.fillMaxWidth().padding(4.dp)) {
         Column(modifier = Modifier.padding(12.dp).fillMaxWidth()) {
             Text("Business Proposal", fontSize = 14.sp, fontWeight = FontWeight.Black, color = Color.White)
             Spacer(Modifier.height(4.dp))
             Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Budget: ", fontSize = 15.sp, color = Color.White.copy(0.7f))
-                Text(budget, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                Text("Budget: ", fontSize = 15.sp, color = Color.White.copy(0.7f)); Text(budget, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
             }
             Text("Deadline: $deadline", fontSize = 15.sp, color = Color.White.copy(0.7f))
             Spacer(Modifier.height(16.dp))
-            Button(onClick = { }, modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(12.dp)) {
-                Text("Review Proposal", fontSize = 15.sp, fontWeight = FontWeight.Bold)
-            }
-            Row(
-                modifier = Modifier.align(Alignment.End).padding(top = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Button(onClick = { }, modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(12.dp)) { Text("Review Proposal", fontSize = 15.sp, fontWeight = FontWeight.Bold) }
+            Row(modifier = Modifier.align(Alignment.End).padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(time, fontSize = 9.sp, color = Color.White.copy(0.7f))
-                if (isMe) {
-                    MessageStatusTicks(isRead, readAt)
-                }
+                if (isMe) MessageStatusTicks(isRead, readAt)
             }
         }
     }
@@ -657,14 +489,9 @@ fun PollVisualizer(isMe: Boolean, text: String, time: String, isRead: Boolean, r
                 Text(option, fontSize = 11.sp, color = if (isMe) Color.White else Color.Black)
             }
         }
-        Row(
-            modifier = Modifier.align(Alignment.End).padding(top = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(modifier = Modifier.align(Alignment.End).padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(time, fontSize = 9.sp, color = if (isMe) Color.White.copy(0.7f) else Color.Gray)
-            if (isMe) {
-                MessageStatusTicks(isRead, readAt)
-            }
+            if (isMe) MessageStatusTicks(isRead, readAt)
         }
     }
 }
@@ -680,14 +507,9 @@ fun DocumentAttachmentVisualizer(isMe: Boolean, name: String, time: String, isRe
                 Text("Open Document", fontSize = 10.sp, color = if (isMe) Color.White.copy(0.7f) else Color.Gray)
             }
         }
-        Row(
-            modifier = Modifier.align(Alignment.End).padding(top = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(modifier = Modifier.align(Alignment.End).padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(time, fontSize = 9.sp, color = if (isMe) Color.White.copy(0.7f) else Color.Gray)
-            if (isMe) {
-                MessageStatusTicks(isRead, readAt)
-            }
+            if (isMe) MessageStatusTicks(isRead, readAt)
         }
     }
 }
