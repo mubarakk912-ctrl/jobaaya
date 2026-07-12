@@ -313,23 +313,25 @@ fun ChatBubble(
                                                 } else staticDuration
                                             )
                                         }
-                                        "PHOTO" -> PhotoAttachmentVisualizer(message.mediaUrl, isMe, timeLabel, message.isRead)
-                                        "VIDEO" -> VideoAttachmentVisualizer(message.mediaUrl, isMe, timeLabel, message.isRead)
-                                        "DOCUMENT" -> DocumentAttachmentVisualizer(isMe, message.text)
-                                        "LOCATION" -> LocationAttachmentVisualizer(isMe, message.text, message.mediaUrl)
-                                        "CONTACT" -> ContactAttachmentVisualizer(isMe, message.text)
-                                        "DEAL" -> DirectDealVisualizer(isMe, message.text)
-                                        "POLL" -> PollVisualizer(isMe, message.text)
+                                        "PHOTO" -> PhotoAttachmentVisualizer(message.mediaUrl, message.text, isMe, timeLabel, message.isRead)
+                                        "VIDEO" -> VideoAttachmentVisualizer(message.mediaUrl, message.text, isMe, timeLabel, message.isRead)
+                                        "DOCUMENT" -> DocumentAttachmentVisualizer(isMe, message.text, timeLabel, message.isRead)
+                                        "LOCATION" -> LocationAttachmentVisualizer(isMe, message.text, message.mediaUrl, timeLabel, message.isRead)
+                                        "CONTACT" -> ContactAttachmentVisualizer(isMe, message.text, timeLabel, message.isRead)
+                                        "DEAL" -> DirectDealVisualizer(isMe, message.text, timeLabel, message.isRead)
+                                        "POLL" -> PollVisualizer(isMe, message.text, timeLabel, message.isRead)
                                         else -> {
-                                            Column(modifier = Modifier.padding(start = 12.dp, end = 16.dp, top = 8.dp, bottom = 4.dp)) {
-                                                Text(
-                                                    text = message.text,
-                                                    color = Color.White,
-                                                    style = MaterialTheme.typography.bodyLarge
-                                                )
-                                                Spacer(modifier = Modifier.height(6.dp))
+                                            Box(modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 4.dp)) {
+                                                Column {
+                                                    Text(
+                                                        text = message.text,
+                                                        color = Color.White,
+                                                        style = MaterialTheme.typography.bodyLarge
+                                                    )
+                                                    Spacer(modifier = Modifier.height(14.dp)) // Space for timestamp shift
+                                                }
                                                 Row(
-                                                    modifier = Modifier.align(Alignment.End),
+                                                    modifier = Modifier.align(Alignment.BottomEnd).offset(y = 2.dp),
                                                     verticalAlignment = Alignment.CenterVertically
                                                 ) {
                                                     if (message.isEdited) Text("Edited ", fontSize = 8.sp, color = Color.White.copy(0.5f))
@@ -449,81 +451,150 @@ fun VoiceMessageVisualizer(
 }
 
 @Composable
-fun PhotoAttachmentVisualizer(url: String?, isMe: Boolean, time: String, isRead: Boolean) {
-    Box(modifier = Modifier
-        .width(240.dp)
-        .wrapContentHeight()
-        .clip(RoundedCornerShape(12.dp))
-        .background(Color.LightGray)) {
-        AsyncImage(
-            model = url,
-            contentDescription = null,
-            modifier = Modifier.fillMaxWidth(),
-            contentScale = ContentScale.FillWidth
-        )
-        Row(modifier = Modifier.align(Alignment.BottomEnd).padding(4.dp).background(Color.Black.copy(0.4f), RoundedCornerShape(8.dp)).padding(4.dp)) {
-            Text(time, fontSize = 9.sp, color = Color.White)
-            if (isMe) Text(if (isRead) " ✓✓" else " ✓", fontSize = 10.sp, color = if (isRead) Color.Green else Color.White)
+fun PhotoAttachmentVisualizer(url: String?, caption: String, isMe: Boolean, time: String, isRead: Boolean) {
+    Column(modifier = Modifier.width(240.dp).clip(RoundedCornerShape(12.dp))) {
+        Box(modifier = Modifier.fillMaxWidth().wrapContentHeight()) {
+            AsyncImage(
+                model = url,
+                contentDescription = null,
+                modifier = Modifier.fillMaxWidth(),
+                contentScale = ContentScale.FillWidth
+            )
+            if (caption.isBlank()) {
+                Row(
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(6.dp).background(Color.Black.copy(0.4f), RoundedCornerShape(8.dp)).padding(horizontal = 6.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(time, fontSize = 9.sp, color = Color.White)
+                    if (isMe) {
+                        Spacer(Modifier.width(3.dp))
+                        Text(if (isRead) "✓✓" else "✓", fontSize = 10.sp, color = if (isRead) Color(0xFF00E676) else Color.White.copy(0.6f))
+                    }
+                }
+            }
+        }
+        if (caption.isNotBlank()) {
+            Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
+                Column {
+                    Text(text = caption, color = Color.White, fontSize = 14.sp)
+                    Spacer(Modifier.height(14.dp))
+                }
+                Row(
+                    modifier = Modifier.align(Alignment.BottomEnd).offset(y = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(time, fontSize = 9.sp, color = Color.White.copy(0.7f))
+                    if (isMe) {
+                        Spacer(Modifier.width(3.dp))
+                        Text(if (isRead) "✓✓" else "✓", fontSize = 10.sp, color = if (isRead) Color(0xFF00E676) else Color.White.copy(0.6f))
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
-fun VideoAttachmentVisualizer(url: String?, isMe: Boolean, time: String, isRead: Boolean) {
-    Box(modifier = Modifier
-        .width(240.dp)
-        .aspectRatio(1f)
-        .clip(RoundedCornerShape(12.dp))
-        .background(Color.Black)) {
-        Icon(Icons.Default.SmartDisplay, null, modifier = Modifier.size(48.dp).align(Alignment.Center), tint = Color.Red)
-        Row(modifier = Modifier.align(Alignment.BottomEnd).padding(4.dp).background(Color.Black.copy(0.4f), RoundedCornerShape(8.dp)).padding(4.dp)) {
-            Text(time, fontSize = 9.sp, color = Color.White)
-            if (isMe) Text(if (isRead) " ✓✓" else " ✓", fontSize = 10.sp, color = if (isRead) Color.Green else Color.White)
+fun VideoAttachmentVisualizer(url: String?, caption: String, isMe: Boolean, time: String, isRead: Boolean) {
+    Column(modifier = Modifier.width(240.dp).clip(RoundedCornerShape(12.dp))) {
+        Box(modifier = Modifier.fillMaxWidth().aspectRatio(1f).background(Color.Black)) {
+            Icon(Icons.Default.SmartDisplay, null, modifier = Modifier.size(48.dp).align(Alignment.Center), tint = Color.Red)
+            if (caption.isBlank()) {
+                Row(
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(6.dp).background(Color.Black.copy(0.4f), RoundedCornerShape(8.dp)).padding(horizontal = 6.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(time, fontSize = 9.sp, color = Color.White)
+                    if (isMe) {
+                        Spacer(Modifier.width(3.dp))
+                        Text(if (isRead) "✓✓" else "✓", fontSize = 10.sp, color = if (isRead) Color(0xFF00E676) else Color.White.copy(0.6f))
+                    }
+                }
+            }
+        }
+        if (caption.isNotBlank()) {
+            Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
+                Column {
+                    Text(text = caption, color = Color.White, fontSize = 14.sp)
+                    Spacer(Modifier.height(14.dp))
+                }
+                Row(
+                    modifier = Modifier.align(Alignment.BottomEnd).offset(y = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(time, fontSize = 9.sp, color = Color.White.copy(0.7f))
+                    if (isMe) {
+                        Spacer(Modifier.width(3.dp))
+                        Text(if (isRead) "✓✓" else "✓", fontSize = 10.sp, color = if (isRead) Color(0xFF00E676) else Color.White.copy(0.6f))
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
-fun LocationAttachmentVisualizer(isMe: Boolean, address: String, coords: String?) {
-    Column(modifier = Modifier.padding(4.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.LocationOn, null, tint = if (isMe) Color.White else Color(0xFF4CAF50))
-            Spacer(Modifier.width(8.dp))
-            Text(address, fontWeight = FontWeight.Bold, color = if (isMe) Color.White else Color.Black)
+fun LocationAttachmentVisualizer(isMe: Boolean, address: String, coords: String?, time: String, isRead: Boolean) {
+    Box(modifier = Modifier.padding(4.dp).fillMaxWidth()) {
+        Column {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.LocationOn, null, tint = if (isMe) Color.White else Color(0xFF4CAF50))
+                Spacer(Modifier.width(8.dp))
+                Text(address, fontWeight = FontWeight.Bold, color = if (isMe) Color.White else Color.Black)
+            }
+            Spacer(Modifier.height(8.dp))
+            Button(onClick = { }, modifier = Modifier.fillMaxWidth().height(40.dp), shape = RoundedCornerShape(8.dp)) {
+                Text("Open Maps", fontSize = 12.sp)
+            }
+            Spacer(Modifier.height(14.dp))
         }
-        Spacer(Modifier.height(8.dp))
-        Button(
-            onClick = { /* Open maps intent */ },
-            modifier = Modifier.fillMaxWidth().height(40.dp),
-            shape = RoundedCornerShape(8.dp),
-            contentPadding = PaddingValues(horizontal = 8.dp)
+        Row(
+            modifier = Modifier.align(Alignment.BottomEnd).offset(y = 2.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Open Maps", fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Visible)
+            Text(time, fontSize = 9.sp, color = if (isMe) Color.White.copy(0.7f) else Color.Gray)
+            if (isMe) {
+                Spacer(Modifier.width(3.dp))
+                Text(if (isRead) "✓✓" else "✓", fontSize = 10.sp, color = if (isRead) Color(0xFF00E676) else Color.White.copy(0.6f))
+            }
         }
     }
 }
 
 @Composable
-fun ContactAttachmentVisualizer(isMe: Boolean, text: String) {
+fun ContactAttachmentVisualizer(isMe: Boolean, text: String, time: String, isRead: Boolean) {
     val parts = text.split("|")
     val name = parts.getOrNull(0) ?: "Contact"
     val phone = parts.getOrNull(1) ?: ""
-    Column(modifier = Modifier.padding(4.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.ContactPage, null, tint = if (isMe) Color.White else Color(0xFFFF9800))
-            Spacer(Modifier.width(8.dp))
-            Text(name, fontWeight = FontWeight.Bold, color = if (isMe) Color.White else Color.Black)
+    Box(modifier = Modifier.padding(4.dp).fillMaxWidth()) {
+        Column {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.ContactPage, null, tint = if (isMe) Color.White else Color(0xFFFF9800))
+                Spacer(Modifier.width(8.dp))
+                Text(name, fontWeight = FontWeight.Bold, color = if (isMe) Color.White else Color.Black)
+            }
+            Text(phone, fontSize = 11.sp, color = if (isMe) Color.White.copy(0.7f) else Color.Gray)
+            Spacer(Modifier.height(8.dp))
+            Button(onClick = { }, modifier = Modifier.fillMaxWidth().height(32.dp), shape = RoundedCornerShape(8.dp)) {
+                Text("Save Contact", fontSize = 10.sp)
+            }
+            Spacer(Modifier.height(14.dp))
         }
-        Text(phone, fontSize = 11.sp, color = if (isMe) Color.White.copy(0.7f) else Color.Gray)
-        Spacer(Modifier.height(8.dp))
-        Button(onClick = { /* Call intent */ }, modifier = Modifier.fillMaxWidth().height(32.dp), shape = RoundedCornerShape(8.dp)) {
-            Text("Save Contact", fontSize = 10.sp)
+        Row(
+            modifier = Modifier.align(Alignment.BottomEnd).offset(y = 2.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(time, fontSize = 9.sp, color = if (isMe) Color.White.copy(0.7f) else Color.Gray)
+            if (isMe) {
+                Spacer(Modifier.width(3.dp))
+                Text(if (isRead) "✓✓" else "✓", fontSize = 10.sp, color = if (isRead) Color(0xFF00E676) else Color.White.copy(0.6f))
+            }
         }
     }
 }
 
 @Composable
-fun DirectDealVisualizer(isMe: Boolean, text: String) {
+fun DirectDealVisualizer(isMe: Boolean, text: String, time: String, isRead: Boolean) {
     val parts = text.split("|")
     val title = parts.getOrNull(0) ?: "Project Deal"
     val budget = parts.getOrNull(1) ?: "N/A"
@@ -532,89 +603,87 @@ fun DirectDealVisualizer(isMe: Boolean, text: String) {
         colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)),
         modifier = Modifier.fillMaxWidth().padding(4.dp)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Text(
-                "Business Proposal",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Black,
-                color = Color.White
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                title,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (isMe) Color.White else Color.Black
-            )
-            Spacer(Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "Budget: ",
-                    fontSize = 15.sp,
-                    color = if (isMe) Color.White.copy(0.7f) else Color.Gray
-                )
-                Text(
-                    budget,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = if (isMe) Color.White else Color.Black
-                )
+        Box(modifier = Modifier.padding(12.dp).fillMaxWidth()) {
+            Column {
+                Text("Business Proposal", fontSize = 14.sp, fontWeight = FontWeight.Black, color = Color.White)
+                Spacer(Modifier.height(4.dp))
+                Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                Spacer(Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Budget: ", fontSize = 15.sp, color = Color.White.copy(0.7f))
+                    Text(budget, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                }
+                Text("Deadline: $deadline", fontSize = 15.sp, color = Color.White.copy(0.7f))
+                Spacer(Modifier.height(16.dp))
+                Button(onClick = { }, modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(12.dp)) {
+                    Text("Review Proposal", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.height(14.dp))
             }
-            Text(
-                "Deadline: $deadline",
-                fontSize = 15.sp,
-                color = if (isMe) Color.White.copy(0.7f) else Color.Gray
-            )
-            Spacer(Modifier.height(16.dp))
-            Button(
-                onClick = { /* Button Active */ },
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                shape = RoundedCornerShape(12.dp)
+            Row(
+                modifier = Modifier.align(Alignment.BottomEnd).offset(y = 2.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    "Review Proposal",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Visible
-                )
+                Text(time, fontSize = 9.sp, color = Color.White.copy(0.7f))
+                if (isMe) {
+                    Spacer(Modifier.width(3.dp))
+                    Text(if (isRead) "✓✓" else "✓", fontSize = 10.sp, color = if (isRead) Color(0xFF00E676) else Color.White.copy(0.6f))
+                }
             }
         }
     }
 }
 
 @Composable
-fun PollVisualizer(isMe: Boolean, text: String) {
+fun PollVisualizer(isMe: Boolean, text: String, time: String, isRead: Boolean) {
     val parts = text.split("|")
     val question = parts.getOrNull(0) ?: "Poll Question"
     val options = parts.drop(1)
-    Column(modifier = Modifier.padding(4.dp)) {
-        Text(question, fontWeight = FontWeight.Bold, color = if (isMe) Color.White else Color.Black)
-        Spacer(Modifier.height(8.dp))
-        options.forEach { option ->
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 2.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(if (isMe) Color.White.copy(0.2f) else Color.Gray.copy(0.1f))
-                    .clickable { }
-                    .padding(8.dp)
-            ) {
-                Text(option, fontSize = 11.sp, color = if (isMe) Color.White else Color.Black)
+    Box(modifier = Modifier.padding(4.dp).fillMaxWidth()) {
+        Column {
+            Text(question, fontWeight = FontWeight.Bold, color = if (isMe) Color.White else Color.Black)
+            Spacer(Modifier.height(8.dp))
+            options.forEach { option ->
+                Box(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp).clip(RoundedCornerShape(8.dp)).background(if (isMe) Color.White.copy(0.2f) else Color.Gray.copy(0.1f)).padding(8.dp)) {
+                    Text(option, fontSize = 11.sp, color = if (isMe) Color.White else Color.Black)
+                }
+            }
+            Spacer(Modifier.height(14.dp))
+        }
+        Row(
+            modifier = Modifier.align(Alignment.BottomEnd).offset(y = 2.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(time, fontSize = 9.sp, color = if (isMe) Color.White.copy(0.7f) else Color.Gray)
+            if (isMe) {
+                Spacer(Modifier.width(3.dp))
+                Text(if (isRead) "✓✓" else "✓", fontSize = 10.sp, color = if (isRead) Color(0xFF00E676) else Color.White.copy(0.6f))
             }
         }
     }
 }
 
 @Composable
-fun DocumentAttachmentVisualizer(isMe: Boolean, name: String) {
-    Row(modifier = Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Icon(Icons.Default.Description, null, tint = if (isMe) Color.White else Color.Red)
-        Spacer(Modifier.width(8.dp))
-        Column {
-            Text(name, fontWeight = FontWeight.Bold, color = if (isMe) Color.White else Color.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text("Open Document", fontSize = 10.sp, color = if (isMe) Color.White.copy(0.7f) else Color.Gray)
+fun DocumentAttachmentVisualizer(isMe: Boolean, name: String, time: String, isRead: Boolean) {
+    Box(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.Description, null, tint = if (isMe) Color.White else Color.Red)
+            Spacer(Modifier.width(8.dp))
+            Column {
+                Text(name, fontWeight = FontWeight.Bold, color = if (isMe) Color.White else Color.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("Open Document", fontSize = 10.sp, color = if (isMe) Color.White.copy(0.7f) else Color.Gray)
+                Spacer(Modifier.height(14.dp))
+            }
+        }
+        Row(
+            modifier = Modifier.align(Alignment.BottomEnd).offset(y = 2.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(time, fontSize = 9.sp, color = if (isMe) Color.White.copy(0.7f) else Color.Gray)
+            if (isMe) {
+                Spacer(Modifier.width(3.dp))
+                Text(if (isRead) "✓✓" else "✓", fontSize = 10.sp, color = if (isRead) Color(0xFF00E676) else Color.White.copy(0.6f))
+            }
         }
     }
 }
