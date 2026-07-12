@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -38,6 +39,43 @@ import com.example.data.model.ChatMessage
 import com.example.viewmodel.ChatInbox
 import java.text.SimpleDateFormat
 import java.util.*
+
+@Composable
+fun StraightTick(color: Color) {
+    Canvas(modifier = Modifier.size(12.dp)) {
+        val strokeWidth = 1.8.dp.toPx()
+        // एकदम सीधा (Sharp Upright) Checkmark
+        drawLine(
+            color = color,
+            start = Offset(size.width * 0.15f, size.height * 0.52f),
+            end = Offset(size.width * 0.42f, size.height * 0.85f),
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Square
+        )
+        drawLine(
+            color = color,
+            start = Offset(size.width * 0.42f, size.height * 0.85f),
+            end = Offset(size.width * 0.95f, size.height * 0.18f),
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Square
+        )
+    }
+}
+
+@Composable
+fun MessageStatusTicks(isRead: Boolean, readAt: Long? = null) {
+    val tickColor = if (isRead) Color(0xFF00E676) else Color.White.copy(alpha = 0.5f)
+    val isDouble = isRead || readAt != null
+
+    Row(
+        modifier = Modifier.padding(start = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy((-7).dp)
+    ) {
+        StraightTick(tickColor)
+        if (isDouble) StraightTick(tickColor)
+    }
+}
 
 @Composable
 fun InboxItemRow(inbox: ChatInbox, onClick: () -> Unit) {
@@ -126,12 +164,7 @@ fun InboxItemRow(inbox: ChatInbox, onClick: () -> Unit) {
         supportingContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (lastMsg.isFromMe) {
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                        tint = if (lastMsg.isRead) Color(0xFF00E676) else Color.Gray
-                    )
+                    MessageStatusTicks(lastMsg.isRead, lastMsg.readAt)
                     Spacer(Modifier.width(4.dp))
                 }
 
@@ -313,32 +346,31 @@ fun ChatBubble(
                                                 } else staticDuration
                                             )
                                         }
-                                        "PHOTO" -> PhotoAttachmentVisualizer(message.mediaUrl, message.text, isMe, timeLabel, message.isRead)
-                                        "VIDEO" -> VideoAttachmentVisualizer(message.mediaUrl, message.text, isMe, timeLabel, message.isRead)
-                                        "DOCUMENT" -> DocumentAttachmentVisualizer(isMe, message.text, timeLabel, message.isRead)
-                                        "LOCATION" -> LocationAttachmentVisualizer(isMe, message.text, message.mediaUrl, timeLabel, message.isRead)
-                                        "CONTACT" -> ContactAttachmentVisualizer(isMe, message.text, timeLabel, message.isRead)
-                                        "DEAL" -> DirectDealVisualizer(isMe, message.text, timeLabel, message.isRead)
-                                        "POLL" -> PollVisualizer(isMe, message.text, timeLabel, message.isRead)
+                                        "PHOTO" -> PhotoAttachmentVisualizer(message.mediaUrl, message.text, isMe, timeLabel, message.isRead, message.readAt)
+                                        "VIDEO" -> VideoAttachmentVisualizer(message.mediaUrl, message.text, isMe, timeLabel, message.isRead, message.readAt)
+                                        "DOCUMENT" -> DocumentAttachmentVisualizer(isMe, message.text, timeLabel, message.isRead, message.readAt)
+                                        "LOCATION" -> LocationAttachmentVisualizer(isMe, message.text, message.mediaUrl, timeLabel, message.isRead, message.readAt)
+                                        "CONTACT" -> ContactAttachmentVisualizer(isMe, message.text, timeLabel, message.isRead, message.readAt)
+                                        "DEAL" -> DirectDealVisualizer(isMe, message.text, timeLabel, message.isRead, message.readAt)
+                                        "POLL" -> PollVisualizer(isMe, message.text, timeLabel, message.isRead, message.readAt)
                                         else -> {
-                                            Box(modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 4.dp).fillMaxWidth()) {
-                                                Column(modifier = Modifier.fillMaxWidth()) {
-                                                    Text(
-                                                        text = message.text,
-                                                        color = Color.White,
-                                                        style = MaterialTheme.typography.bodyLarge
-                                                    )
-                                                    Spacer(modifier = Modifier.height(20.dp)) // Increased space for timestamp
-                                                }
+                                            // Text Message - बीमारी ठीक कर दी गई है!
+                                            Column(modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 4.dp).wrapContentWidth()) {
+                                                Text(
+                                                    text = message.text,
+                                                    color = Color.White,
+                                                    style = MaterialTheme.typography.bodyLarge,
+                                                    modifier = Modifier.widthIn(min = 40.dp)
+                                                )
+                                                // Corner Alignment with End logic
                                                 Row(
-                                                    modifier = Modifier.align(Alignment.BottomEnd).offset(y = 2.dp),
+                                                    modifier = Modifier.align(Alignment.End).padding(top = 8.dp),
                                                     verticalAlignment = Alignment.CenterVertically
                                                 ) {
                                                     if (message.isEdited) Text("Edited ", fontSize = 8.sp, color = Color.White.copy(0.5f))
                                                     Text(timeLabel, fontSize = 9.sp, color = Color.White.copy(0.7f), fontWeight = FontWeight.Medium)
                                                     if (isMe) {
-                                                        Spacer(Modifier.width(3.dp))
-                                                        Text(if (message.isRead) "✓✓" else "✓", fontSize = 10.sp, color = if (message.isRead) Color(0xFF00E676) else Color.White.copy(0.6f))
+                                                        MessageStatusTicks(message.isRead, message.readAt)
                                                     }
                                                 }
                                             }
@@ -451,7 +483,7 @@ fun VoiceMessageVisualizer(
 }
 
 @Composable
-fun PhotoAttachmentVisualizer(url: String?, caption: String, isMe: Boolean, time: String, isRead: Boolean) {
+fun PhotoAttachmentVisualizer(url: String?, caption: String, isMe: Boolean, time: String, isRead: Boolean, readAt: Long? = null) {
     Column(modifier = Modifier.width(240.dp).clip(RoundedCornerShape(12.dp))) {
         Box(modifier = Modifier.fillMaxWidth().wrapContentHeight()) {
             AsyncImage(
@@ -467,26 +499,21 @@ fun PhotoAttachmentVisualizer(url: String?, caption: String, isMe: Boolean, time
                 ) {
                     Text(time, fontSize = 9.sp, color = Color.White)
                     if (isMe) {
-                        Spacer(Modifier.width(3.dp))
-                        Text(if (isRead) "✓✓" else "✓", fontSize = 10.sp, color = if (isRead) Color(0xFF00E676) else Color.White.copy(0.6f))
+                        MessageStatusTicks(isRead, readAt)
                     }
                 }
             }
         }
         if (caption.isNotBlank()) {
-            Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
-                Column {
-                    Text(text = caption, color = Color.White, fontSize = 14.sp)
-                    Spacer(Modifier.height(20.dp)) // Space for timestamp
-                }
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
+                Text(text = caption, color = Color.White, fontSize = 14.sp)
                 Row(
-                    modifier = Modifier.align(Alignment.BottomEnd).offset(y = 2.dp),
+                    modifier = Modifier.align(Alignment.End).padding(top = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(time, fontSize = 9.sp, color = Color.White.copy(0.7f))
                     if (isMe) {
-                        Spacer(Modifier.width(3.dp))
-                        Text(if (isRead) "✓✓" else "✓", fontSize = 10.sp, color = if (isRead) Color(0xFF00E676) else Color.White.copy(0.6f))
+                        MessageStatusTicks(isRead, readAt)
                     }
                 }
             }
@@ -495,7 +522,7 @@ fun PhotoAttachmentVisualizer(url: String?, caption: String, isMe: Boolean, time
 }
 
 @Composable
-fun VideoAttachmentVisualizer(url: String?, caption: String, isMe: Boolean, time: String, isRead: Boolean) {
+fun VideoAttachmentVisualizer(url: String?, caption: String, isMe: Boolean, time: String, isRead: Boolean, readAt: Long? = null) {
     Column(modifier = Modifier.width(240.dp).clip(RoundedCornerShape(12.dp))) {
         Box(modifier = Modifier.fillMaxWidth().aspectRatio(1f).background(Color.Black)) {
             Icon(Icons.Default.SmartDisplay, null, modifier = Modifier.size(48.dp).align(Alignment.Center), tint = Color.Red)
@@ -506,26 +533,21 @@ fun VideoAttachmentVisualizer(url: String?, caption: String, isMe: Boolean, time
                 ) {
                     Text(time, fontSize = 9.sp, color = Color.White)
                     if (isMe) {
-                        Spacer(Modifier.width(3.dp))
-                        Text(if (isRead) "✓✓" else "✓", fontSize = 10.sp, color = if (isRead) Color(0xFF00E676) else Color.White.copy(0.6f))
+                        MessageStatusTicks(isRead, readAt)
                     }
                 }
             }
         }
         if (caption.isNotBlank()) {
-            Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
-                Column {
-                    Text(text = caption, color = Color.White, fontSize = 14.sp)
-                    Spacer(Modifier.height(20.dp)) // Space for timestamp
-                }
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
+                Text(text = caption, color = Color.White, fontSize = 14.sp)
                 Row(
-                    modifier = Modifier.align(Alignment.BottomEnd).offset(y = 2.dp),
+                    modifier = Modifier.align(Alignment.End).padding(top = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(time, fontSize = 9.sp, color = Color.White.copy(0.7f))
                     if (isMe) {
-                        Spacer(Modifier.width(3.dp))
-                        Text(if (isRead) "✓✓" else "✓", fontSize = 10.sp, color = if (isRead) Color(0xFF00E676) else Color.White.copy(0.6f))
+                        MessageStatusTicks(isRead, readAt)
                     }
                 }
             }
@@ -534,67 +556,59 @@ fun VideoAttachmentVisualizer(url: String?, caption: String, isMe: Boolean, time
 }
 
 @Composable
-fun LocationAttachmentVisualizer(isMe: Boolean, address: String, coords: String?, time: String, isRead: Boolean) {
-    Box(modifier = Modifier.padding(4.dp).fillMaxWidth()) {
-        Column {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.LocationOn, null, tint = if (isMe) Color.White else Color(0xFF4CAF50))
-                Spacer(Modifier.width(8.dp))
-                Text(address, fontWeight = FontWeight.Bold, color = if (isMe) Color.White else Color.Black)
-            }
-            Spacer(Modifier.height(8.dp))
-            Button(onClick = { }, modifier = Modifier.fillMaxWidth().height(40.dp), shape = RoundedCornerShape(8.dp)) {
-                Text("Open Maps", fontSize = 12.sp)
-            }
-            Spacer(Modifier.height(20.dp)) // Space for timestamp
+fun LocationAttachmentVisualizer(isMe: Boolean, address: String, coords: String?, time: String, isRead: Boolean, readAt: Long? = null) {
+    Column(modifier = Modifier.padding(4.dp).fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.LocationOn, null, tint = if (isMe) Color.White else Color(0xFF4CAF50))
+            Spacer(Modifier.width(8.dp))
+            Text(address, fontWeight = FontWeight.Bold, color = if (isMe) Color.White else Color.Black)
+        }
+        Spacer(Modifier.height(8.dp))
+        Button(onClick = { }, modifier = Modifier.fillMaxWidth().height(40.dp), shape = RoundedCornerShape(8.dp)) {
+            Text("Open Maps", fontSize = 12.sp)
         }
         Row(
-            modifier = Modifier.align(Alignment.BottomEnd).offset(y = 2.dp),
+            modifier = Modifier.align(Alignment.End).padding(top = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(time, fontSize = 9.sp, color = if (isMe) Color.White.copy(0.7f) else Color.Gray)
             if (isMe) {
-                Spacer(Modifier.width(3.dp))
-                Text(if (isRead) "✓✓" else "✓", fontSize = 10.sp, color = if (isRead) Color(0xFF00E676) else Color.White.copy(0.6f))
+                MessageStatusTicks(isRead, readAt)
             }
         }
     }
 }
 
 @Composable
-fun ContactAttachmentVisualizer(isMe: Boolean, text: String, time: String, isRead: Boolean) {
+fun ContactAttachmentVisualizer(isMe: Boolean, text: String, time: String, isRead: Boolean, readAt: Long? = null) {
     val parts = text.split("|")
     val name = parts.getOrNull(0) ?: "Contact"
     val phone = parts.getOrNull(1) ?: ""
-    Box(modifier = Modifier.padding(4.dp).fillMaxWidth()) {
-        Column {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.ContactPage, null, tint = if (isMe) Color.White else Color(0xFFFF9800))
-                Spacer(Modifier.width(8.dp))
-                Text(name, fontWeight = FontWeight.Bold, color = if (isMe) Color.White else Color.Black)
-            }
-            Text(phone, fontSize = 11.sp, color = if (isMe) Color.White.copy(0.7f) else Color.Gray)
-            Spacer(Modifier.height(8.dp))
-            Button(onClick = { }, modifier = Modifier.fillMaxWidth().height(32.dp), shape = RoundedCornerShape(8.dp)) {
-                Text("Save Contact", fontSize = 10.sp)
-            }
-            Spacer(Modifier.height(20.dp)) // Space for timestamp
+    Column(modifier = Modifier.padding(4.dp).fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.ContactPage, null, tint = if (isMe) Color.White else Color(0xFFFF9800))
+            Spacer(Modifier.width(8.dp))
+            Text(name, fontWeight = FontWeight.Bold, color = if (isMe) Color.White else Color.Black)
+        }
+        Text(phone, fontSize = 11.sp, color = if (isMe) Color.White.copy(0.7f) else Color.Gray)
+        Spacer(Modifier.height(8.dp))
+        Button(onClick = { }, modifier = Modifier.fillMaxWidth().height(32.dp), shape = RoundedCornerShape(8.dp)) {
+            Text("Save Contact", fontSize = 10.sp)
         }
         Row(
-            modifier = Modifier.align(Alignment.BottomEnd).offset(y = 2.dp),
+            modifier = Modifier.align(Alignment.End).padding(top = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(time, fontSize = 9.sp, color = if (isMe) Color.White.copy(0.7f) else Color.Gray)
             if (isMe) {
-                Spacer(Modifier.width(3.dp))
-                Text(if (isRead) "✓✓" else "✓", fontSize = 10.sp, color = if (isRead) Color(0xFF00E676) else Color.White.copy(0.6f))
+                MessageStatusTicks(isRead, readAt)
             }
         }
     }
 }
 
 @Composable
-fun DirectDealVisualizer(isMe: Boolean, text: String, time: String, isRead: Boolean) {
+fun DirectDealVisualizer(isMe: Boolean, text: String, time: String, isRead: Boolean, readAt: Long? = null) {
     val parts = text.split("|")
     val title = parts.getOrNull(0) ?: "Project Deal"
     val budget = parts.getOrNull(1) ?: "N/A"
@@ -603,31 +617,27 @@ fun DirectDealVisualizer(isMe: Boolean, text: String, time: String, isRead: Bool
         colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)),
         modifier = Modifier.fillMaxWidth().padding(4.dp)
     ) {
-        Box(modifier = Modifier.padding(12.dp).fillMaxWidth()) {
-            Column {
-                Text("Business Proposal", fontSize = 14.sp, fontWeight = FontWeight.Black, color = Color.White)
-                Spacer(Modifier.height(4.dp))
-                Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                Spacer(Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Budget: ", fontSize = 15.sp, color = Color.White.copy(0.7f))
-                    Text(budget, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
-                }
-                Text("Deadline: $deadline", fontSize = 15.sp, color = Color.White.copy(0.7f))
-                Spacer(Modifier.height(16.dp))
-                Button(onClick = { }, modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(12.dp)) {
-                    Text("Review Proposal", fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                }
-                Spacer(Modifier.height(20.dp)) // Space for timestamp
+        Column(modifier = Modifier.padding(12.dp).fillMaxWidth()) {
+            Text("Business Proposal", fontSize = 14.sp, fontWeight = FontWeight.Black, color = Color.White)
+            Spacer(Modifier.height(4.dp))
+            Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            Spacer(Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Budget: ", fontSize = 15.sp, color = Color.White.copy(0.7f))
+                Text(budget, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+            }
+            Text("Deadline: $deadline", fontSize = 15.sp, color = Color.White.copy(0.7f))
+            Spacer(Modifier.height(16.dp))
+            Button(onClick = { }, modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(12.dp)) {
+                Text("Review Proposal", fontSize = 15.sp, fontWeight = FontWeight.Bold)
             }
             Row(
-                modifier = Modifier.align(Alignment.BottomEnd).offset(y = 2.dp),
+                modifier = Modifier.align(Alignment.End).padding(top = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(time, fontSize = 9.sp, color = Color.White.copy(0.7f))
                 if (isMe) {
-                    Spacer(Modifier.width(3.dp))
-                    Text(if (isRead) "✓✓" else "✓", fontSize = 10.sp, color = if (isRead) Color(0xFF00E676) else Color.White.copy(0.6f))
+                    MessageStatusTicks(isRead, readAt)
                 }
             }
         }
@@ -635,54 +645,48 @@ fun DirectDealVisualizer(isMe: Boolean, text: String, time: String, isRead: Bool
 }
 
 @Composable
-fun PollVisualizer(isMe: Boolean, text: String, time: String, isRead: Boolean) {
+fun PollVisualizer(isMe: Boolean, text: String, time: String, isRead: Boolean, readAt: Long? = null) {
     val parts = text.split("|")
     val question = parts.getOrNull(0) ?: "Poll Question"
     val options = parts.drop(1)
-    Box(modifier = Modifier.padding(4.dp).fillMaxWidth()) {
-        Column {
-            Text(question, fontWeight = FontWeight.Bold, color = if (isMe) Color.White else Color.Black)
-            Spacer(Modifier.height(8.dp))
-            options.forEach { option ->
-                Box(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp).clip(RoundedCornerShape(8.dp)).background(if (isMe) Color.White.copy(0.2f) else Color.Gray.copy(0.1f)).padding(8.dp)) {
-                    Text(option, fontSize = 11.sp, color = if (isMe) Color.White else Color.Black)
-                }
+    Column(modifier = Modifier.padding(4.dp).fillMaxWidth()) {
+        Text(question, fontWeight = FontWeight.Bold, color = if (isMe) Color.White else Color.Black)
+        Spacer(Modifier.height(8.dp))
+        options.forEach { option ->
+            Box(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp).clip(RoundedCornerShape(8.dp)).background(if (isMe) Color.White.copy(0.2f) else Color.Gray.copy(0.1f)).padding(8.dp)) {
+                Text(option, fontSize = 11.sp, color = if (isMe) Color.White else Color.Black)
             }
-            Spacer(Modifier.height(20.dp)) // Space for timestamp
         }
         Row(
-            modifier = Modifier.align(Alignment.BottomEnd).offset(y = 2.dp),
+            modifier = Modifier.align(Alignment.End).padding(top = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(time, fontSize = 9.sp, color = if (isMe) Color.White.copy(0.7f) else Color.Gray)
             if (isMe) {
-                Spacer(Modifier.width(3.dp))
-                Text(if (isRead) "✓✓" else "✓", fontSize = 10.sp, color = if (isRead) Color(0xFF00E676) else Color.White.copy(0.6f))
+                MessageStatusTicks(isRead, readAt)
             }
         }
     }
 }
 
 @Composable
-fun DocumentAttachmentVisualizer(isMe: Boolean, name: String, time: String, isRead: Boolean) {
-    Box(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
+fun DocumentAttachmentVisualizer(isMe: Boolean, name: String, time: String, isRead: Boolean, readAt: Long? = null) {
+    Column(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.Description, null, tint = if (isMe) Color.White else Color.Red)
             Spacer(Modifier.width(8.dp))
             Column {
                 Text(name, fontWeight = FontWeight.Bold, color = if (isMe) Color.White else Color.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text("Open Document", fontSize = 10.sp, color = if (isMe) Color.White.copy(0.7f) else Color.Gray)
-                Spacer(Modifier.height(20.dp)) // Space for timestamp
             }
         }
         Row(
-            modifier = Modifier.align(Alignment.BottomEnd).offset(y = 2.dp),
+            modifier = Modifier.align(Alignment.End).padding(top = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(time, fontSize = 9.sp, color = if (isMe) Color.White.copy(0.7f) else Color.Gray)
             if (isMe) {
-                Spacer(Modifier.width(3.dp))
-                Text(if (isRead) "✓✓" else "✓", fontSize = 10.sp, color = if (isRead) Color(0xFF00E676) else Color.White.copy(0.6f))
+                MessageStatusTicks(isRead, readAt)
             }
         }
     }
