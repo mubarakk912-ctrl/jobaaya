@@ -27,6 +27,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -171,7 +173,7 @@ fun SettingsScreen(
         ) {
 
             // ==========================================
-            // 1. PROFILE EXPANDABLE DROPDOWN CARD (जगह बचाने के लिए बॉक्स में पैक)
+            // 1. PROFILE EXPANDABLE DROPDOWN CARD
             // ==========================================
             myProfile?.let { me ->
                 Card(
@@ -181,7 +183,6 @@ fun SettingsScreen(
                     elevation = CardDefaults.cardElevation(2.dp)
                 ) {
                     Column {
-                        // Dropdown Header (हमेशा दिखाई देगा)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -206,7 +207,6 @@ fun SettingsScreen(
                             )
                         }
 
-                        // Dropdown Content (सिर्फ एरो क्लिक करने पर खुलेगा)
                         AnimatedVisibility(visible = showProfileItems) {
                             Column(
                                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
@@ -214,7 +214,6 @@ fun SettingsScreen(
                             ) {
                                 HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), modifier = Modifier.padding(bottom = 4.dp))
 
-                                // इमेज और नाम वाला हेडर
                                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                     AndroidView(
                                         factory = { ctx ->
@@ -400,11 +399,10 @@ fun SettingsScreen(
             }
 
             // ==========================================
-            // 2. SETTINGS SCREEN CODE (मूल कोडिंग बिना किसी बदलाव के)
+            // 2. SETTINGS SCREEN CODE
             // ==========================================
             Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    // Expandable Privacy Section
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -488,20 +486,27 @@ fun SettingsScreen(
                         Text(JobaayaLocalization.translate("report_bug", currentLang), color = MaterialTheme.colorScheme.onSurface)
                     }
                     Row(Modifier.fillMaxWidth().clickable {
+                        val appPackageName = context.packageName
                         val sendIntent = Intent().apply {
                             action = Intent.ACTION_SEND
-                            putExtra(Intent.EXTRA_TEXT, "Download jobaaya app to find local services!")
+                            putExtra(Intent.EXTRA_TEXT, "Check out Jobaaya app to find local services! https://play.google.com/store/apps/details?id=$appPackageName")
                             type = "text/plain"
                         }
-                        context.startActivity(Intent.createChooser(sendIntent, null))
+                        context.startActivity(Intent.createChooser(sendIntent, "Share Jobaaya"))
                     }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Share, null, tint = MaterialTheme.colorScheme.outline)
                         Spacer(Modifier.width(12.dp))
                         Text(JobaayaLocalization.translate("share_app", currentLang), color = MaterialTheme.colorScheme.onSurface)
                     }
                     Row(Modifier.fillMaxWidth().clickable {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.example.jobaaya"))
-                        try { context.startActivity(intent) } catch (e: Exception) {}
+                        val appPackageName = context.packageName
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$appPackageName"))
+                        try {
+                            context.startActivity(intent)
+                        } catch (e: Exception) {
+                            val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$appPackageName"))
+                            context.startActivity(webIntent)
+                        }
                     }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.ThumbUp, null, tint = MaterialTheme.colorScheme.outline)
                         Spacer(Modifier.width(12.dp))
@@ -609,7 +614,7 @@ fun SettingsScreen(
         }
     }
 
-    // Bug Report Dialog (Firebase Firestore)
+    // Bug Report Dialog
     if (showBugReportDialog) {
         Dialog(onDismissRequest = { if (!isSubmittingBug) showBugReportDialog = false }) {
             Card(
