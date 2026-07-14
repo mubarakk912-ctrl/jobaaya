@@ -47,6 +47,10 @@ import com.example.ui.localization.AppLanguage
 import com.example.ui.localization.JobaayaLocalization
 import com.example.viewmodel.JobaayaViewModel
 import de.hdodenhof.circleimageview.CircleImageView
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.Firebase
+import com.google.firebase.firestore.firestore
+import com.google.firebase.Timestamp
 
 @Composable
 fun SettingsScreen(
@@ -72,6 +76,11 @@ fun SettingsScreen(
 
     // --- NEW DROPDOWN STATE FOR PROFILE ---
     var showProfileItems by remember { mutableStateOf(false) }
+
+    // --- BUG REPORT STATES ---
+    var showBugReportDialog by remember { mutableStateOf(false) }
+    var bugReportText by remember { mutableStateOf("") }
+    var isSubmittingBug by remember { mutableStateOf(false) }
 
     // --- PROFILE STATES ---
     val myProfile by viewModel.myProfile.collectAsState()
@@ -472,7 +481,7 @@ fun SettingsScreen(
                         Text(JobaayaLocalization.translate("help_center", currentLang), color = MaterialTheme.colorScheme.onSurface)
                     }
                     Row(Modifier.fillMaxWidth().clickable {
-                        Toast.makeText(context, JobaayaLocalization.translate("report_bug", currentLang), Toast.LENGTH_SHORT).show()
+                        showBugReportDialog = true
                     }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.BugReport, null, tint = MaterialTheme.colorScheme.outline)
                         Spacer(Modifier.width(12.dp))
@@ -592,6 +601,101 @@ fun SettingsScreen(
                                 ) {
                                     Text(text = user.toString(), color = MaterialTheme.colorScheme.onSurface)
                                 }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Bug Report Dialog (Firebase Firestore)
+    if (showBugReportDialog) {
+        Dialog(onDismissRequest = { if (!isSubmittingBug) showBugReportDialog = false }) {
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(Modifier.padding(20.dp)) {
+                    Text(
+                        text = JobaayaLocalization.translate("report_bug", currentLang),
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "Apni problem yahan likhein, hum jald hi isse theek karenge.",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                    Spacer(Modifier.height(16.dp))
+
+                    OutlinedTextField(
+                        value = bugReportText,
+                        onValueChange = { bugReportText = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 4,
+                        maxLines = 6,
+                        placeholder = { Text("Bug ka description likhein...") },
+                        enabled = !isSubmittingBug
+                    )
+
+                    Spacer(Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(
+                            onClick = { showBugReportDialog = false },
+                            enabled = !isSubmittingBug
+                        ) {
+                            Text(JobaayaLocalization.translate("cancel", currentLang).uppercase())
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Button(
+                            onClick = {
+                                if (bugReportText.isBlank()) {
+                                    Toast.makeText(context, "Kripya apni problem likhein", Toast.LENGTH_SHORT).show()
+                                    return@Button
+                                }
+                                isSubmittingBug = true
+                                val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: "anonymous"
+
+                                val bugReport = hashMapOf(
+                                    "userId" to currentUserId,
+                                    "description" to bugReportText.trim(),
+                                    "screen" to "SettingsScreen",
+                                    "language" to currentLang.name,
+                                    "timestamp" to Timestamp.now(),
+                                    "status" to "open"
+                                )
+
+                                Firebase.firestore.collection("bug_reports")
+                                    .add(bugReport)
+                                    .addOnSuccessListener {
+                                        isSubmittingBug = false
+                                        bugReportText = ""
+                                        showBugReportDialog = false
+                                        Toast.makeText(context, "Bug report submit ho gayi. Dhanyavaad!", Toast.LENGTH_SHORT).show()
+                                    }
+                                    .addOnFailureListener { e ->
+                                        isSubmittingBug = false
+                                        Toast.makeText(context, "Submit nahi ho paaya: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    }
+                            },
+                            enabled = !isSubmittingBug
+                        ) {
+                            if (isSubmittingBug) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                            } else {
+                                Text("Submit")
                             }
                         }
                     }
