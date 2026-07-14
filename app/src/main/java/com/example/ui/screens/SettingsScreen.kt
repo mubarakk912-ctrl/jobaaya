@@ -459,11 +459,6 @@ fun SettingsScreen(
                         Spacer(Modifier.width(12.dp))
                         Text("${JobaayaLocalization.translate("languages", currentLang)}: ${currentLang.displayName}", color = MaterialTheme.colorScheme.onSurface)
                     }
-                    Row(Modifier.fillMaxWidth().clickable { Toast.makeText(context, JobaayaLocalization.translate("clear_cache", currentLang), Toast.LENGTH_SHORT).show() }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.SdStorage, null, tint = MaterialTheme.colorScheme.outline)
-                        Spacer(Modifier.width(12.dp))
-                        Text(JobaayaLocalization.translate("clear_cache", currentLang), color = MaterialTheme.colorScheme.onSurface)
-                    }
 
                     HorizontalDivider(Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
 
