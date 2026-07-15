@@ -32,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -83,6 +84,39 @@ fun SettingsScreen(
     var showBugReportDialog by remember { mutableStateOf(false) }
     var bugReportText by remember { mutableStateOf("") }
     var isSubmittingBug by remember { mutableStateOf(false) }
+
+    // --- NOTIFICATIONS DROPDOWN STATE ---
+    var showNotificationItems by remember { mutableStateOf(false) }
+    var showNotificationHistoryDialog by remember { mutableStateOf(false) }
+
+    // --- NOTIFICATIONS TOGGLE STATES (persisted in SharedPreferences) ---
+    var notifMasterEnabled by remember { mutableStateOf(sharedPreferences.getBoolean("notif_master", true)) }
+    var notifChatMessages by remember { mutableStateOf(sharedPreferences.getBoolean("notif_chat_messages", true)) }
+    var notifCallAlerts by remember { mutableStateOf(sharedPreferences.getBoolean("notif_call_alerts", true)) }
+    var notifFollowRequest by remember { mutableStateOf(sharedPreferences.getBoolean("notif_follow_request", true)) }
+    var notifConnectionAccepted by remember { mutableStateOf(sharedPreferences.getBoolean("notif_connection_accepted", true)) }
+    var notifJobRequest by remember { mutableStateOf(sharedPreferences.getBoolean("notif_job_request", true)) }
+    var notifDirectDeal by remember { mutableStateOf(sharedPreferences.getBoolean("notif_direct_deal", true)) }
+    var notifReviewRating by remember { mutableStateOf(sharedPreferences.getBoolean("notif_review_rating", true)) }
+    var notifProfileLikeSave by remember { mutableStateOf(sharedPreferences.getBoolean("notif_profile_like_save", true)) }
+    var notifNearbyWork by remember { mutableStateOf(sharedPreferences.getBoolean("notif_nearby_work", true)) }
+    var notifPayment by remember { mutableStateOf(sharedPreferences.getBoolean("notif_payment", true)) }
+    var notifPremium by remember { mutableStateOf(sharedPreferences.getBoolean("notif_premium", true)) }
+    var notifSecurity by remember { mutableStateOf(sharedPreferences.getBoolean("notif_security", true)) }
+    var notifAppUpdates by remember { mutableStateOf(sharedPreferences.getBoolean("notif_app_updates", true)) }
+    var notifOffers by remember { mutableStateOf(sharedPreferences.getBoolean("notif_offers", true)) }
+    var notifEmail by remember { mutableStateOf(sharedPreferences.getBoolean("notif_email", true)) }
+    var notifPush by remember { mutableStateOf(sharedPreferences.getBoolean("notif_push", true)) }
+    var notifSound by remember { mutableStateOf(sharedPreferences.getBoolean("notif_sound", true)) }
+    var notifVibration by remember { mutableStateOf(sharedPreferences.getBoolean("notif_vibration", true)) }
+    var notifDND by remember { mutableStateOf(sharedPreferences.getBoolean("notif_dnd", false)) }
+    var notifOnlineStatus by remember { mutableStateOf(sharedPreferences.getBoolean("notif_online_status", true)) }
+    var notifMuteSpecificChats by remember { mutableStateOf(sharedPreferences.getBoolean("notif_mute_specific_chats", false)) }
+
+    // Helper to persist a boolean flag
+    fun saveNotifPref(key: String, value: Boolean) {
+        sharedPreferences.edit().putBoolean(key, value).apply()
+    }
 
     // --- PROFILE STATES ---
     val myProfile by viewModel.myProfile.collectAsState()
@@ -399,6 +433,319 @@ fun SettingsScreen(
             }
 
             // ==========================================
+            // 1B. NOTIFICATIONS EXPANDABLE DROPDOWN CARD (NEW)
+            // ==========================================
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(2.dp)
+            ) {
+                Column {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showNotificationItems = !showNotificationItems }
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Notifications, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                text = JobaayaLocalization.translate("notifications", currentLang) ?: "Notifications",
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        Icon(
+                            imageVector = if (showNotificationItems) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                            contentDescription = null
+                        )
+                    }
+
+                    AnimatedVisibility(visible = showNotificationItems) {
+                        Column(
+                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), modifier = Modifier.padding(bottom = 4.dp))
+
+                            // 1. Master Switch
+                            NotificationSettingRow(
+                                icon = Icons.Default.NotificationsActive,
+                                label = JobaayaLocalization.translate("notif_master", currentLang) ?: "सभी Notifications (Master Switch)",
+                                checked = notifMasterEnabled,
+                                enabled = true,
+                                onCheckedChange = {
+                                    notifMasterEnabled = it
+                                    saveNotifPref("notif_master", it)
+                                }
+                            )
+
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), modifier = Modifier.padding(vertical = 6.dp))
+
+                            // 2. New Chat Messages
+                            NotificationSettingRow(
+                                icon = Icons.Default.Chat,
+                                label = JobaayaLocalization.translate("notif_chat_messages", currentLang) ?: "नए Chat Messages",
+                                checked = notifChatMessages,
+                                enabled = notifMasterEnabled,
+                                onCheckedChange = { notifChatMessages = it; saveNotifPref("notif_chat_messages", it) }
+                            )
+
+                            // 3. Missed Call / Incoming Call Alerts
+                            NotificationSettingRow(
+                                icon = Icons.Default.Call,
+                                label = JobaayaLocalization.translate("notif_call_alerts", currentLang) ?: "Missed Call / Incoming Call Alerts",
+                                checked = notifCallAlerts,
+                                enabled = notifMasterEnabled,
+                                onCheckedChange = { notifCallAlerts = it; saveNotifPref("notif_call_alerts", it) }
+                            )
+
+                            // 4. New Follow / Connection Request
+                            NotificationSettingRow(
+                                icon = Icons.Default.PersonAdd,
+                                label = JobaayaLocalization.translate("notif_follow_request", currentLang) ?: "नया Follow / Connection Request",
+                                checked = notifFollowRequest,
+                                enabled = notifMasterEnabled,
+                                onCheckedChange = { notifFollowRequest = it; saveNotifPref("notif_follow_request", it) }
+                            )
+
+                            // 5. Connection Accepted Notification
+                            NotificationSettingRow(
+                                icon = Icons.Default.HowToReg,
+                                label = JobaayaLocalization.translate("notif_connection_accepted", currentLang) ?: "Connection Accepted Notification",
+                                checked = notifConnectionAccepted,
+                                enabled = notifMasterEnabled,
+                                onCheckedChange = { notifConnectionAccepted = it; saveNotifPref("notif_connection_accepted", it) }
+                            )
+
+                            // 6. New Job / Work Request
+                            NotificationSettingRow(
+                                icon = Icons.Default.Work,
+                                label = JobaayaLocalization.translate("notif_job_request", currentLang) ?: "नया Job / Work Request",
+                                checked = notifJobRequest,
+                                enabled = notifMasterEnabled,
+                                onCheckedChange = { notifJobRequest = it; saveNotifPref("notif_job_request", it) }
+                            )
+
+                            // 7. Direct Deal Request
+                            NotificationSettingRow(
+                                icon = Icons.Default.Description,
+                                label = JobaayaLocalization.translate("notif_direct_deal", currentLang) ?: "Direct Deal Request",
+                                checked = notifDirectDeal,
+                                enabled = notifMasterEnabled,
+                                onCheckedChange = { notifDirectDeal = it; saveNotifPref("notif_direct_deal", it) }
+                            )
+
+                            // 8. Review & Rating Notifications
+                            NotificationSettingRow(
+                                icon = Icons.Default.Star,
+                                label = JobaayaLocalization.translate("notif_review_rating", currentLang) ?: "Review & Rating Notifications",
+                                checked = notifReviewRating,
+                                enabled = notifMasterEnabled,
+                                onCheckedChange = { notifReviewRating = it; saveNotifPref("notif_review_rating", it) }
+                            )
+
+                            // 9. Profile Like / Save Notification
+                            NotificationSettingRow(
+                                icon = Icons.Default.Favorite,
+                                label = JobaayaLocalization.translate("notif_profile_like_save", currentLang) ?: "Profile Like / Save Notification",
+                                checked = notifProfileLikeSave,
+                                enabled = notifMasterEnabled,
+                                onCheckedChange = { notifProfileLikeSave = it; saveNotifPref("notif_profile_like_save", it) }
+                            )
+
+                            // 10. Nearby Work Alerts
+                            NotificationSettingRow(
+                                icon = Icons.Default.LocationOn,
+                                label = JobaayaLocalization.translate("notif_nearby_work", currentLang) ?: "Nearby Work Alerts",
+                                checked = notifNearbyWork,
+                                enabled = notifMasterEnabled,
+                                onCheckedChange = { notifNearbyWork = it; saveNotifPref("notif_nearby_work", it) }
+                            )
+
+                            // 11. Payment Received / Payment Status
+                            NotificationSettingRow(
+                                icon = Icons.Default.Payments,
+                                label = JobaayaLocalization.translate("notif_payment", currentLang) ?: "Payment Received / Payment Status",
+                                checked = notifPayment,
+                                enabled = notifMasterEnabled,
+                                onCheckedChange = { notifPayment = it; saveNotifPref("notif_payment", it) }
+                            )
+
+                            // 12. Premium Subscription Notifications
+                            NotificationSettingRow(
+                                icon = Icons.Default.WorkspacePremium,
+                                label = JobaayaLocalization.translate("notif_premium", currentLang) ?: "Premium Subscription Notifications",
+                                checked = notifPremium,
+                                enabled = notifMasterEnabled,
+                                onCheckedChange = { notifPremium = it; saveNotifPref("notif_premium", it) }
+                            )
+
+                            // 13. Security Alerts (New Login, Password Change)
+                            NotificationSettingRow(
+                                icon = Icons.Default.Security,
+                                label = JobaayaLocalization.translate("notif_security", currentLang) ?: "Security Alerts (New Login, Password Change)",
+                                checked = notifSecurity,
+                                enabled = notifMasterEnabled,
+                                onCheckedChange = { notifSecurity = it; saveNotifPref("notif_security", it) }
+                            )
+
+                            // 14. App Updates & New Features
+                            NotificationSettingRow(
+                                icon = Icons.Default.SystemUpdate,
+                                label = JobaayaLocalization.translate("notif_app_updates", currentLang) ?: "App Updates & New Features",
+                                checked = notifAppUpdates,
+                                enabled = notifMasterEnabled,
+                                onCheckedChange = { notifAppUpdates = it; saveNotifPref("notif_app_updates", it) }
+                            )
+
+                            // 15. Offers & Promotions
+                            NotificationSettingRow(
+                                icon = Icons.Default.LocalOffer,
+                                label = JobaayaLocalization.translate("notif_offers", currentLang) ?: "Offers & Promotions",
+                                checked = notifOffers,
+                                enabled = notifMasterEnabled,
+                                onCheckedChange = { notifOffers = it; saveNotifPref("notif_offers", it) }
+                            )
+
+                            // 16. Email Notifications
+                            NotificationSettingRow(
+                                icon = Icons.Default.Email,
+                                label = JobaayaLocalization.translate("notif_email", currentLang) ?: "Email Notifications",
+                                checked = notifEmail,
+                                enabled = notifMasterEnabled,
+                                onCheckedChange = { notifEmail = it; saveNotifPref("notif_email", it) }
+                            )
+
+                            // 17. Push Notifications
+                            NotificationSettingRow(
+                                icon = Icons.Default.PhoneAndroid,
+                                label = JobaayaLocalization.translate("notif_push", currentLang) ?: "Push Notifications",
+                                checked = notifPush,
+                                enabled = notifMasterEnabled,
+                                onCheckedChange = { notifPush = it; saveNotifPref("notif_push", it) }
+                            )
+
+                            // 18. Notification Sound ON/OFF
+                            NotificationSettingRow(
+                                icon = Icons.Default.VolumeUp,
+                                label = JobaayaLocalization.translate("notif_sound", currentLang) ?: "Notification Sound ON/OFF",
+                                checked = notifSound,
+                                enabled = notifMasterEnabled,
+                                onCheckedChange = { notifSound = it; saveNotifPref("notif_sound", it) }
+                            )
+
+                            // 19. Vibration ON/OFF
+                            NotificationSettingRow(
+                                icon = Icons.Default.Vibration,
+                                label = JobaayaLocalization.translate("notif_vibration", currentLang) ?: "Vibration ON/OFF",
+                                checked = notifVibration,
+                                enabled = notifMasterEnabled,
+                                onCheckedChange = { notifVibration = it; saveNotifPref("notif_vibration", it) }
+                            )
+
+                            // 20. Do Not Disturb (DND)
+                            NotificationSettingRow(
+                                icon = Icons.Default.DoNotDisturbOn,
+                                label = JobaayaLocalization.translate("notif_dnd", currentLang) ?: "Do Not Disturb (DND)",
+                                checked = notifDND,
+                                enabled = notifMasterEnabled,
+                                onCheckedChange = { notifDND = it; saveNotifPref("notif_dnd", it) }
+                            )
+
+                            // 21. Online Status Notifications
+                            NotificationSettingRow(
+                                icon = Icons.Default.Circle,
+                                label = JobaayaLocalization.translate("notif_online_status", currentLang) ?: "Online Status Notifications",
+                                checked = notifOnlineStatus,
+                                enabled = notifMasterEnabled,
+                                onCheckedChange = { notifOnlineStatus = it; saveNotifPref("notif_online_status", it) }
+                            )
+
+                            // 22. Mute Specific Chat Notifications
+                            NotificationSettingRow(
+                                icon = Icons.Default.NotificationsPaused,
+                                label = JobaayaLocalization.translate("notif_mute_specific_chats", currentLang) ?: "Mute Specific Chat Notifications",
+                                checked = notifMuteSpecificChats,
+                                enabled = notifMasterEnabled,
+                                onCheckedChange = { notifMuteSpecificChats = it; saveNotifPref("notif_mute_specific_chats", it) }
+                            )
+
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), modifier = Modifier.padding(vertical = 6.dp))
+
+                            // 23. Notification History
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { showNotificationHistoryDialog = true }
+                                    .padding(vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.History, null, tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(20.dp))
+                                Spacer(Modifier.width(10.dp))
+                                Text(
+                                    text = JobaayaLocalization.translate("notif_history", currentLang) ?: "Notification History",
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontSize = 14.sp
+                                )
+                            }
+
+                            // 24. Mark All as Read
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        Toast.makeText(
+                                            context,
+                                            JobaayaLocalization.translate("notif_marked_all_read", currentLang) ?: "सभी Notifications Read के रूप में मार्क कर दी गईं",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                    .padding(vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.DoneAll, null, tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(20.dp))
+                                Spacer(Modifier.width(10.dp))
+                                Text(
+                                    text = JobaayaLocalization.translate("notif_mark_all_read", currentLang) ?: "Mark All as Read",
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontSize = 14.sp
+                                )
+                            }
+
+                            // 25. Clear All Notifications
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        Toast.makeText(
+                                            context,
+                                            JobaayaLocalization.translate("notif_cleared_all", currentLang) ?: "सभी Notifications Clear कर दी गईं",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                    .padding(vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.DeleteSweep, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
+                                Spacer(Modifier.width(10.dp))
+                                Text(
+                                    text = JobaayaLocalization.translate("notif_clear_all", currentLang) ?: "Clear All Notifications",
+                                    color = MaterialTheme.colorScheme.error,
+                                    fontSize = 14.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ==========================================
             // 2. SETTINGS SCREEN CODE
             // ==========================================
             Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
@@ -614,6 +961,34 @@ fun SettingsScreen(
         }
     }
 
+    // Notification History Dialog (NEW)
+    if (showNotificationHistoryDialog) {
+        Dialog(onDismissRequest = { showNotificationHistoryDialog = false }) {
+            Card(shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                Column(Modifier.padding(16.dp)) {
+                    Text(
+                        text = JobaayaLocalization.translate("notif_history", currentLang) ?: "Notification History",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        text = JobaayaLocalization.translate("notif_history_empty", currentLang) ?: "अभी कोई Notification History उपलब्ध नहीं है।",
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    TextButton(
+                        onClick = { showNotificationHistoryDialog = false },
+                        modifier = Modifier.align(Alignment.End)
+                    ) {
+                        Text(JobaayaLocalization.translate("cancel", currentLang).uppercase(), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+
     // Bug Report Dialog
     if (showBugReportDialog) {
         Dialog(onDismissRequest = { if (!isSubmittingBug) showBugReportDialog = false }) {
@@ -707,5 +1082,44 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+}
+
+// ==========================================
+// Reusable row for a single notification toggle (NEW)
+// ==========================================
+@Composable
+private fun NotificationSettingRow(
+    icon: ImageVector,
+    label: String,
+    checked: Boolean,
+    enabled: Boolean = true,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.weight(1f).padding(end = 8.dp)
+        ) {
+            Icon(
+                icon,
+                null,
+                tint = if (enabled) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(Modifier.width(10.dp))
+            Text(
+                text = label,
+                color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                fontSize = 14.sp
+            )
+        }
+        Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
     }
 }
