@@ -26,6 +26,11 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="${MAPS_API_KEY}" />
 
+        <!-- NEW: Default notification channel used by MyFirebaseMessagingService -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="jobaaya_default_channel" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -42,6 +47,15 @@
             android:name=".receiver.NoteReminderReceiver"
             android:enabled="true"
             android:exported="false" />
+
+        <!-- NEW: Firebase Cloud Messaging service for receiving push notifications -->
+        <service
+            android:name=".services.MyFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
 
         <activity
             android:name="com.canhub.cropper.CropImageActivity"

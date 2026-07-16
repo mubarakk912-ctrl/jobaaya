@@ -27,6 +27,9 @@ import com.example.ui.localization.JobaayaLocalization
 import android.location.Location
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
+import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -40,6 +43,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
@@ -156,7 +160,7 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
         val availability = set1.avail
         val rating = set1.rating
         val exp = set1.exp
-        
+
         val lang = set2.lang
         val myProf = set2.myProf
 
@@ -172,7 +176,7 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
             val matchesCity = true
 
             // Search query match (profession, name, skills)
-            val matchesQuery = query.isBlank() || 
+            val matchesQuery = query.isBlank() ||
                     profile.name.contains(query, ignoreCase = true) ||
                     profile.profession.contains(query, ignoreCase = true) ||
                     profile.skillsRaw.contains(query, ignoreCase = true) ||
@@ -281,12 +285,52 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
             }
         }
         startLocationTracking()
+        // NEW: keep this device's push-notification token in sync with Firestore
+        syncFcmTokenToFirestore()
+    }
+
+    // ==========================================
+    // NOTIFICATIONS: FCM TOKEN SYNC (NEW)
+    // ==========================================
+    // Fetches the current device's FCM token and stores it under
+    // Firestore -> users/{profileId}.fcmToken so Cloud Functions can look it up
+    // when they need to send this user a push notification. Also mirrors the
+    // token into the local Room profile row for reference.
+    fun syncFcmTokenToFirestore() {
+        viewModelScope.launch {
+            try {
+                val me = repository.getMyProfileDirect()
+                if (me == null || me.id.isBlank()) return@launch
+
+                val token = FirebaseMessaging.getInstance().token.await()
+
+                // Mirror token locally too
+                if (me.fcmToken != token) {
+                    repository.updateProfile(me.copy(fcmToken = token))
+                }
+
+                // Push to Firestore so server-side Cloud Functions can read it
+                FirebaseFirestore.getInstance()
+                    .collection("users")
+                    .document(me.id)
+                    .set(
+                        mapOf(
+                            "fcmToken" to token,
+                            "name" to me.name,
+                            "updatedAt" to System.currentTimeMillis()
+                        ),
+                        SetOptions.merge()
+                    )
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 
     private fun startLocationTracking() {
         try {
             val fusedLocationClient = LocationServices.getFusedLocationProviderClient(getApplication<Application>())
-            
+
             // Get last known location immediately
             fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
                 if (location != null) {
@@ -312,7 +356,7 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
             }
 
             fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, android.os.Looper.getMainLooper())
-            
+
         } catch (e: SecurityException) {
             // Priority 2 will naturally take over (profile location) if GPS is off/permission missing
         } catch (e: Exception) {
@@ -324,7 +368,7 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             val profile = repository.getMyProfileDirect()
             if (profile != null && (profile.latitude == 0.0 || profile.latitude == 28.7159)) {
-                // Only update if it's default or empty to avoid overwriting intentionally set addresses 
+                // Only update if it's default or empty to avoid overwriting intentionally set addresses
                 // but for this app's logic, sync with GPS is good.
                 repository.updateProfile(profile.copy(latitude = lat, longitude = lon))
             }
@@ -347,6 +391,7 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
             _isLoading.value = true
             authRepository.loginWithEmail(email, password).onSuccess {
                 checkProfileStatusAndNavigate()
+                syncFcmTokenToFirestore()
             }.onFailure {
                 _authError.emit(it.message ?: "Login failed")
             }
@@ -359,6 +404,7 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
             _isLoading.value = true
             authRepository.signInWithGoogle("mock_google_token").onSuccess {
                 checkProfileStatusAndNavigate()
+                syncFcmTokenToFirestore()
             }.onFailure {
                 _authError.emit(it.message ?: "Google Sign-In failed")
             }
@@ -381,11 +427,11 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
             _isLoading.value = true
             val existing = repository.getMyProfileDirect()
             val finalId = existing?.id ?: UUID.randomUUID().toString()
-            
+
             // Try to geocode address or use current GPS if available
             var lat = _deviceLocation.value?.latitude ?: existing?.latitude ?: 28.7159
             var lon = _deviceLocation.value?.longitude ?: existing?.longitude ?: 77.1006
-            
+
             // Simple geocoding attempt
             withContext(Dispatchers.IO) {
                 try {
@@ -416,22 +462,25 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
                 isMe = true,
                 isVerified = false,
                 availabilityStatus = WorkStatus.AVAILABLE.name,
-                serviceRadius = _serviceRadius.value
+                serviceRadius = _serviceRadius.value,
+                fcmToken = existing?.fcmToken ?: ""
             )
             repository.insertProfile(updated)
             _onboardingStep.value = false
             addSystemNotification("Profile Configured", "Your profile cards have been published! Welcome to jobaaya.")
             _isLoading.value = false
+            // NEW: profile id is finalized now, make sure Firestore has the right token mapping
+            syncFcmTokenToFirestore()
         }
     }
 
     fun updateMyProfessionalProfile(profile: UserProfile) {
         viewModelScope.launch {
             val existing = repository.getMyProfileDirect()
-            
+
             var lat = profile.latitude
             var lon = profile.longitude
-            
+
             // If address changed and we have no GPS, try to geocode
             if (existing?.fullAddress != profile.fullAddress) {
                 withContext(Dispatchers.IO) {
@@ -485,13 +534,13 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
                     2 -> 0 // Disconnected
                     else -> 0
                 }
-                
+
                 // Update local profile status
                 repository.updateProfile(prof.copy(
                     followStatus = nextStatus,
                     interactionsCount = prof.interactionsCount + (if (nextStatus == 2) 1 else 0)
                 ))
-                
+
                 // Update UserConnection table
                 repository.toggleConnection(me.id, prof.id)
 
@@ -513,9 +562,9 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun sendChatMessage(
-        text: String, 
-        mediaType: String? = null, 
-        mediaUrl: String? = null, 
+        text: String,
+        mediaType: String? = null,
+        mediaUrl: String? = null,
         forwardedFrom: String? = null,
         replyToId: Int? = null,
         replyToText: String? = null
@@ -524,7 +573,7 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
         if (!destId.isNullOrEmpty()) {
             viewModelScope.launch {
                 var finalMediaUrl = mediaUrl
-                
+
                 // If it's a content URI (e.g. from picker), copy to internal storage for persistence
                 if (mediaUrl != null && mediaUrl.startsWith("content://")) {
                     finalMediaUrl = saveMediaToInternalStorage(mediaUrl)
@@ -541,7 +590,7 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
                     replyToText = replyToText
                 )
                 repository.insertMessage(msg)
-                
+
                 // Track interaction count
                 val other = db.userProfileDao.getProfileByIdDirect(destId)
                 if (other != null) {
@@ -558,9 +607,9 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
                 val context = getApplication<android.app.Application>()
                 val fileName = "avatar_${System.currentTimeMillis()}.jpg"
                 val file = java.io.File(context.filesDir, fileName)
-                
+
                 withContext(Dispatchers.IO) {
-                    context.filesDir.listFiles()?.forEach { 
+                    context.filesDir.listFiles()?.forEach {
                         if (it.name.startsWith("avatar_") && it.name.endsWith(".jpg")) {
                             it.delete()
                         }
@@ -598,7 +647,7 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
             val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
             val fileName = customFileName ?: "chat_media_${System.currentTimeMillis()}"
             val file = File(context.filesDir, fileName)
-            
+
             inputStream?.use { input ->
                 FileOutputStream(file).use { output ->
                     input.copyTo(output)
@@ -743,7 +792,7 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun blockUserProfile(profileId: String) {
-         viewModelScope.launch {
+        viewModelScope.launch {
             val prof = db.userProfileDao.getProfileByIdDirect(profileId)
             if (prof != null) {
                 repository.updateProfile(prof.copy(isBlocked = true))
@@ -836,7 +885,7 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             repository.updateDeal(deal)
             repository.insertAuditLog(DealAuditLog(dealId = deal.id, userId = myProfile.value?.id ?: "", action = action))
-            
+
             val notificationTitle = when(action) {
                 "Deal Done" -> "Deal Finalized"
                 "Edit Requested" -> "Edit Requested"

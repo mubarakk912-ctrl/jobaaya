@@ -46,7 +46,7 @@ data class UserProfile(
     val reviewCount: Int = 0,
     val serviceRadius: Float = 20f,
     val lastSeen: Long = System.currentTimeMillis(),
-    
+
     // UI and Interaction states
     val interactionsCount: Int = 0,
     val profileViewsCount: Int = 0,
@@ -57,7 +57,12 @@ data class UserProfile(
     val isVerifiedPartner: Boolean = false,
     val partnerRating: Float = 0.0f,
     val isMuted: Boolean = false,
-    val isPinned: Boolean = false
+    val isPinned: Boolean = false,
+
+    // --- NOTIFICATION SYSTEM (NEW) ---
+    // Firebase Cloud Messaging token for this device/user, used by Cloud Functions
+    // to know where to send push notifications for this profile.
+    val fcmToken: String = ""
 ) {
     val skills: List<String>
         get() = if (skillsRaw.isBlank()) emptyList() else skillsRaw.split(",").map { it.trim() }
