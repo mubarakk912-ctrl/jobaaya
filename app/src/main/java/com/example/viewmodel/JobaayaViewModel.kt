@@ -285,17 +285,13 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
             }
         }
         startLocationTracking()
-        // NEW: keep this device's push-notification token in sync with Firestore
+        // keep this device's push-notification token in sync with Firestore
         syncFcmTokenToFirestore()
     }
 
     // ==========================================
-    // NOTIFICATIONS: FCM TOKEN SYNC (NEW)
+    // NOTIFICATIONS: FCM TOKEN SYNC (Phase 1)
     // ==========================================
-    // Fetches the current device's FCM token and stores it under
-    // Firestore -> users/{profileId}.fcmToken so Cloud Functions can look it up
-    // when they need to send this user a push notification. Also mirrors the
-    // token into the local Room profile row for reference.
     fun syncFcmTokenToFirestore() {
         viewModelScope.launch {
             try {
@@ -304,12 +300,10 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
 
                 val token = FirebaseMessaging.getInstance().token.await()
 
-                // Mirror token locally too
                 if (me.fcmToken != token) {
                     repository.updateProfile(me.copy(fcmToken = token))
                 }
 
-                // Push to Firestore so server-side Cloud Functions can read it
                 FirebaseFirestore.getInstance()
                     .collection("users")
                     .document(me.id)
@@ -469,7 +463,6 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
             _onboardingStep.value = false
             addSystemNotification("Profile Configured", "Your profile cards have been published! Welcome to jobaaya.")
             _isLoading.value = false
-            // NEW: profile id is finalized now, make sure Firestore has the right token mapping
             syncFcmTokenToFirestore()
         }
     }
@@ -546,6 +539,13 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
 
                 if (nextStatus == 2) {
                     addSystemNotification("Connection Success", "You are now connected with ${prof.name}.")
+                    // NEW (Phase 2): notify the other user that a connection was made
+                    repository.pushNotificationTrigger(
+                        targetUserId = prof.id,
+                        type = "connection",
+                        title = "New Connection",
+                        body = "${me.name} is now connected with you."
+                    )
                 }
             }
         }
@@ -596,6 +596,23 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
                 if (other != null) {
                     repository.updateProfile(other.copy(interactionsCount = other.interactionsCount + 1))
                 }
+
+                // NEW (Phase 2): notify the receiver of this chat message
+                val me = myProfile.value
+                val previewText = when {
+                    mediaType == "LOCATION" -> "📍 Location shared"
+                    mediaType == "CONTACT" -> "👤 Contact shared"
+                    mediaType == "DEAL" -> "💼 Deal shared"
+                    mediaType == "POLL" -> "📊 Poll shared"
+                    !mediaType.isNullOrBlank() -> "📎 Attachment"
+                    else -> text
+                }
+                repository.pushNotificationTrigger(
+                    targetUserId = destId,
+                    type = "chat_message",
+                    title = me?.name?.ifBlank { "New Message" } ?: "New Message",
+                    body = previewText.take(100)
+                )
             }
         }
     }
@@ -768,6 +785,13 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
             )
             repository.insertReview(rev)
             addSystemNotification("Review Added", "Your review has been successfully submitted.")
+            // NEW (Phase 2): notify the profile that just received a review
+            repository.pushNotificationTrigger(
+                targetUserId = profileId,
+                type = "review",
+                title = "New Review",
+                body = "$reviewerName rated you ${rating} stars."
+            )
         }
     }
 
@@ -878,13 +902,21 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
             val id = repository.createDeal(deal)
             repository.insertAuditLog(DealAuditLog(dealId = id.toInt(), userId = me.id, action = "Deal Created"))
             addSystemNotification("Deal Started", "A new partnership proposal has been initialized.")
+            // NEW (Phase 2): notify the professional that a new job/deal request came in
+            repository.pushNotificationTrigger(
+                targetUserId = proId,
+                type = "job_request",
+                title = "New Job Request",
+                body = "${me.name} sent you a new partnership proposal."
+            )
         }
     }
 
     fun updateDeal(deal: PartnershipDeal, action: String) {
         viewModelScope.launch {
             repository.updateDeal(deal)
-            repository.insertAuditLog(DealAuditLog(dealId = deal.id, userId = myProfile.value?.id ?: "", action = action))
+            val myId = myProfile.value?.id ?: ""
+            repository.insertAuditLog(DealAuditLog(dealId = deal.id, userId = myId, action = action))
 
             val notificationTitle = when(action) {
                 "Deal Done" -> "Deal Finalized"
@@ -893,6 +925,15 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
                 else -> "Deal Updated"
             }
             addSystemNotification(notificationTitle, "Deal #${deal.id}: $action by user.")
+
+            // NEW (Phase 2): notify whichever side of the deal did NOT make this update
+            val otherUserId = if (myId == deal.partnerId) deal.proId else deal.partnerId
+            repository.pushNotificationTrigger(
+                targetUserId = otherUserId,
+                type = "direct_deal",
+                title = notificationTitle,
+                body = "Deal #${deal.id}: $action"
+            )
         }
     }
 

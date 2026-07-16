@@ -22,6 +22,7 @@ import com.example.data.model.WorkStatus
 import com.example.data.model.PartnershipDeal
 import com.example.data.model.DealMessage
 import com.example.data.model.DealAuditLog
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 
@@ -52,7 +53,7 @@ class JobaayaRepository(
     suspend fun deleteProfile(profile: UserProfile) = profileDao.deleteProfile(profile)
 
     // Reviews
-    fun getReviewsForProfile(profileId: String): Flow<List<UserReview>> = 
+    fun getReviewsForProfile(profileId: String): Flow<List<UserReview>> =
         reviewDao.getReviewsForProfile(profileId)
 
     suspend fun insertReview(review: UserReview) {
@@ -72,7 +73,7 @@ class JobaayaRepository(
 
     // Chat
     fun getChatMessages(profileId: String): Flow<List<ChatMessage>> = msgDao.getChatMessages(profileId)
-    
+
     val allMessages: Flow<List<ChatMessage>> = msgDao.getAllMessages()
 
     suspend fun insertMessage(message: ChatMessage) = msgDao.insertMessage(message)
@@ -115,7 +116,7 @@ class JobaayaRepository(
 
     suspend fun deleteNote(note: UtilityNote) = noteDao.deleteNote(note)
 
-    // Notifications
+    // Notifications (local, in-app list)
     val allNotifications: Flow<List<SystemNotification>> = notificationDao.getAllNotifications()
 
     suspend fun insertNotification(notification: SystemNotification) = notificationDao.insertNotification(notification)
@@ -123,6 +124,40 @@ class JobaayaRepository(
     suspend fun markAllNotificationsAsRead() = notificationDao.markAllAsRead()
 
     suspend fun clearAllNotifications() = notificationDao.clearAll()
+
+    // ==========================================
+    // PUSH NOTIFICATION TRIGGER (NEW - Phase 2)
+    // ==========================================
+    // Writes a lightweight "please notify this user" record to Firestore.
+    // A Cloud Function (Phase 3) listens for new documents in this collection,
+    // looks up the target user's fcmToken from users/{targetUserId}, sends the
+    // push notification, then marks/deletes this trigger document.
+    // This does NOT store any chat/review/deal content itself - just enough
+    // to know who to notify and what short message to show.
+    suspend fun pushNotificationTrigger(
+        targetUserId: String,
+        type: String,
+        title: String,
+        body: String
+    ) {
+        if (targetUserId.isBlank()) return
+        try {
+            FirebaseFirestore.getInstance()
+                .collection("notification_triggers")
+                .add(
+                    mapOf(
+                        "targetUserId" to targetUserId,
+                        "type" to type,
+                        "title" to title,
+                        "body" to body,
+                        "createdAt" to System.currentTimeMillis(),
+                        "status" to "pending"
+                    )
+                )
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
 
     fun getDealMessages(dealId: Int): Flow<List<DealMessage>> = dealDao.getDealMessages(dealId)
 
@@ -214,7 +249,7 @@ class JobaayaRepository(
                 )
             )
             profileDao.insertProfiles(seedProfiles)
-            
+
             notificationDao.insertNotification(SystemNotification(title = "System Alert", content = "Welcome to jobaaya! Set up your multi-trade business or professional card today."))
             notificationDao.insertNotification(SystemNotification(title = "Network Insight", content = "Professional connections in Delhi are growing. Connect with Amit Sharma to expand your reach."))
             notificationDao.insertNotification(SystemNotification(title = "Security Tip", content = "Keep your profile verified to gain more client trust and higher rankings."))
@@ -224,7 +259,7 @@ class JobaayaRepository(
         if (notifyExisting.isNullOrEmpty()) {
             notificationDao.insertNotification(SystemNotification(title = "System Alert", content = "Welcome to jobaaya! Your activity log is ready."))
         }
-        
+
         // Always add a session start notification for debugging visibility
         notificationDao.insertNotification(SystemNotification(title = "Session Started", content = "Platform session initialized. All services are online."))
 
