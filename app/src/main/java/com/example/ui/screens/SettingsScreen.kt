@@ -59,7 +59,8 @@ import com.google.firebase.Timestamp
 fun SettingsScreen(
     viewModel: JobaayaViewModel,
     modifier: Modifier = Modifier,
-    onPreviewClick: (String) -> Unit = {} // MainActivity का एरर हटाने के लिए डिफ़ॉल्ट हैंडलर
+    onPreviewClick: (String) -> Unit = {},
+    onContactUsClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
 
@@ -818,8 +819,7 @@ fun SettingsScreen(
 
                     Text(text = JobaayaLocalization.translate("support_social", currentLang), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
                     Row(Modifier.fillMaxWidth().clickable {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://jobaaya.com/support"))
-                        context.startActivity(intent)
+                        onContactUsClick()
                     }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Help, null, tint = MaterialTheme.colorScheme.outline)
                         Spacer(Modifier.width(12.dp))

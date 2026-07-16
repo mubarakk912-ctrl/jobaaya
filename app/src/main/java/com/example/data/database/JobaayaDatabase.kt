@@ -207,4 +207,21 @@ abstract class JobaayaDatabase : RoomDatabase() {
     abstract val utilityNoteDao: UtilityNoteDao
     abstract val systemNotificationDao: SystemNotificationDao
     abstract val partnershipDealDao: PartnershipDealDao
+
+    companion object {
+        @Volatile
+        private var INSTANCE: JobaayaDatabase? = null
+
+        fun getDatabase(context: android.content.Context): JobaayaDatabase {
+            return INSTANCE ?: synchronized(this) {
+                val instance = androidx.room.Room.databaseBuilder(
+                    context.applicationContext,
+                    JobaayaDatabase::class.java,
+                    "jobaaya_database"
+                ).fallbackToDestructiveMigration().build()
+                INSTANCE = instance
+                instance
+            }
+        }
+    }
 }

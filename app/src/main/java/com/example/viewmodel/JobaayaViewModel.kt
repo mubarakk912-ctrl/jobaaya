@@ -1007,6 +1007,71 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
     private val _serviceRadius = MutableStateFlow(20f)
     val serviceRadius: StateFlow<Float> = _serviceRadius.asStateFlow()
 
+    private val _contactMessages = MutableStateFlow<List<com.example.data.model.ContactMessageWithId>>(emptyList())
+    val contactMessages: StateFlow<List<com.example.data.model.ContactMessageWithId>> = _contactMessages.asStateFlow()
+
+    fun fetchContactMessages() {
+        viewModelScope.launch {
+            try {
+                FirebaseFirestore.getInstance()
+                    .collection("contact_messages")
+                    .orderBy("createdAt", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                    .get()
+                    .addOnSuccessListener { result ->
+                        val list = result.documents.map { doc ->
+                            com.example.data.model.ContactMessageWithId(
+                                id = doc.id,
+                                message = doc.getString("message") ?: "",
+                                userId = doc.getString("userId") ?: "",
+                                userName = doc.getString("userName") ?: "",
+                                registeredMobile = doc.getString("registeredMobile") ?: "",
+                                email = doc.getString("email"),
+                                deviceModel = doc.getString("deviceModel") ?: "",
+                                androidVersion = doc.getString("androidVersion") ?: "",
+                                appVersion = doc.getString("appVersion") ?: "",
+                                status = doc.getString("status") ?: "Pending"
+                            )
+                        }
+                        _contactMessages.value = list
+                    }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun replyToContactMessage(messageId: String, userId: String, replyText: String) {
+        viewModelScope.launch {
+            try {
+                // 1. Push Notification send karein
+                repository.pushNotificationTrigger(
+                    targetUserId = userId,
+                    type = "support_reply",
+                    title = "Support Team Reply",
+                    body = replyText
+                )
+
+                // 2. Firestore mein status update karein
+                FirebaseFirestore.getInstance()
+                    .collection("contact_messages")
+                    .document(messageId)
+                    .update("status", "Resolved", "replyText", replyText)
+                    .await()
+
+                // 3. Local state update karein
+                fetchContactMessages()
+                
+                // 4. Local notification bhi add karein (optional but good for history)
+                repository.insertNotification(com.example.data.model.SystemNotification(
+                    title = "Support Reply",
+                    content = "We have replied to your query. Status: Resolved"
+                ))
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
     fun toggleDarkMode(enabled: Boolean) {
         _isDarkMode.value = enabled
     }

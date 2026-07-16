@@ -11,6 +11,10 @@ import com.example.data.database.UtilityNoteDao
 import com.example.data.database.PartnershipDealDao
 import com.example.data.model.AccountType
 import com.example.data.model.ChatMessage
+import com.example.data.model.ContactMessage
+import com.example.data.model.DealAuditLog
+import com.example.data.model.DealMessage
+import com.example.data.model.PartnershipDeal
 import com.example.data.model.ProfileMedia
 import com.example.data.model.Subscription
 import com.example.data.model.SystemNotification
@@ -19,12 +23,11 @@ import com.example.data.model.UserProfile
 import com.example.data.model.UserReview
 import com.example.data.model.UtilityNote
 import com.example.data.model.WorkStatus
-import com.example.data.model.PartnershipDeal
-import com.example.data.model.DealMessage
-import com.example.data.model.DealAuditLog
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.tasks.await
 
 class JobaayaRepository(
     private val profileDao: UserProfileDao,
@@ -134,6 +137,31 @@ class JobaayaRepository(
     // push notification, then marks/deletes this trigger document.
     // This does NOT store any chat/review/deal content itself - just enough
     // to know who to notify and what short message to show.
+    suspend fun submitContactMessage(contactMsg: ContactMessage): Result<Unit> {
+        return try {
+            FirebaseFirestore.getInstance()
+                .collection("contact_messages")
+                .add(
+                    mapOf(
+                        "message" to contactMsg.message,
+                        "userId" to contactMsg.userId,
+                        "userName" to contactMsg.userName,
+                        "registeredMobile" to contactMsg.registeredMobile,
+                        "email" to contactMsg.email,
+                        "deviceModel" to contactMsg.deviceModel,
+                        "androidVersion" to contactMsg.androidVersion,
+                        "appVersion" to contactMsg.appVersion,
+                        "status" to contactMsg.status,
+                        "createdAt" to FieldValue.serverTimestamp()
+                    )
+                )
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun pushNotificationTrigger(
         targetUserId: String,
         type: String,

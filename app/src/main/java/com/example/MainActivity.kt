@@ -42,6 +42,7 @@ import androidx.compose.material.icons.filled.Person
 import com.example.ui.screens.AdminScreen
 import com.example.ui.screens.AuthScreen
 import com.example.ui.screens.ChatScreen
+import com.example.ui.screens.ContactUsScreen
 import com.example.ui.screens.HomeScreen
 import com.example.ui.screens.MapScreen
 import com.example.ui.screens.ProfileDetailScreen
@@ -126,7 +127,7 @@ fun MainPlatformContainer(
     val inboxList by viewModel.chatInboxList.collectAsState()
     val notificationsList by viewModel.notifications.collectAsState()
 
-    var activeViewRoute by remember { mutableStateOf("home") } // "home", "map", "chats", "utilities", "admin", "settings", "detail"
+    var activeViewRoute by remember { mutableStateOf("home") } // "home", "map", "chats", "utilities", "admin", "settings", "detail", "contact_us"
     var previousViewRoute by remember { mutableStateOf("home") }
     var detailedUserIdRoute by remember { mutableStateOf("") }
     var activeDealId by remember { mutableIntStateOf(0) }
@@ -429,7 +430,12 @@ fun MainPlatformContainer(
                     onPreviewClick = { id ->
                         detailedUserIdRoute = id
                         navigateTo("detail")
-                    }
+                    },
+                    onContactUsClick = { navigateTo("contact_us") }
+                )
+
+                "contact_us" -> ContactUsScreen(
+                    onBack = { navigateTo("settings") }
                 )
 
                 "detail" -> ProfileDetailScreen(

@@ -276,3 +276,29 @@ data class DealAuditLog(
     val newValue: String? = null,
     val timestamp: Long = System.currentTimeMillis()
 )
+
+data class ContactMessage(
+    val message: String,
+    val userId: String,
+    val userName: String,
+    val registeredMobile: String,
+    val email: String?,
+    val deviceModel: String,
+    val androidVersion: String,
+    val appVersion: String,
+    val status: String = "Pending"
+)
+
+data class ContactMessageWithId(
+    val id: String,
+    val message: String,
+    val userId: String,
+    val userName: String,
+    val registeredMobile: String,
+    val email: String?,
+    val deviceModel: String,
+    val androidVersion: String,
+    val appVersion: String,
+    val status: String = "Pending"
+)
+

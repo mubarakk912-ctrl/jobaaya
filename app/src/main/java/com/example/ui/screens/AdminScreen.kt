@@ -67,6 +67,8 @@ import com.example.ui.localization.JobaayaLocalization
 import com.example.viewmodel.JobaayaViewModel
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.text.TextStyle
+import com.example.data.model.ContactMessageWithId
+import androidx.compose.runtime.LaunchedEffect
 
 @Composable
 fun AdminScreen(
@@ -78,7 +80,7 @@ fun AdminScreen(
     val currentLang by viewModel.currentLanguage.collectAsState()
     val profiles by viewModel.filteredProfiles.collectAsState()
 
-    var selectedAdminTab by remember { mutableIntStateOf(0) } // 0: User Management, 1: Spam/Reports, 2: Analytics
+    var selectedAdminTab by remember { mutableIntStateOf(0) } // 0: User Management, 1: Spam/Reports, 2: Analytics, 3: Support
 
     val reportedProfiles = remember(profiles) {
         profiles.filter { it.isReported }
@@ -110,6 +112,11 @@ fun AdminScreen(
                 onClick = { selectedAdminTab = 2 },
                 text = { Text(JobaayaLocalization.translate("admin_analytics", currentLang), fontWeight = FontWeight.Bold, fontSize = 11.sp) }
             )
+            Tab(
+                selected = selectedAdminTab == 3,
+                onClick = { selectedAdminTab = 3 },
+                text = { Text("Support", fontWeight = FontWeight.Bold, fontSize = 11.sp) }
+            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -119,6 +126,100 @@ fun AdminScreen(
             0 -> AdminUserManagementSection(viewModel = viewModel, profileList = profiles, currentLang = currentLang, onProfileClick = onProfileClick)
             1 -> AdminReportManagementSection(viewModel = viewModel, reportedList = reportedProfiles, currentLang = currentLang)
             2 -> AdminAnalyticsSection(profileList = profiles, currentLang = currentLang)
+            3 -> AdminSupportSection(viewModel = viewModel)
+        }
+    }
+}
+
+@Composable
+fun AdminSupportSection(viewModel: JobaayaViewModel) {
+    val messages by viewModel.contactMessages.collectAsState()
+    var replyTextMap by remember { mutableStateOf(mapOf<String, String>()) }
+
+    LaunchedEffect(Unit) {
+        viewModel.fetchContactMessages()
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp)
+    ) {
+        Text(
+            text = "Support Messages",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Text(
+            text = "Reply to user problems and suggestions via push notifications.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.outline,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        if (messages.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("No messages found.", color = Color.Gray)
+            }
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                items(messages) { msg ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(msg.userName, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                Spacer(modifier = Modifier.weight(1f))
+                                Surface(
+                                    color = if (msg.status == "Pending") Color.Red.copy(alpha = 0.2f) else Color.Green.copy(alpha = 0.2f),
+                                    shape = RoundedCornerShape(4.dp)
+                                ) {
+                                    Text(
+                                        text = msg.status,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                        fontSize = 10.sp,
+                                        color = if (msg.status == "Pending") Color.Red else Color(0xFF2E7D32),
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                            Text("Mobile: ${msg.registeredMobile}", fontSize = 10.sp, color = MaterialTheme.colorScheme.outline)
+                            Text("Device: ${msg.deviceModel} (Android ${msg.androidVersion})", fontSize = 10.sp, color = MaterialTheme.colorScheme.outline)
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(msg.message, fontSize = 14.sp)
+                            
+                            if (msg.status == "Pending") {
+                                Spacer(modifier = Modifier.height(12.dp))
+                                OutlinedTextField(
+                                    value = replyTextMap[msg.id] ?: "",
+                                    onValueChange = { replyTextMap = replyTextMap + (msg.id to it) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    placeholder = { Text("Type your reply here...", fontSize = 12.sp) },
+                                    maxLines = 3
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Button(
+                                    onClick = {
+                                        val reply = replyTextMap[msg.id] ?: ""
+                                        if (reply.isNotBlank()) {
+                                            viewModel.replyToContactMessage(msg.id, msg.userId, reply)
+                                            replyTextMap = replyTextMap - msg.id
+                                        }
+                                    },
+                                    modifier = Modifier.align(Alignment.End),
+                                    enabled = (replyTextMap[msg.id] ?: "").isNotBlank()
+                                ) {
+                                    Text("Send Reply & Resolve", fontSize = 12.sp)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
