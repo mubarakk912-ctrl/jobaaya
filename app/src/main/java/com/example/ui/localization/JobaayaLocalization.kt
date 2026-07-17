@@ -222,7 +222,7 @@ object JobaayaLocalization {
             "delete" to "हटाएं",
             "calc_title" to "सेवा दर और कोटेशन कैलकुलेटर",
             "calc_hint" to "दर और कोटेशन की गणना करें",
-            "currency_counter" to "キャッシュカウンター",
+            "currency_counter" to "कैश काउंटर",
             "hiring_success" to "बधाई! आपकी पूछताछ स्थानीय स्तर पर भेज दी गई है।",
             "unlimited_msg" to "किसी भी पेशे को दर्ज करें। कोई प्रतिबंध नहीं है।",
             "no_results" to "कोई पेशेवर नहीं मिला। कृपया अन्य खोज शब्द आज़माएं।",
