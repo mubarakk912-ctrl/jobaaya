@@ -28,8 +28,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Call
-import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Directions
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -37,7 +39,6 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -67,9 +68,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -77,11 +76,11 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.data.model.UserProfile
-import com.example.data.model.WorkStatus
 import com.example.ui.localization.AppLanguage
 import com.example.ui.localization.JobaayaLocalization
 import com.example.ui.theme.MyApplicationTheme
 import com.example.viewmodel.JobaayaViewModel
+import androidx.core.net.toUri
 
 @Composable
 fun HomeScreen(
@@ -98,9 +97,6 @@ fun HomeScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val categories by viewModel.availableCategories.collectAsState()
 
-    val context = LocalContext.current
-
-    val selectedAvail by viewModel.filterAvailability.collectAsState()
     val selectedRating by viewModel.filterRating.collectAsState()
     val selectedExp by viewModel.filterExperience.collectAsState()
     val selectedDistance by viewModel.filterDistanceKm.collectAsState()
@@ -111,12 +107,10 @@ fun HomeScreen(
         deviceLocation = deviceLocation,
         profiles = profiles,
         searchQuery = searchQuery,
-        selectedAvail = selectedAvail,
         selectedRating = selectedRating,
         selectedExp = selectedExp,
         selectedDistance = selectedDistance,
         onSearchQueryChange = { viewModel.setSearchQuery(it) },
-        onFilterAvailChange = { viewModel.setFilterAvailability(it) },
         onFilterRatingChange = { viewModel.setFilterRating(it) },
         onFilterExpChange = { viewModel.setFilterExperience(it) },
         onFilterDistanceChange = { viewModel.setFilterDistance(it) },
@@ -136,12 +130,10 @@ fun HomeContent(
     deviceLocation: android.location.Location?,
     profiles: List<UserProfile>,
     searchQuery: String,
-    selectedAvail: String,
     selectedRating: Float,
     selectedExp: Int,
     selectedDistance: Float,
     onSearchQueryChange: (String) -> Unit,
-    onFilterAvailChange: (String) -> Unit,
     onFilterRatingChange: (Float) -> Unit,
     onFilterExpChange: (Int) -> Unit,
     onFilterDistanceChange: (Float) -> Unit,
@@ -354,7 +346,7 @@ fun ProfileListItem(
             if (distanceInMeters < 1000) {
                 "${distanceInMeters.toInt()} mtr away"
             } else {
-                String.format("%.1f km away", distanceInMeters / 1000f)
+                String.format(java.util.Locale.getDefault(), "%.1f km away", distanceInMeters / 1000f)
             }
         } else {
             ""
@@ -429,7 +421,7 @@ fun ProfileListItem(
                         )
                         Spacer(modifier = Modifier.width(2.dp))
                         Text(
-                            text = String.format("%.1f", profile.averageRating),
+                            text = String.format(java.util.Locale.getDefault(), "%.1f", profile.averageRating),
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -486,11 +478,11 @@ fun ProfileListItem(
                 Row(
                     modifier = Modifier.clickable {
                         try {
-                            val gmmIntentUri = Uri.parse("google.navigation:q=${profile.latitude},${profile.longitude}")
+                            val gmmIntentUri = "google.navigation:q=${profile.latitude},${profile.longitude}".toUri()
                             val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
                             mapIntent.setPackage("com.google.android.apps.maps")
                             context.startActivity(mapIntent)
-                        } catch (e: Exception) { }
+                        } catch (_: Exception) { }
                     },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -581,7 +573,7 @@ fun ProfileListItem(
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0B3A51))
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Chat,
+                        imageVector = Icons.AutoMirrored.Filled.Chat,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp),
                         tint = Color.White
@@ -594,10 +586,10 @@ fun ProfileListItem(
                     onClick = {
                         try {
                             val dialIntent = Intent(Intent.ACTION_DIAL).apply {
-                                data = Uri.parse("tel:${profile.mobileNumber}")
+                                data = "tel:${profile.mobileNumber}".toUri()
                             }
                             context.startActivity(dialIntent)
-                        } catch (e: Exception) { }
+                        } catch (_: Exception) { }
                     },
                     modifier = Modifier
                         .weight(1f)
@@ -664,12 +656,10 @@ fun HomeScreenPreview() {
                 )
             ),
             searchQuery = "",
-            selectedAvail = "Available",
             selectedRating = 0f,
             selectedExp = 0,
             selectedDistance = 50f,
             onSearchQueryChange = {},
-            onFilterAvailChange = {},
             onFilterRatingChange = {},
             onFilterExpChange = {},
             onFilterDistanceChange = {},

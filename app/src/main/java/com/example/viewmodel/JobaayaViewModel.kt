@@ -1,6 +1,7 @@
 package com.example.viewmodel
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
@@ -11,7 +12,6 @@ import com.example.data.database.JobaayaDatabase
 import com.example.data.auth.SessionManager
 import com.example.data.model.AccountType
 import com.example.data.model.ChatMessage
-import com.example.data.model.Subscription
 import com.example.data.model.SystemNotification
 import com.example.data.model.UserProfile
 import com.example.data.model.UserReview
@@ -58,7 +58,7 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
         application,
         JobaayaDatabase::class.java,
         "jobaaya_database"
-    ).fallbackToDestructiveMigration().build()
+    ).fallbackToDestructiveMigration(true).build()
 
     private val sessionManager = SessionManager(application)
     private val authRepository = AuthRepository(sessionManager)
@@ -87,12 +87,8 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
     val isLoggedIn: StateFlow<Boolean> = sessionManager.isLoggedIn
 
     private val _otpDispatched = MutableStateFlow(false)
-    val otpDispatched: StateFlow<Boolean> = _otpDispatched.asStateFlow()
-
-    private var firebaseVerificationId: String = ""
 
     private val _loginMobileNumber = MutableStateFlow("")
-    val loginMobileNumber: StateFlow<String> = _loginMobileNumber.asStateFlow()
 
     private val _onboardingStep = MutableStateFlow(false) // If true, show register questionnaire
     val onboardingStep: StateFlow<Boolean> = _onboardingStep.asStateFlow()
@@ -126,9 +122,6 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
     private val _filterExperience = MutableStateFlow(0) // minimum years
     val filterExperience: StateFlow<Int> = _filterExperience.asStateFlow()
 
-    private val _filterLanguage = MutableStateFlow("ALL") // "ALL", "Hindi", "English", "Malayalam" etc.
-    val filterLanguage: StateFlow<String> = _filterLanguage.asStateFlow()
-
     private val _filterDistanceKm = MutableStateFlow(50f) // distance slider
     val filterDistanceKm: StateFlow<Float> = _filterDistanceKm.asStateFlow()
 
@@ -143,7 +136,7 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private val filterSet2Flow = combine(
-        _filterLanguage,
+        MutableStateFlow("ALL"), // Replacing _filterLanguage
         _filterDistanceKm,
         myProfile
     ) { lang, dist, myProf ->
@@ -316,7 +309,7 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
                         SetOptions.merge()
                     )
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("JobaayaViewModel", "syncFcmTokenToFirestore error", e)
             }
         }
     }
@@ -351,9 +344,9 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
 
             fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, android.os.Looper.getMainLooper())
 
-        } catch (e: SecurityException) {
+        } catch (_: SecurityException) {
             // Priority 2 will naturally take over (profile location) if GPS is off/permission missing
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             // Other errors
         }
     }
@@ -373,11 +366,6 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
     fun changeLanguage(language: AppLanguage) {
         _currentLanguage.value = language
         sessionManager.saveLanguage(language.code)
-    }
-
-    // Auth production APIs
-    fun setLoginMobile(mobile: String) {
-        _loginMobileNumber.value = mobile
     }
 
     fun loginWithEmail(email: String, password: CharSequence) {
@@ -430,12 +418,13 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
             withContext(Dispatchers.IO) {
                 try {
                     val geocoder = android.location.Geocoder(getApplication(), java.util.Locale.getDefault())
+                    @Suppress("DEPRECATION")
                     val addresses = geocoder.getFromLocationName(address, 1)
                     if (!addresses.isNullOrEmpty()) {
                         lat = addresses[0].latitude
                         lon = addresses[0].longitude
                     }
-                } catch (e: Exception) {}
+                } catch (_: Exception) {}
             }
 
             val updated = UserProfile(
@@ -443,7 +432,7 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
                 name = name,
                 profession = profession,
                 skillsRaw = skills,
-                mobileNumber = _loginMobileNumber.value.ifBlank { "+91 99999 88888" },
+                mobileNumber = _loginMobileNumber.value.let { it.ifBlank { "+91 99999 88888" } },
                 emailAddress = email,
                 fullAddress = address,
                 latitude = lat,
@@ -479,12 +468,13 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
                 withContext(Dispatchers.IO) {
                     try {
                         val geocoder = android.location.Geocoder(getApplication(), java.util.Locale.getDefault())
+                        @Suppress("DEPRECATION")
                         val addresses = geocoder.getFromLocationName(profile.fullAddress, 1)
                         if (!addresses.isNullOrEmpty()) {
                             lat = addresses[0].latitude
                             lon = addresses[0].longitude
                         }
-                    } catch (e: Exception) {}
+                    } catch (_: Exception) {}
                 }
             }
 
@@ -617,13 +607,13 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun uploadProfilePhoto(uri: android.net.Uri, scale: Float = 1f, offsetX: Float = 0f, offsetY: Float = 0f) {
+    fun uploadProfilePhoto(uri: android.net.Uri) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val context = getApplication<android.app.Application>()
+                val context = getApplication<Application>()
                 val fileName = "avatar_${System.currentTimeMillis()}.jpg"
-                val file = java.io.File(context.filesDir, fileName)
+                val file = File(context.filesDir, fileName)
 
                 withContext(Dispatchers.IO) {
                     context.filesDir.listFiles()?.forEach {
@@ -632,7 +622,7 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
                         }
                     }
                     context.contentResolver.openInputStream(uri)?.use { input ->
-                        java.io.FileOutputStream(file).use { output ->
+                        FileOutputStream(file).use { output ->
                             input.copyTo(output)
                         }
                     }
@@ -647,7 +637,7 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
                     }
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("JobaayaViewModel", "uploadProfilePhoto error", e)
                 withContext(Dispatchers.Main) {
                     android.widget.Toast.makeText(getApplication(), "Error: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
                 }
@@ -660,7 +650,7 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
     private fun saveMediaToInternalStorage(uriString: String, customFileName: String? = null): String {
         return try {
             val context = getApplication<Application>()
-            val uri = android.net.Uri.parse(uriString)
+            val uri = uriString.toUri()
             val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
             val fileName = customFileName ?: "chat_media_${System.currentTimeMillis()}"
             val file = File(context.filesDir, fileName)
@@ -672,7 +662,7 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
             }
             file.absolutePath
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e("JobaayaViewModel", "saveMediaToInternalStorage error", e)
             uriString
         }
     }
@@ -736,25 +726,11 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
         sendChatMessage(text = "$question|$optionsStr", mediaType = "POLL")
     }
 
-    fun clearChat(profileId: String) {
+    fun clearChat() {
         viewModelScope.launch {
             val messages = activeChatMessages.value
             messages.forEach { repository.deleteMessage(it) }
             addSystemNotification("Chat Cleared", "Conversation history with this user has been erased.")
-        }
-    }
-
-    fun forwardChatMessage(message: ChatMessage, targetProfileId: String) {
-        viewModelScope.launch {
-            val forwardMsg = ChatMessage(
-                chatWithProfileId = targetProfileId,
-                isFromMe = true,
-                text = message.text,
-                mediaType = message.mediaType,
-                mediaUrl = message.mediaUrl,
-                forwardedFrom = message.forwardedFrom ?: "Original Sender" // Simplified
-            )
-            repository.insertMessage(forwardMsg)
         }
     }
 
@@ -825,16 +801,6 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun unblockUserProfile(profileId: String) {
-        viewModelScope.launch {
-            val prof = db.userProfileDao.getProfileByIdDirect(profileId)
-            if (prof != null) {
-                repository.updateProfile(prof.copy(isBlocked = false))
-                addSystemNotification("User Unblocked", "${prof.name} is now visible again.")
-            }
-        }
-    }
-
     // Admin commands
     fun adminToggleVerification(profileId: String) {
         viewModelScope.launch {
@@ -895,23 +861,6 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
     fun getDealMessages(dealId: Int) = repository.getDealMessages(dealId)
     fun getAuditLogs(dealId: Int) = repository.getAuditLogs(dealId)
 
-    fun startNewDeal(proId: String) {
-        viewModelScope.launch {
-            val me = myProfile.value ?: return@launch
-            val deal = PartnershipDeal(partnerId = me.id, proId = proId)
-            val id = repository.createDeal(deal)
-            repository.insertAuditLog(DealAuditLog(dealId = id.toInt(), userId = me.id, action = "Deal Created"))
-            addSystemNotification("Deal Started", "A new partnership proposal has been initialized.")
-            // NEW (Phase 2): notify the professional that a new job/deal request came in
-            repository.pushNotificationTrigger(
-                targetUserId = proId,
-                type = "job_request",
-                title = "New Job Request",
-                body = "${me.name} sent you a new partnership proposal."
-            )
-        }
-    }
-
     fun updateDeal(deal: PartnershipDeal, action: String) {
         viewModelScope.launch {
             repository.updateDeal(deal)
@@ -944,21 +893,7 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun getProfileMedia(profileId: String) = repository.getMediaForProfile(profileId)
-
     fun getProfileReviews(profileId: String) = repository.getReviewsForProfile(profileId)
-
-    fun addProfileMedia(media: com.example.data.model.ProfileMedia) {
-        viewModelScope.launch {
-            repository.insertMedia(media)
-        }
-    }
-
-    fun deleteProfileMedia(media: com.example.data.model.ProfileMedia) {
-        viewModelScope.launch {
-            repository.deleteMedia(media)
-        }
-    }
 
     // Helper notifications list add
     private fun addSystemNotification(title: String, message: String) {
@@ -983,21 +918,11 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
         _filterExperience.value = years
     }
 
-    fun setFilterLanguage(lang: String) {
-        _filterLanguage.value = lang
-    }
-
     fun setFilterDistance(distance: Float) {
         _filterDistanceKm.value = distance
     }
 
     // App Settings states
-    private val _isDarkMode = MutableStateFlow(false)
-    val isDarkMode: StateFlow<Boolean> = _isDarkMode.asStateFlow()
-
-    private val _fontSizeMultiplier = MutableStateFlow(1.0f)
-    val fontSizeMultiplier: StateFlow<Float> = _fontSizeMultiplier.asStateFlow()
-
     private val _isMobilePublic = MutableStateFlow(true)
     val isMobilePublic: StateFlow<Boolean> = _isMobilePublic.asStateFlow()
 
@@ -1035,7 +960,7 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
                         _contactMessages.value = list
                     }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("JobaayaViewModel", "fetchContactMessages error", e)
             }
         }
     }
@@ -1062,22 +987,14 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
                 fetchContactMessages()
                 
                 // 4. Local notification bhi add karein (optional but good for history)
-                repository.insertNotification(com.example.data.model.SystemNotification(
+                repository.insertNotification(SystemNotification(
                     title = "Support Reply",
                     content = "We have replied to your query. Status: Resolved"
                 ))
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("JobaayaViewModel", "replyToContactMessage error", e)
             }
         }
-    }
-
-    fun toggleDarkMode(enabled: Boolean) {
-        _isDarkMode.value = enabled
-    }
-
-    fun setFontSizeMultiplier(multiplier: Float) {
-        _fontSizeMultiplier.value = multiplier
     }
 
     fun setMobilePublic(enabled: Boolean) {

@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Reply
+import androidx.compose.material.icons.automirrored.filled.Shortcut
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -199,7 +200,7 @@ fun ChatBubble(
             Icon(if (isSelected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked, null, modifier = Modifier.size(20.dp).padding(end = 4.dp))
         }
         if (!isMe && !isSelectionMode) {
-            IconButton(onClick = onForward, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Shortcut, null, modifier = Modifier.size(18.dp), tint = Color.Gray) }
+            IconButton(onClick = onForward, modifier = Modifier.size(32.dp)) { Icon(Icons.AutoMirrored.Filled.Shortcut, null, modifier = Modifier.size(18.dp), tint = Color.Gray) }
         }
 
         Column(modifier = Modifier.widthIn(max = 280.dp), horizontalAlignment = if (isMe) Alignment.End else Alignment.Start) {
@@ -215,7 +216,7 @@ fun ChatBubble(
                                 "VOICE", "AUDIO" -> message.mediaUrl?.let { onPlayAudio(message.id, it) }
                                 "PHOTO" -> message.mediaUrl?.let { onShowImage(it) }
                                 "VIDEO" -> message.mediaUrl?.let { onShowVideo(it) }
-                                "DOCUMENT" -> { try { val intent = Intent(Intent.ACTION_VIEW, Uri.parse(message.mediaUrl)); intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION); context.startActivity(intent) } catch (e: Exception) {} }
+                                "DOCUMENT" -> { try { val intent = Intent(Intent.ACTION_VIEW, Uri.parse(message.mediaUrl)); intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION); context.startActivity(intent) } catch (_: Exception) {} }
                             }
                         }
                     },
@@ -242,9 +243,9 @@ fun ChatBubble(
                                             // FIX: MM:SS Format (0:59 -> 1:00)
                                             val durationLabel = if (isAudioPlaying) {
                                                 val s = currentPosition / 1000
-                                                String.format("%02d:%02d", s / 60, s % 60)
+                                                String.format(Locale.getDefault(), "%02d:%02d", s / 60, s % 60)
                                             } else {
-                                                String.format("%02d:%02d", totalSecs / 60, totalSecs % 60)
+                                                String.format(Locale.getDefault(), "%02d:%02d", totalSecs / 60, totalSecs % 60)
                                             }
 
                                             VoiceMessageVisualizer(
@@ -285,7 +286,7 @@ fun ChatBubble(
             }
         }
         if (isMe && !isSelectionMode) {
-            IconButton(onClick = onForward, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Shortcut, null, modifier = Modifier.size(18.dp), tint = Color.Gray) }
+            IconButton(onClick = onForward, modifier = Modifier.size(32.dp)) { Icon(Icons.AutoMirrored.Filled.Shortcut, null, modifier = Modifier.size(18.dp), tint = Color.Gray) }
         }
 
         DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
@@ -296,7 +297,7 @@ fun ChatBubble(
                 if (isMe) DropdownMenuItem(text = { Text("Edit") }, onClick = { showMenu = false; onEdit() }, leadingIcon = { Icon(Icons.Default.Edit, null) } )
             }
             DropdownMenuItem(text = { Text(if (selectedCount > 1) "Delete Selection" else "Delete") }, onClick = { showMenu = false; onDelete() }, leadingIcon = { Icon(Icons.Default.Delete, null, tint = Color.Red) })
-            DropdownMenuItem(text = { Text(if (selectedCount > 1) "Forward Selection" else "Forward") }, onClick = { showMenu = false; onForward() }, leadingIcon = { Icon(Icons.Default.Shortcut, null) })
+            DropdownMenuItem(text = { Text(if (selectedCount > 1) "Forward Selection" else "Forward") }, onClick = { showMenu = false; onForward() }, leadingIcon = { Icon(Icons.AutoMirrored.Filled.Shortcut, null) })
             DropdownMenuItem(text = { Text("Report Message") }, onClick = { showMenu = false; android.widget.Toast.makeText(context, "Message reported", android.widget.Toast.LENGTH_SHORT).show() }, leadingIcon = { Icon(Icons.Default.Flag, null) })
             DropdownMenuItem(text = { Text("Info") }, onClick = { showMenu = false; showInfoDialog = true }, leadingIcon = { Icon(Icons.Default.Info, null) })
         }
@@ -396,7 +397,7 @@ fun PhotoAttachmentVisualizer(url: String?, caption: String, isMe: Boolean, time
 }
 
 @Composable
-fun VideoAttachmentVisualizer(url: String?, caption: String, isMe: Boolean, time: String, isRead: Boolean, readAt: Long? = null) {
+fun VideoAttachmentVisualizer(@Suppress("UNUSED_PARAMETER") url: String?, caption: String, isMe: Boolean, time: String, isRead: Boolean, readAt: Long? = null) {
     Column(modifier = Modifier.width(240.dp).clip(RoundedCornerShape(12.dp))) {
         Box(modifier = Modifier.fillMaxWidth().aspectRatio(1f).background(Color.Black)) {
             Icon(Icons.Default.SmartDisplay, null, modifier = Modifier.size(48.dp).align(Alignment.Center), tint = Color.Red)
@@ -420,7 +421,7 @@ fun VideoAttachmentVisualizer(url: String?, caption: String, isMe: Boolean, time
 }
 
 @Composable
-fun LocationAttachmentVisualizer(isMe: Boolean, address: String, coords: String?, time: String, isRead: Boolean, readAt: Long? = null) {
+fun LocationAttachmentVisualizer(isMe: Boolean, address: String, @Suppress("UNUSED_PARAMETER") coords: String?, time: String, isRead: Boolean, readAt: Long? = null) {
     Column(modifier = Modifier.padding(4.dp).fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.LocationOn, null, tint = if (isMe) Color.White else Color(0xFF4CAF50))

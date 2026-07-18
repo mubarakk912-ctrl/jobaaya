@@ -1,14 +1,10 @@
 package com.example.ui.screens
 
 import android.content.Intent
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import android.net.Uri
 import android.widget.Toast
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,13 +24,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AddAPhoto
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Call
-import androidx.compose.material.icons.filled.Chat
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.Report
@@ -57,7 +50,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -74,12 +66,12 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.core.net.toUri
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.R
@@ -139,14 +131,7 @@ fun ProfileDetailScreen(
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var showFitDialog by remember { mutableStateOf(false) }
 
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        if (uri != null) {
-            selectedImageUri = uri
-            showFitDialog = true
-        }
-    }
+    // launcher removed because it was unused
 
     Scaffold(
         topBar = {
@@ -162,7 +147,7 @@ fun ProfileDetailScreen(
                     onClick = onBack,
                     modifier = Modifier.align(Alignment.CenterStart)
                 ) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                 }
 
                 // Action Icons on Right
@@ -286,7 +271,7 @@ fun ProfileDetailScreen(
                                 Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFB300), modifier = Modifier.size(20.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = String.format("%.1f", prof.averageRating),
+                                    text = String.format(Locale.getDefault(), "%.1f", prof.averageRating),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 16.sp
                                 )
@@ -313,21 +298,21 @@ fun ProfileDetailScreen(
                                 icon = Icons.Default.Call,
                                 label = JobaayaLocalization.translate("call", currentLang),
                                 color = Color(0xFF01796F),
-                                onClick = {
-                                    try {
-                                        val dialIntent = Intent(Intent.ACTION_DIAL).apply {
-                                            data = Uri.parse("tel:${prof.mobileNumber}")
+                                        onClick = {
+                                            try {
+                                                val dialIntent = Intent(Intent.ACTION_DIAL).apply {
+                                                    data = "tel:${prof.mobileNumber}".toUri()
+                                                }
+                                                context.startActivity(dialIntent)
+                                            } catch (_: Exception) {
+                                                Toast.makeText(context, "DIAL Failed: ${prof.mobileNumber}", Toast.LENGTH_SHORT).show()
+                                            }
                                         }
-                                        context.startActivity(dialIntent)
-                                    } catch (e: Exception) {
-                                        Toast.makeText(context, "DIAL Failed: ${prof.mobileNumber}", Toast.LENGTH_SHORT).show()
-                                    }
-                                }
                             )
 
                             // One-to-one Chat
                             QuickContactButton(
-                                icon = Icons.Default.Chat,
+                                icon = Icons.AutoMirrored.Filled.Chat,
                                 label = JobaayaLocalization.translate("chats", currentLang),
                                 color = Color(0xFF01796F),
                                 onClick = { onStartChat(prof.id) }
@@ -395,11 +380,11 @@ fun ProfileDetailScreen(
                                     modifier = Modifier.clickable {
                                         // Trigger system maps route directions
                                         try {
-                                            val gmmIntentUri = Uri.parse("google.navigation:q=${prof.latitude},${prof.longitude}")
+                                            val gmmIntentUri = "google.navigation:q=${prof.latitude},${prof.longitude}".toUri()
                                             val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
                                             mapIntent.setPackage("com.google.android.apps.maps")
                                             context.startActivity(mapIntent)
-                                        } catch (e: Exception) {
+                                        } catch (_: Exception) {
                                             Toast.makeText(context, "Directions not available.", Toast.LENGTH_SHORT).show()
                                         }
                                     }
@@ -758,8 +743,8 @@ fun ProfileDetailScreen(
         PhotoFitDialog(
             uri = selectedImageUri!!,
             onDismiss = { showFitDialog = false },
-            onConfirm = { finalUri, scale, ox, oy ->
-                viewModel.uploadProfilePhoto(finalUri, scale, ox, oy)
+            onConfirm = { finalUri, _, _, _ ->
+                viewModel.uploadProfilePhoto(finalUri)
                 showFitDialog = false
             }
         )
@@ -855,8 +840,3 @@ fun DetailRowLabel(label: String, valText: String) {
         Text(text = valText, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 2.dp))
     }
 }
-
-// Custom Border stroke to avoid imports clashes
-@Composable
-fun BorderStroke(width: androidx.compose.ui.unit.Dp, color: Color) =
-    androidx.compose.foundation.BorderStroke(width, color)

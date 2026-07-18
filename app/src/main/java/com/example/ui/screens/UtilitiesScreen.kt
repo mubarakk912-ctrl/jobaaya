@@ -1,6 +1,5 @@
 package com.example.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -19,45 +18,33 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.FormatAlignLeft
+import androidx.compose.material.icons.automirrored.filled.FormatAlignRight
+import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
+import androidx.compose.material.icons.automirrored.filled.NoteAdd
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.ColorLens
-import androidx.compose.material.icons.filled.CurrencyRupee
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.FontDownload
 import androidx.compose.material.icons.filled.FormatAlignCenter
-import androidx.compose.material.icons.filled.FormatAlignLeft
-import androidx.compose.material.icons.filled.FormatAlignRight
 import androidx.compose.material.icons.filled.FormatBold
-import androidx.compose.material.icons.filled.FormatColorFill
-import androidx.compose.material.icons.filled.FormatColorText
 import androidx.compose.material.icons.filled.FormatItalic
-import androidx.compose.material.icons.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.NoteAdd
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -70,6 +57,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -93,7 +81,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.example.data.model.UserProfile
 import com.example.ui.localization.JobaayaLocalization
 import com.example.viewmodel.JobaayaViewModel
 import com.example.data.model.UtilityNote
@@ -107,7 +94,6 @@ data class CurrencyRowItem(
 @Composable
 fun UtilitiesScreen(
     viewModel: JobaayaViewModel,
-    onProfileClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val currentLang by viewModel.currentLanguage.collectAsState()
@@ -181,7 +167,7 @@ fun UtilitiesScreen(
 
         Box(modifier = Modifier.weight(1f)) {
             when (selectedTab) {
-                1 -> CalculatorTabSection(currentLang = currentLang)
+                1 -> CalculatorTabSection()
                 0 -> NotesTabSection(viewModel = viewModel, currentLang = currentLang)
                 2 -> CurrencyTabSection(currentLang = currentLang)
             }
@@ -290,7 +276,7 @@ fun NotesTabSection(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Icon(Icons.Default.NoteAdd, contentDescription = null, modifier = Modifier.size(54.dp), tint = MaterialTheme.colorScheme.outline)
+                    Icon(Icons.AutoMirrored.Filled.NoteAdd, contentDescription = null, modifier = Modifier.size(54.dp), tint = MaterialTheme.colorScheme.outline)
                     Text(if(noteSearchQuery.isBlank()) "No notes yet." else "No matching notes found.", color = MaterialTheme.colorScheme.outline)
                 }
             } else {
@@ -324,7 +310,7 @@ fun NotesTabSection(
                                 Icon(
                                     imageVector = if (note.isLocked) Icons.Default.Lock else Icons.Default.Description,
                                     contentDescription = null,
-                                    tint = if(note.backgroundColor == 0xFF000000.toLong() || note.backgroundColor == 0xFF212121.toLong()) Color.White.copy(alpha=0.6f) else Color(note.fontColor).copy(alpha = 0.6f),
+                                    tint = if(note.backgroundColor == 0xFF000000L || note.backgroundColor == 0xFF212121L) Color.White.copy(alpha=0.6f) else Color(note.fontColor).copy(alpha = 0.6f),
                                     modifier = Modifier.size(28.dp)
                                 )
                                 Spacer(modifier = Modifier.width(12.dp))
@@ -333,7 +319,7 @@ fun NotesTabSection(
                                         text = if (note.isLocked) "Locked Note" else note.title.ifBlank { "Untitled Note" },
                                         fontWeight = FontWeight.Bold,
                                         maxLines = 1, overflow = TextOverflow.Ellipsis,
-                                        color = if (note.backgroundColor == 0xFF000000.toLong() || note.backgroundColor == 0xFF212121.toLong()) Color.White else Color.Black
+                                        color = if (note.backgroundColor == 0xFF000000L || note.backgroundColor == 0xFF212121L) Color.White else Color.Black
                                     )
                                     if (!note.isLocked) {
                                         Text(
@@ -342,7 +328,7 @@ fun NotesTabSection(
                                             maxLines = 1, overflow = TextOverflow.Ellipsis
                                         )
                                     } else {
-                                        Text("Tap to unlock", style = MaterialTheme.typography.bodySmall, color = if (note.backgroundColor == 0xFF000000.toLong() || note.backgroundColor == 0xFF212121.toLong()) Color.White.copy(alpha=0.6f) else Color.Black.copy(alpha=0.6f))
+                                        Text("Tap to unlock", style = MaterialTheme.typography.bodySmall, color = if (note.backgroundColor == 0xFF000000L || note.backgroundColor == 0xFF212121L) Color.White.copy(alpha=0.6f) else Color.Black.copy(alpha=0.6f))
                                     }
                                 }
                                 if (note.reminderTimestamp != null) {
@@ -362,7 +348,7 @@ fun NotesTabSection(
             }
         }
 
-        Divider(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        HorizontalDivider(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
         Box(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
             Button(
@@ -422,13 +408,13 @@ fun NotesTabSection(
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Back",
-                                tint = if(noteBgColor == 0xFF000000.toLong() || noteBgColor == 0xFF212121.toLong()) Color.White else Color.Black,
+                                tint = if(noteBgColor == 0xFF000000L || noteBgColor == 0xFF212121L) Color.White else Color.Black,
                                 modifier = Modifier.padding(8.dp)
                             )
                             Text(
                                 "Back",
                                 fontWeight = FontWeight.Bold,
-                                color = if(noteBgColor == 0xFF000000.toLong() || noteBgColor == 0xFF212121.toLong()) Color.White else Color.Black,
+                                color = if(noteBgColor == 0xFF000000L || noteBgColor == 0xFF212121L) Color.White else Color.Black,
                                 modifier = Modifier.padding(end = 12.dp)
                             )
                         }
@@ -455,8 +441,8 @@ fun NotesTabSection(
                             },
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if(noteBgColor == 0xFF000000.toLong() || noteBgColor == 0xFF212121.toLong()) Color.White else Color.Black,
-                                contentColor = if(noteBgColor == 0xFF000000.toLong() || noteBgColor == 0xFF212121.toLong()) Color.Black else Color.White
+                                containerColor = if(noteBgColor == 0xFF000000L || noteBgColor == 0xFF212121L) Color.White else Color.Black,
+                                contentColor = if(noteBgColor == 0xFF000000L || noteBgColor == 0xFF212121L) Color.Black else Color.White
                             )
                         ) { Text("Save Note") }
                     }
@@ -464,12 +450,12 @@ fun NotesTabSection(
                     TextField(
                         value = noteTitle,
                         onValueChange = { noteTitle = it },
-                        placeholder = { Text("Title", color = (if(noteBgColor == 0xFF000000.toLong() || noteBgColor == 0xFF212121.toLong()) Color.White else Color.Black).copy(alpha = 0.5f)) },
+                        placeholder = { Text("Title", color = (if(noteBgColor == 0xFF000000L || noteBgColor == 0xFF212121L) Color.White else Color.Black).copy(alpha = 0.5f)) },
                         modifier = Modifier.fillMaxWidth(),
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent,
-                            focusedTextColor = if(noteBgColor == 0xFF000000.toLong() || noteBgColor == 0xFF212121.toLong()) Color.White else Color.Black,
-                            unfocusedTextColor = if(noteBgColor == 0xFF000000.toLong() || noteBgColor == 0xFF212121.toLong()) Color.White else Color.Black
+                            focusedTextColor = if(noteBgColor == 0xFF000000L || noteBgColor == 0xFF212121L) Color.White else Color.Black,
+                            unfocusedTextColor = if(noteBgColor == 0xFF000000L || noteBgColor == 0xFF212121L) Color.White else Color.Black
                         ),
                         textStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 22.sp)
                     )
@@ -521,7 +507,7 @@ fun NotesTabSection(
 
                     Card(
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                        colors = CardDefaults.cardColors(containerColor = if(noteBgColor == 0xFF000000.toLong()) Color.White.copy(alpha=0.1f) else Color.Black.copy(alpha = 0.05f)),
+                        colors = CardDefaults.cardColors(containerColor = if(noteBgColor == 0xFF000000L) Color.White.copy(alpha=0.1f) else Color.Black.copy(alpha = 0.05f)),
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Column(modifier = Modifier.padding(8.dp)) {
@@ -529,7 +515,7 @@ fun NotesTabSection(
                                 IconButton(onClick = {
                                     val newText = noteContentValue.text + "\n• "
                                     noteContentValue = TextFieldValue(newText, selection = TextRange(newText.length))
-                                }) { Icon(Icons.Default.FormatListBulleted, "Dots", tint = Color(noteFontColor)) }
+                                }) { Icon(Icons.AutoMirrored.Filled.FormatListBulleted, "Dots", tint = Color(noteFontColor)) }
                                 IconButton(onClick = {
                                     val lines = noteContentValue.text.split("\n")
                                     val newText = noteContentValue.text + "\n${lines.size}. "
@@ -602,12 +588,12 @@ fun NotesTabSection(
                             }
 
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                                IconButton(onClick = { noteTextAlign = "Left" }) { Icon(Icons.Default.FormatAlignLeft, "Left", tint = if(noteTextAlign=="Left") Color.Blue else Color(noteFontColor)) }
+                                IconButton(onClick = { noteTextAlign = "Left" }) { Icon(Icons.AutoMirrored.Filled.FormatAlignLeft, "Left", tint = if(noteTextAlign=="Left") Color.Blue else Color(noteFontColor)) }
                                 IconButton(onClick = { noteTextAlign = "Center" }) { Icon(Icons.Default.FormatAlignCenter, "Center", tint = if(noteTextAlign=="Center") Color.Blue else Color(noteFontColor)) }
-                                IconButton(onClick = { noteTextAlign = "Right" }) { Icon(Icons.Default.FormatAlignRight, "Right", tint = if(noteTextAlign=="Right") Color.Blue else Color(noteFontColor)) }
+                                IconButton(onClick = { noteTextAlign = "Right" }) { Icon(Icons.AutoMirrored.Filled.FormatAlignRight, "Right", tint = if(noteTextAlign=="Right") Color.Blue else Color(noteFontColor)) }
                             }
 
-                            Divider(modifier = Modifier.padding(vertical = 4.dp), color = Color(noteFontColor).copy(alpha=0.1f))
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = Color(noteFontColor).copy(alpha=0.1f))
 
                             LazyRow(modifier = Modifier.fillMaxWidth()) {
                                 items(noteFontStyles) { style ->
@@ -622,7 +608,7 @@ fun NotesTabSection(
                             LazyRow(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
                                 items(noteFontColors) { colorLong ->
                                     Box(modifier = Modifier.size(28.dp).padding(4.dp).clip(CircleShape).background(Color(colorLong))
-                                        .border(if(noteFontColor == colorLong) 2.dp else 0.dp, if(noteBgColor == 0xFF000000.toLong() || noteBgColor == 0xFF212121.toLong()) Color.White else Color.Black, CircleShape)
+                                        .border(if(noteFontColor == colorLong) 2.dp else 0.dp, if(noteBgColor == 0xFF000000L || noteBgColor == 0xFF212121L) Color.White else Color.Black, CircleShape)
                                         .clickable { noteFontColor = colorLong })
                                 }
                             }
@@ -630,7 +616,7 @@ fun NotesTabSection(
                             LazyRow(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
                                 items(noteBgColors) { colorLong ->
                                     Box(modifier = Modifier.size(28.dp).padding(4.dp).clip(CircleShape).background(Color(colorLong))
-                                        .border(if(noteBgColor == colorLong) 2.dp else 0.dp, if(noteBgColor == 0xFF000000.toLong() || noteBgColor == 0xFF212121.toLong()) Color.White else Color.Black, CircleShape)
+                                        .border(if(noteBgColor == colorLong) 2.dp else 0.dp, if(noteBgColor == 0xFF000000L || noteBgColor == 0xFF212121L) Color.White else Color.Black, CircleShape)
                                         .clickable { noteBgColor = colorLong })
                                 }
                             }
@@ -695,11 +681,11 @@ fun NotesTabSection(
         Dialog(onDismissRequest = { selectedNoteForView = null }) {
             Card(modifier = Modifier.fillMaxWidth().padding(16.dp), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color(note.backgroundColor))) {
                 Column(modifier = Modifier.padding(24.dp)) {
-                    Text(note.title.ifBlank { "Note" }, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = if(note.backgroundColor == 0xFF000000.toLong()) Color.White else Color.Black, textAlign = when(note.textAlign){"Center"->TextAlign.Center;"Right"->TextAlign.Right;else->TextAlign.Left}, modifier = Modifier.fillMaxWidth())
+                    Text(note.title.ifBlank { "Note" }, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = if(note.backgroundColor == 0xFF000000L) Color.White else Color.Black, textAlign = when(note.textAlign){"Center"->TextAlign.Center;"Right"->TextAlign.Right;else->TextAlign.Left}, modifier = Modifier.fillMaxWidth())
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(note.content, style = getNoteTextStyle(note.fontStyle, note.fontColor, note.textAlign, note.isBold, note.isItalic).copy(fontSize = 18.sp), modifier = Modifier.fillMaxWidth())
                     Spacer(modifier = Modifier.height(24.dp))
-                    Button(onClick = { selectedNoteForView = null }, modifier = Modifier.align(Alignment.End), colors = ButtonDefaults.buttonColors(containerColor = if(note.backgroundColor == 0xFF000000.toLong()) Color.White else Color.Black)) { Text("Close", color = if(note.backgroundColor == 0xFF000000.toLong()) Color.Black else Color.White) }
+                    Button(onClick = { selectedNoteForView = null }, modifier = Modifier.align(Alignment.End), colors = ButtonDefaults.buttonColors(containerColor = if(note.backgroundColor == 0xFF000000L) Color.White else Color.Black)) { Text("Close", color = if(note.backgroundColor == 0xFF000000L) Color.Black else Color.White) }
                 }
             }
         }
@@ -707,14 +693,7 @@ fun NotesTabSection(
 }
 
 @Composable
-fun VerticalDivider(modifier: Modifier = Modifier, color: Color = Color.LightGray) {
-    Box(modifier = modifier.width(1.dp).background(color))
-}
-
-@Composable
-fun CalculatorTabSection(
-    currentLang: com.example.ui.localization.AppLanguage
-) {
+fun CalculatorTabSection() {
     var displayStr by remember { mutableStateOf("0") }
     var runningVal by remember { mutableStateOf(0.0) }
     var activeOp by remember { mutableStateOf("") }
@@ -757,7 +736,7 @@ fun CalculatorTabSection(
                 ) {
                     Text(
                         text = if (activeOp.isNotBlank()) {
-                            val runningStr = if (runningVal % 1 == 0.0) runningVal.toLong().toString() else String.format("%.2f", runningVal)
+                            val runningStr = if (runningVal % 1 == 0.0) runningVal.toLong().toString() else String.format(java.util.Locale.getDefault(), "%.2f", runningVal)
                             "$runningStr ${if (activeOp == "*") "x" else (if(activeOp == "/") "÷" else activeOp)}"
                         } else "",
                         color = Color.White.copy(alpha = 0.5f),
@@ -853,8 +832,8 @@ fun CalculatorTabSection(
                                                 }
 
                                                 val opSym = if(activeOp == "*") "x" else (if(activeOp == "/") "÷" else activeOp)
-                                                val resStr = if (res % 1 == 0.0) res.toLong().toString() else String.format("%.2f", res)
-                                                val runStr = if (runningVal % 1 == 0.0) runningVal.toLong().toString() else String.format("%.2f", runningVal)
+                                                val resStr = if (res % 1 == 0.0) res.toLong().toString() else String.format(java.util.Locale.getDefault(), "%.2f", res)
+                                                val runStr = if (runningVal % 1 == 0.0) runningVal.toLong().toString() else String.format(java.util.Locale.getDefault(), "%.2f", runningVal)
                                                 historyList = (listOf("$runStr $opSym $nextVal = $resStr") + historyList).take(10)
 
                                                 runningVal = res
@@ -873,7 +852,7 @@ fun CalculatorTabSection(
                                             } else {
                                                 currentVal / 100.0
                                             }
-                                            val resStr = if (res % 1 == 0.0) res.toLong().toString() else String.format("%.2f", res)
+                                            val resStr = if (res % 1 == 0.0) res.toLong().toString() else String.format(java.util.Locale.getDefault(), "%.2f", res)
                                             displayStr = resStr
                                         }
 
@@ -888,8 +867,8 @@ fun CalculatorTabSection(
                                                     "/" -> if (nextVal != 0.0) runningVal / nextVal else 0.0
                                                     else -> nextVal
                                                 }
-                                                val resStr = if (res % 1 == 0.0) res.toLong().toString() else String.format("%.2f", res)
-                                                val runStr = if (runningVal % 1 == 0.0) runningVal.toLong().toString() else String.format("%.2f", runningVal)
+                                                val resStr = if (res % 1 == 0.0) res.toLong().toString() else String.format(java.util.Locale.getDefault(), "%.2f", res)
+                                                val runStr = if (runningVal % 1 == 0.0) runningVal.toLong().toString() else String.format(java.util.Locale.getDefault(), "%.2f", runningVal)
 
                                                 val historyEntry = "$runStr $opSymbol $nextVal = $resStr"
                                                 historyList = (listOf(historyEntry) + historyList).take(10)
@@ -907,6 +886,7 @@ fun CalculatorTabSection(
                                                 isStartingNewVal = false
                                             } else {
                                                 if (key == "." && displayStr.contains(".")) {
+                                                    // Do nothing
                                                 } else {
                                                     displayStr = if (displayStr == "0") key else displayStr + key
                                                 }
@@ -963,7 +943,7 @@ fun CalculatorTabSection(
                                     } else {
                                         Text(entry, color = Color.White)
                                     }
-                                    Divider(modifier = Modifier.padding(top = 10.dp), color = Color.White.copy(alpha=0.15f))
+                                    HorizontalDivider(modifier = Modifier.padding(top = 10.dp), color = Color.White.copy(alpha=0.15f))
                                 }
                             }
                         }

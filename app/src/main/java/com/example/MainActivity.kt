@@ -1,7 +1,6 @@
 package com.example
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -34,11 +33,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import com.example.ui.screens.MyProfileScreen
-import androidx.compose.material.icons.filled.Person
 import com.example.ui.screens.AdminScreen
 import com.example.ui.screens.AuthScreen
 import com.example.ui.screens.ChatScreen
@@ -50,11 +46,8 @@ import com.example.ui.screens.SettingsScreen
 import com.example.ui.screens.UtilitiesScreen
 import com.example.ui.theme.MyApplicationTheme
 import com.example.viewmodel.JobaayaViewModel
-import com.example.viewmodel.ChatInbox
-import com.example.data.model.UserProfile
-import com.example.data.model.SystemNotification
 import com.example.ui.localization.JobaayaLocalization
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
@@ -73,7 +66,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -88,16 +80,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import coil.request.CachePolicy
-import com.canhub.cropper.CropImageContract
-import com.canhub.cropper.CropImageOptions
-import com.canhub.cropper.CropImageView
-import de.hdodenhof.circleimageview.CircleImageView
 import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
-    // [गैलरी ट्रिगर करने वाला पुराना इमेज क्रॉपर लॉन्चर पूरी तरह निष्क्रिय कर दिया गया है ताकि प्रीव्यू रीड-ओनली रहे]
-    private val cropImage = registerForActivityResult(CropImageContract()) { result -> }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -130,7 +115,6 @@ fun MainPlatformContainer(
     var activeViewRoute by remember { mutableStateOf("home") } // "home", "map", "chats", "utilities", "admin", "settings", "detail", "contact_us"
     var previousViewRoute by remember { mutableStateOf("home") }
     var detailedUserIdRoute by remember { mutableStateOf("") }
-    var activeDealId by remember { mutableIntStateOf(0) }
     var showNotificationDrawer by remember { mutableStateOf(false) }
 
     // Helper function to navigate and track history
@@ -188,7 +172,7 @@ fun MainPlatformContainer(
                     onClick = { navigateTo("chats") },
                     icon = {
                         Box {
-                            Icon(Icons.Default.Chat, contentDescription = JobaayaLocalization.translate("chats", currentLang), modifier = Modifier.size(21.dp))
+                            Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = JobaayaLocalization.translate("chats", currentLang), modifier = Modifier.size(21.dp))
                             if (totalInboxUnreadCount > 0) {
                                 Box(
                                     modifier = Modifier
@@ -393,11 +377,7 @@ fun MainPlatformContainer(
                 )
 
                 "utilities" -> UtilitiesScreen(
-                    viewModel = viewModel,
-                    onProfileClick = { id: String ->
-                        detailedUserIdRoute = id
-                        navigateTo("detail")
-                    }
+                    viewModel = viewModel
                 )
 
                 "admin" -> {
@@ -541,7 +521,7 @@ fun MainPlatformContainer(
                                             val timeString = try {
                                                 val sdf = java.text.SimpleDateFormat("hh:mm a", java.util.Locale.getDefault())
                                                 sdf.format(java.util.Date(alert.timestamp))
-                                            } catch (e: Exception) { "" }
+                                            } catch (_: Exception) { "" }
 
                                             Text(
                                                 text = timeString,

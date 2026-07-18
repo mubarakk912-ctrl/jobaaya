@@ -1,5 +1,6 @@
 package com.example.data.repository
 
+import android.util.Log
 import com.example.data.database.ChatMessageDao
 import com.example.data.database.ProfileMediaDao
 import com.example.data.database.SubscriptionDao
@@ -9,7 +10,6 @@ import com.example.data.database.UserProfileDao
 import com.example.data.database.UserReviewDao
 import com.example.data.database.UtilityNoteDao
 import com.example.data.database.PartnershipDealDao
-import com.example.data.model.AccountType
 import com.example.data.model.ChatMessage
 import com.example.data.model.ContactMessage
 import com.example.data.model.DealAuditLog
@@ -22,7 +22,6 @@ import com.example.data.model.UserConnection
 import com.example.data.model.UserProfile
 import com.example.data.model.UserReview
 import com.example.data.model.UtilityNote
-import com.example.data.model.WorkStatus
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.Flow
@@ -43,17 +42,11 @@ class JobaayaRepository(
     val otherProfiles: Flow<List<UserProfile>> = profileDao.getOtherProfiles()
     val myProfile: Flow<UserProfile?> = profileDao.getMyProfileFlow()
 
-    fun getProfileById(id: String): Flow<UserProfile?> = profileDao.getProfileById(id)
-
-    fun searchProfiles(query: String): Flow<List<UserProfile>> = profileDao.searchProfiles(query)
-
     suspend fun getMyProfileDirect(): UserProfile? = profileDao.getMyProfileDirect()
 
     suspend fun insertProfile(profile: UserProfile) = profileDao.insertProfile(profile)
 
     suspend fun updateProfile(profile: UserProfile) = profileDao.updateProfile(profile)
-
-    suspend fun deleteProfile(profile: UserProfile) = profileDao.deleteProfile(profile)
 
     // Reviews
     fun getReviewsForProfile(profileId: String): Flow<List<UserReview>> =
@@ -87,10 +80,7 @@ class JobaayaRepository(
 
     suspend fun markChatAsRead(profileId: String) = msgDao.markChatAsRead(profileId, System.currentTimeMillis())
 
-    suspend fun markMyMessagesAsReadByOther(profileId: String) = msgDao.markMyMessagesAsReadByOther(profileId)
-
     // Connections
-    fun getConnections(userId: String): Flow<List<UserConnection>> = connectionDao.getConnections(userId)
 
     suspend fun toggleConnection(userId: String, connectionId: String) {
         if (connectionDao.isConnected(userId, connectionId)) {
@@ -99,11 +89,6 @@ class JobaayaRepository(
             connectionDao.insertConnection(UserConnection(userId, connectionId))
         }
     }
-
-    // Subscriptions
-    fun getSubscription(userId: String): Flow<Subscription?> = subDao.getSubscription(userId)
-
-    suspend fun updateSubscription(subscription: Subscription) = subDao.insertSubscription(subscription)
 
     // Media
     fun getMediaForProfile(profileId: String): Flow<List<ProfileMedia>> = mediaDao.getMediaForProfile(profileId)
@@ -162,7 +147,7 @@ class JobaayaRepository(
         }
     }
 
-    suspend fun pushNotificationTrigger(
+    fun pushNotificationTrigger(
         targetUserId: String,
         type: String,
         title: String,
@@ -183,7 +168,7 @@ class JobaayaRepository(
                     )
                 )
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e("JobaayaRepository", "pushNotificationTrigger error", e)
         }
     }
 
