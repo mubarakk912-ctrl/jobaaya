@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Report
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.material.icons.filled.SupervisorAccount
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.Button
@@ -93,6 +94,7 @@ fun ProfileDetailScreen(
     profileId: String,
     onBack: () -> Unit,
     onStartChat: (String) -> Unit,
+    onOpenAdmin: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -155,6 +157,15 @@ fun ProfileDetailScreen(
                     modifier = Modifier.align(Alignment.CenterEnd),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    if (viewModel.isCurrentUserOwner()) {
+                        IconButton(onClick = onOpenAdmin) {
+                            Icon(
+                                imageVector = Icons.Default.SupervisorAccount,
+                                contentDescription = "Admin Panel",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
                     IconButton(onClick = { showQrDialog = true }) {
                         Icon(Icons.Default.QrCode, contentDescription = "Show QR Code")
                     }

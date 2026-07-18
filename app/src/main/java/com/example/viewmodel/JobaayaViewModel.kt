@@ -1030,6 +1030,25 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
         val c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
         return r * c
     }
+
+    /**
+     * OWNER IDENTIFICATION
+     * Checks if the currently logged-in profile belongs to the app owner.
+     */
+    fun isCurrentUserOwner(): Boolean {
+        val profile = myProfile.value ?: return false
+        val normalizedMobile = profile.mobileNumber.replace("\\s".toRegex(), "").removePrefix("+91")
+        val normalizedOwnerMobile = OWNER_MOBILE_NUMBER.replace("\\s".toRegex(), "").removePrefix("+91")
+
+        return normalizedMobile == normalizedOwnerMobile ||
+                profile.emailAddress.trim().equals(OWNER_EMAIL, ignoreCase = true)
+    }
+
+    companion object {
+        // App Owner Identification Constants
+        const val OWNER_MOBILE_NUMBER = "9630981234"
+        const val OWNER_EMAIL = "mubarakk912@gmail.com"
+    }
 }
 
 data class ChatInbox(

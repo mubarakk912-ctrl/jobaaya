@@ -64,6 +64,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -81,6 +82,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import androidx.appcompat.app.AppCompatActivity
+// NEW: for runtime notification permission request
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
 
 class MainActivity : AppCompatActivity() {
 
@@ -103,6 +108,7 @@ class MainActivity : AppCompatActivity() {
     }
 }
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun MainPlatformContainer(
     viewModel: JobaayaViewModel
@@ -116,6 +122,19 @@ fun MainPlatformContainer(
     var previousViewRoute by remember { mutableStateOf("home") }
     var detailedUserIdRoute by remember { mutableStateOf("") }
     var showNotificationDrawer by remember { mutableStateOf(false) }
+
+    // NEW: Ask for POST_NOTIFICATIONS permission (required on Android 13+) once,
+    // shortly after the user reaches the main app screen.
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+        val notificationPermissionState = rememberPermissionState(
+            android.Manifest.permission.POST_NOTIFICATIONS
+        )
+        LaunchedEffect(Unit) {
+            if (!notificationPermissionState.status.isGranted) {
+                notificationPermissionState.launchPermissionRequest()
+            }
+        }
+    }
 
     // Helper function to navigate and track history
     val navigateTo: (String) -> Unit = { route ->
@@ -283,7 +302,7 @@ fun MainPlatformContainer(
                     modifier = Modifier.align(Alignment.CenterEnd),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val isAdmin = myProfile?.mobileNumber == "+919630981234" || myProfile?.emailAddress == "mubarakk912@gmail.com"
+                    val isAdmin = viewModel.isCurrentUserOwner()
 
                     if (isAdmin) {
                         IconButton(onClick = { navigateTo("admin") }, modifier = Modifier.size(36.dp)) {
@@ -381,7 +400,7 @@ fun MainPlatformContainer(
                 )
 
                 "admin" -> {
-                    val isAdmin = myProfile?.mobileNumber == "+919630981234" || myProfile?.emailAddress == "mubarakk912@gmail.com"
+                    val isAdmin = viewModel.isCurrentUserOwner()
                     if (isAdmin) {
                         AdminScreen(
                             viewModel = viewModel,
@@ -425,7 +444,8 @@ fun MainPlatformContainer(
                     onStartChat = { id ->
                         viewModel.selectActiveChat(id)
                         navigateTo("chats")
-                    }
+                    },
+                    onOpenAdmin = { navigateTo("admin") }
                 )
             }
 
