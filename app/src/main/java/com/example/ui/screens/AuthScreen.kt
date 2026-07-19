@@ -84,8 +84,10 @@ fun AuthScreen(
     modifier: Modifier = Modifier
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    val activity = context as? android.app.Activity
     val currentLang by viewModel.currentLanguage.collectAsState()
     val onboardingStep by viewModel.onboardingStep.collectAsState()
+    val otpSent by viewModel.otpSent.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     
     val snackbarHostState = remember { SnackbarHostState() }
@@ -100,10 +102,11 @@ fun AuthScreen(
         AuthContent(
             currentLang = currentLang,
             onboardingStep = onboardingStep,
+            otpSent = otpSent,
             onLanguageChange = { viewModel.changeLanguage(it) },
             onLogout = { viewModel.handleLogout() },
-            onEmailLogin = { email, password -> viewModel.loginWithEmail(email, password) },
-            onGoogleSignIn = { viewModel.loginWithGoogle() },
+            onSendOtp = { mobile -> if (activity != null) viewModel.sendOtp(mobile, activity) },
+            onVerifyOtp = { otp -> viewModel.verifyOtp(otp) },
             onCompleteOnboarding = { name, profession, skills, accountType, email, address, exp, languages ->
                 viewModel.completeOnboardingRegistration(name, profession, skills, accountType, email, address, exp, languages)
             },
@@ -134,17 +137,17 @@ fun AuthScreen(
 fun AuthContent(
     currentLang: AppLanguage,
     onboardingStep: Boolean,
+    otpSent: Boolean,
     onLanguageChange: (AppLanguage) -> Unit,
     onLogout: () -> Unit,
-    onEmailLogin: (String, String) -> Unit,
-    onGoogleSignIn: () -> Unit,
+    onSendOtp: (String) -> Unit,
+    onVerifyOtp: (String) -> Unit,
     onCompleteOnboarding: (String, String, String, AccountType, String, String, Int, String) -> Unit,
     onToggleOnboarding: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var mobileInput by remember { mutableStateOf("") }
     var otpInput by remember { mutableStateOf("") }
-    var emailInput by remember { mutableStateOf("") }
-    var passwordInput by remember { mutableStateOf("") }
 
     // Onboarding fields
     var regName by remember { mutableStateOf("") }
@@ -306,68 +309,61 @@ fun AuthContent(
 
                             Spacer(modifier = Modifier.height(20.dp))
 
-                            // EMAIL MODE ONLY
-                            OutlinedTextField(
-                                value = emailInput,
-                                onValueChange = { emailInput = it },
-                                label = { Text(JobaayaLocalization.translate("enter_email", currentLang)) },
-                                leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(14.dp)
-                            )
+                            if (!otpSent) {
+                                // MOBILE NUMBER INPUT
+                                OutlinedTextField(
+                                    value = mobileInput,
+                                    onValueChange = { mobileInput = it },
+                                    label = { Text(JobaayaLocalization.translate("mobile_number", currentLang).ifBlank { "Mobile Number (with +91)" }) },
+                                    leadingIcon = { Icon(Icons.Default.PhoneAndroid, contentDescription = null) },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(14.dp),
+                                    placeholder = { Text("+91XXXXXXXXXX") }
+                                )
 
-                            Spacer(modifier = Modifier.height(12.dp))
+                                Spacer(modifier = Modifier.height(20.dp))
 
-                            OutlinedTextField(
-                                value = passwordInput,
-                                onValueChange = { passwordInput = it },
-                                label = { Text(JobaayaLocalization.translate("enter_password", currentLang)) },
-                                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                                visualTransformation = PasswordVisualTransformation(),
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(14.dp)
-                            )
-
-                            Spacer(modifier = Modifier.height(20.dp))
-
-                            Button(
-                                onClick = { onEmailLogin(emailInput, passwordInput) },
-                                enabled = emailInput.contains("@") && passwordInput.length >= 6,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(50.dp),
-                                shape = RoundedCornerShape(14.dp)
-                            ) {
-                                Text(JobaayaLocalization.translate("login", currentLang), fontWeight = FontWeight.Bold)
-                            }
-
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            // Google Sign In Button
-                            OutlinedButton(
-                                onClick = { onGoogleSignIn() },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(50.dp),
-                                shape = RoundedCornerShape(14.dp),
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center
+                                Button(
+                                    onClick = { onSendOtp(mobileInput) },
+                                    enabled = mobileInput.length >= 10,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(50.dp),
+                                    shape = RoundedCornerShape(14.dp)
                                 ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(20.dp)
-                                            .background(MaterialTheme.colorScheme.secondary, CircleShape)
-                                    )
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Text(
-                                        text = JobaayaLocalization.translate("google_signin", currentLang),
-                                        fontWeight = FontWeight.Medium
-                                    )
+                                    Text(JobaayaLocalization.translate("send_otp", currentLang).ifBlank { "Send OTP" }, fontWeight = FontWeight.Bold)
+                                }
+                            } else {
+                                // OTP INPUT
+                                OutlinedTextField(
+                                    value = otpInput,
+                                    onValueChange = { otpInput = it },
+                                    label = { Text(JobaayaLocalization.translate("enter_otp", currentLang).ifBlank { "Enter 6-digit OTP" }) },
+                                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(14.dp)
+                                )
+
+                                Spacer(modifier = Modifier.height(20.dp))
+
+                                Button(
+                                    onClick = { onVerifyOtp(otpInput) },
+                                    enabled = otpInput.length == 6,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(50.dp),
+                                    shape = RoundedCornerShape(14.dp)
+                                ) {
+                                    Text(JobaayaLocalization.translate("verify_otp", currentLang).ifBlank { "Verify & Login" }, fontWeight = FontWeight.Bold)
+                                }
+
+                                TextButton(
+                                    onClick = { onSendOtp(mobileInput) },
+                                    modifier = Modifier.padding(top = 8.dp)
+                                ) {
+                                    Text(JobaayaLocalization.translate("resend_otp", currentLang).ifBlank { "Resend OTP" })
                                 }
                             }
 
@@ -580,15 +576,17 @@ fun AuthContent(
 @Composable
 fun AuthInteractivePreview() {
     var isRegister by remember { mutableStateOf(false) }
+    var otpSent by remember { mutableStateOf(false) }
     
     Box {
         AuthContent(
             currentLang = AppLanguage.ENGLISH,
             onboardingStep = isRegister,
+            otpSent = otpSent,
             onLanguageChange = {},
             onLogout = {},
-            onEmailLogin = { _, _ -> },
-            onGoogleSignIn = {},
+            onSendOtp = { otpSent = true },
+            onVerifyOtp = {},
             onCompleteOnboarding = { _, _, _, _, _, _, _, _ -> },
             onToggleOnboarding = { isRegister = it }
         )
@@ -612,10 +610,11 @@ fun AuthScreenPreview() {
     AuthContent(
         currentLang = AppLanguage.ENGLISH,
         onboardingStep = false,
+        otpSent = false,
         onLanguageChange = {},
         onLogout = {},
-        onEmailLogin = { _, _ -> },
-        onGoogleSignIn = {},
+        onSendOtp = {},
+        onVerifyOtp = {},
         onCompleteOnboarding = { _, _, _, _, _, _, _, _ -> },
         onToggleOnboarding = {}
     )
@@ -627,10 +626,11 @@ fun OnboardingPreview() {
     AuthContent(
         currentLang = AppLanguage.ENGLISH,
         onboardingStep = true,
+        otpSent = false,
         onLanguageChange = {},
         onLogout = {},
-        onEmailLogin = { _, _ -> },
-        onGoogleSignIn = {},
+        onSendOtp = {},
+        onVerifyOtp = {},
         onCompleteOnboarding = { _, _, _, _, _, _, _, _ -> },
         onToggleOnboarding = {}
     )

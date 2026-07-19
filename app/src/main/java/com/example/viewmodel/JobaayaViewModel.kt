@@ -86,7 +86,10 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
     // Auth states
     val isLoggedIn: StateFlow<Boolean> = sessionManager.isLoggedIn
 
-    private val _otpDispatched = MutableStateFlow(false)
+    private val _otpSent = MutableStateFlow(false)
+    val otpSent: StateFlow<Boolean> = _otpSent.asStateFlow()
+
+    private val _verificationId = MutableStateFlow<String?>(null)
 
     private val _loginMobileNumber = MutableStateFlow("")
 
@@ -368,27 +371,65 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
         sessionManager.saveLanguage(language.code)
     }
 
-    fun loginWithEmail(email: String, password: CharSequence) {
+    fun sendOtp(mobileNumber: String, activity: android.app.Activity) {
+        _isLoading.value = true
+        _loginMobileNumber.value = mobileNumber
+
+        val options = com.google.firebase.auth.PhoneAuthOptions.newBuilder(com.google.firebase.auth.FirebaseAuth.getInstance())
+            .setPhoneNumber(mobileNumber)
+            .setTimeout(60L, java.util.concurrent.TimeUnit.SECONDS)
+            .setActivity(activity)
+            .setCallbacks(object : com.google.firebase.auth.PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
+                override fun onVerificationCompleted(credential: com.google.firebase.auth.PhoneAuthCredential) {
+                    signInWithPhoneCredential(credential)
+                }
+
+                override fun onVerificationFailed(e: com.google.firebase.FirebaseException) {
+                    _isLoading.value = false
+                    viewModelScope.launch {
+                        _authError.emit(e.message ?: "Verification failed")
+                    }
+                }
+
+                override fun onCodeSent(verificationId: String, token: com.google.firebase.auth.PhoneAuthProvider.ForceResendingToken) {
+                    _isLoading.value = false
+                    _verificationId.value = verificationId
+                    _otpSent.value = true
+                }
+            })
+            .build()
+        com.google.firebase.auth.PhoneAuthProvider.verifyPhoneNumber(options)
+    }
+
+    fun verifyOtp(otp: String) {
+        val vId = _verificationId.value ?: return
         viewModelScope.launch {
             _isLoading.value = true
-            authRepository.loginWithEmail(email, password).onSuccess {
+            authRepository.verifyFirebaseOtp(vId, otp, _loginMobileNumber.value).onSuccess {
+                _otpSent.value = false
                 checkProfileStatusAndNavigate()
                 syncFcmTokenToFirestore()
             }.onFailure {
-                _authError.emit(it.message ?: "Login failed")
+                _authError.emit(it.message ?: "Invalid OTP")
             }
             _isLoading.value = false
         }
     }
 
-    fun loginWithGoogle() {
+    private fun signInWithPhoneCredential(credential: com.google.firebase.auth.PhoneAuthCredential) {
         viewModelScope.launch {
             _isLoading.value = true
-            authRepository.signInWithGoogle("mock_google_token").onSuccess {
-                checkProfileStatusAndNavigate()
-                syncFcmTokenToFirestore()
-            }.onFailure {
-                _authError.emit(it.message ?: "Google Sign-In failed")
+            try {
+                com.google.firebase.auth.FirebaseAuth.getInstance().signInWithCredential(credential).await()
+                val user = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+                if (user != null) {
+                    sessionManager.saveAuthToken(user.uid)
+                    sessionManager.saveUserData(user.uid, user.email, _loginMobileNumber.value)
+                    checkProfileStatusAndNavigate()
+                    syncFcmTokenToFirestore()
+                }
+            } catch (e: Exception) {
+                _authError.emit(e.message ?: "Sign in failed")
             }
             _isLoading.value = false
         }
@@ -1011,7 +1052,7 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
 
     fun handleLogout() {
         authRepository.logout()
-        _otpDispatched.value = false
+        _otpSent.value = false
         _onboardingStep.value = false
     }
 
