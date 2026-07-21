@@ -309,7 +309,7 @@ fun MainPlatformContainer(
                             Icon(
                                 imageVector = Icons.Default.SupervisorAccount,
                                 contentDescription = "Admin Console",
-                                tint = if (activeViewRoute == "admin") MaterialTheme.colorScheme.primary else Color.White,
+                                tint = if (activeViewRoute == "admin") Color.White else Color(0xFFE0E0E0),
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -325,7 +325,7 @@ fun MainPlatformContainer(
                             Icon(
                                 imageVector = Icons.Default.Notifications,
                                 contentDescription = "Alerts",
-                                tint = if (showNotificationDrawer) MaterialTheme.colorScheme.primary else Color.White,
+                                tint = if (showNotificationDrawer) Color.White else Color(0xFFE0E0E0),
                                 modifier = Modifier.size(20.dp)
                             )
                             val unreadCount = notificationsList.count { !it.isRead }
@@ -352,7 +352,7 @@ fun MainPlatformContainer(
                         Icon(
                             imageVector = Icons.Default.Settings,
                             contentDescription = "Settings",
-                            tint = if (activeViewRoute == "settings") MaterialTheme.colorScheme.primary else Color.White,
+                            tint = if (activeViewRoute == "settings") Color.White else Color(0xFFE0E0E0),
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -476,7 +476,7 @@ fun MainPlatformContainer(
                                 text = JobaayaLocalization.translate("activity_logs", currentLang),
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.primary
+                                color = Color(0xFFE0E0E0)
                             )
                             Row {
                                 if (notificationsList.isNotEmpty()) {

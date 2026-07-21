@@ -197,7 +197,7 @@ fun HomeContent(
                             Icon(
                                 imageVector = Icons.Default.FilterList,
                                 contentDescription = "Filters",
-                                tint = if (showFilters) Color(0xFF0B3A51) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                tint = if (showFilters) Color(0xFFE0E0E0) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                                 modifier = Modifier.size(17.dp)
                             )
                         }
@@ -281,7 +281,7 @@ fun HomeContent(
                         text = if (cat == "All") JobaayaLocalization.translate("all", currentLang) else cat,
                         style = MaterialTheme.typography.labelLarge,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                        color = if (active) Color(0xFF0B3A51) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        color = if (active) Color(0xFFE0E0E0) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         fontWeight = if (active) FontWeight.Bold else FontWeight.Normal
                     )
                 }
@@ -290,7 +290,7 @@ fun HomeContent(
 
         if (profiles.isEmpty()) {
             Column(modifier = Modifier.weight(1f).fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(imageVector = Icons.Default.Search, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                Icon(imageVector = Icons.Default.Search, contentDescription = null, modifier = Modifier.size(64.dp), tint = Color(0xFFE0E0E0).copy(alpha = 0.5f))
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(text = JobaayaLocalization.translate("no_results", currentLang), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), modifier = Modifier.padding(horizontal = 16.dp))
             }

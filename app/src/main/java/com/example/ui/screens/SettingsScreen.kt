@@ -908,12 +908,12 @@ fun SettingsScreen(
                                 ) {
                                     Text(
                                         text = lang.displayName,
-                                        color = if (lang == currentLang) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                        color = if (lang == currentLang) Color.White else Color(0xFFE0E0E0),
                                         fontWeight = if (lang == currentLang) FontWeight.Bold else FontWeight.Normal,
                                         fontSize = 16.sp
                                     )
                                     if (lang == currentLang) {
-                                        Icon(Icons.Default.Star, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                                        Icon(Icons.Default.Star, null, tint = Color.White, modifier = Modifier.size(16.dp))
                                     }
                                 }
                                 HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
@@ -926,7 +926,7 @@ fun SettingsScreen(
                         onClick = { showLanguagesDialog = false },
                         modifier = Modifier.align(Alignment.End)
                     ) {
-                        Text(JobaayaLocalization.translate("cancel", currentLang).uppercase(), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                        Text(JobaayaLocalization.translate("cancel", currentLang).uppercase(), color = Color(0xFFE0E0E0), fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -982,7 +982,7 @@ fun SettingsScreen(
                         onClick = { showNotificationHistoryDialog = false },
                         modifier = Modifier.align(Alignment.End)
                     ) {
-                        Text(JobaayaLocalization.translate("cancel", currentLang).uppercase(), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                        Text(JobaayaLocalization.translate("cancel", currentLang).uppercase(), color = Color(0xFFE0E0E0), fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -1032,7 +1032,7 @@ fun SettingsScreen(
                             onClick = { showBugReportDialog = false },
                             enabled = !isSubmittingBug
                         ) {
-                            Text(JobaayaLocalization.translate("cancel", currentLang).uppercase())
+                            Text(JobaayaLocalization.translate("cancel", currentLang).uppercase(), color = Color(0xFFE0E0E0), fontWeight = FontWeight.Bold)
                         }
                         Spacer(Modifier.width(8.dp))
                         Button(

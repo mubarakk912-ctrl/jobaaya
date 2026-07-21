@@ -114,7 +114,7 @@ fun InboxItemRow(inbox: ChatInbox, onClick: () -> Unit) {
                 }
                 if (partner.isPinned) {
                     Spacer(Modifier.width(6.dp))
-                    Icon(Icons.Default.PushPin, null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Default.PushPin, null, modifier = Modifier.size(14.dp), tint = Color(0xFFE0E0E0))
                 }
             }
         },
@@ -139,7 +139,7 @@ fun InboxItemRow(inbox: ChatInbox, onClick: () -> Unit) {
         },
         trailingContent = {
             Column(horizontalAlignment = Alignment.End) {
-                Text(text = timeLabel, fontSize = 11.sp, color = if (inbox.unreadCount > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline, fontWeight = if (inbox.unreadCount > 0) FontWeight.Bold else FontWeight.Normal)
+                Text(text = timeLabel, fontSize = 11.sp, color = if (inbox.unreadCount > 0) Color(0xFFE0E0E0) else MaterialTheme.colorScheme.outline, fontWeight = if (inbox.unreadCount > 0) FontWeight.Bold else FontWeight.Normal)
                 Spacer(Modifier.height(6.dp))
                 if (inbox.unreadCount > 0) {
                     Box(modifier = Modifier.size(20.dp).background(MaterialTheme.colorScheme.primary, CircleShape), contentAlignment = Alignment.Center) {
@@ -329,7 +329,7 @@ fun VoiceMessageVisualizer(
     isRead: Boolean,
     readAt: Long?
 ) {
-    val primaryColor = MaterialTheme.colorScheme.primary
+    val primaryColor = Color(0xFFE0E0E0)
     val grayColor = Color.Gray.copy(0.3f)
     val barHeights = remember(messageId) {
         val random = Random(messageId)

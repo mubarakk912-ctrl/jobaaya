@@ -111,7 +111,7 @@ fun UtilitiesScreen(
         TabRow(
             selectedTabIndex = selectedTab,
             containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.primary,
+            contentColor = Color(0xFFE0E0E0),
             indicator = {},
             divider = {},
             modifier = Modifier.heightIn(min = 72.dp)
@@ -125,7 +125,7 @@ fun UtilitiesScreen(
                         modifier = Modifier.padding(top = 32.dp),
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
-                        color = if(selectedTab == 1) Color.White else Color(0xFFCCCCCC),
+                        color = if(selectedTab == 1) Color.White else Color(0xFFE0E0E0),
                         maxLines = 1,
                         softWrap = false,
                         textAlign = TextAlign.Center,
@@ -142,7 +142,7 @@ fun UtilitiesScreen(
                         modifier = Modifier.padding(top = 32.dp),
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
-                        color = if(selectedTab == 0) Color.White else Color(0xFFCCCCCC),
+                        color = if(selectedTab == 0) Color.White else Color(0xFFE0E0E0),
                         maxLines = 2,
                         softWrap = true,
                         textAlign = TextAlign.Center,
@@ -159,7 +159,7 @@ fun UtilitiesScreen(
                         modifier = Modifier.padding(top = 32.dp),
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
-                        color = if(selectedTab == 2) Color.White else Color(0xFFCCCCCC),
+                        color = if(selectedTab == 2) Color.White else Color(0xFFE0E0E0),
                         maxLines = 2,
                         softWrap = true,
                         textAlign = TextAlign.Center,
@@ -336,7 +336,7 @@ fun NotesTabSection(
                                     }
                                 }
                                 if (note.reminderTimestamp != null) {
-                                    Icon(Icons.Default.Notifications, contentDescription = "Reminder set", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+                                    Icon(Icons.Default.Notifications, contentDescription = "Reminder set", modifier = Modifier.size(18.dp), tint = Color(0xFFE0E0E0))
                                 }
                                 IconButton(onClick = { viewModel.deleteUtilityNote(note) }) {
                                     Icon(
@@ -638,7 +638,7 @@ fun NotesTabSection(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(48.dp), tint = Color(0xFFE0E0E0))
                     Spacer(modifier = Modifier.height(16.dp))
                     Text("Enter PIN to Unlock Note", fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(16.dp))

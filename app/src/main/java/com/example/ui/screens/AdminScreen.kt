@@ -95,7 +95,7 @@ fun AdminScreen(
         TabRow(
             selectedTabIndex = selectedAdminTab,
             containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.primary
+            contentColor = Color(0xFFE0E0E0)
         ) {
             Tab(
                 selected = selectedAdminTab == 0,
@@ -171,7 +171,7 @@ fun AdminSupportSection(viewModel: JobaayaViewModel) {
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(msg.userName, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                Text(msg.userName, fontWeight = FontWeight.Bold, color = Color(0xFFE0E0E0))
                                 Spacer(modifier = Modifier.weight(1f))
                                 Surface(
                                     color = if (msg.status == "Pending") Color.Red.copy(alpha = 0.2f) else Color.Green.copy(alpha = 0.2f),
@@ -267,7 +267,7 @@ fun AdminUserManagementSection(
                 .fillMaxWidth()
                 .padding(vertical = 8.dp),
             shape = RoundedCornerShape(12.dp),
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color(0xFFE0E0E0)) },
             singleLine = true,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -300,7 +300,7 @@ fun AdminUserManagementSection(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                        color = if (isSelected) Color.White else Color(0xFFE0E0E0)
                     )
                 }
             }
@@ -361,7 +361,7 @@ fun AdminUserManagementSection(
                             Icon(
                                 imageVector = Icons.Default.Analytics,
                                 contentDescription = "Preview Profile",
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = Color(0xFFE0E0E0),
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -426,7 +426,7 @@ fun AdminReportManagementSection(
                     imageVector = Icons.Default.Warning,
                     contentDescription = null,
                     modifier = Modifier.size(54.dp),
-                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                    tint = Color(0xFFE0E0E0).copy(alpha = 0.5f)
                 )
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(
@@ -572,7 +572,7 @@ fun AdminAnalyticsSection(
                     text = "Profile Impact Audit Charts",
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary
+                    color = Color(0xFFE0E0E0)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
