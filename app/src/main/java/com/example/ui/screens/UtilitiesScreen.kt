@@ -858,25 +858,30 @@ fun CalculatorTabSection() {
 
                                         key == "=" -> {
                                             if (activeOp.isNotBlank()) {
-                                                val nextVal = displayStr.toDoubleOrNull() ?: 0.0
-                                                val opSymbol = if(activeOp == "*") "x" else (if(activeOp == "/") "÷" else activeOp)
-                                                val res = when (activeOp) {
-                                                    "+" -> runningVal + nextVal
-                                                    "-" -> runningVal - nextVal
-                                                    "*" -> runningVal * nextVal
-                                                    "/" -> if (nextVal != 0.0) runningVal / nextVal else 0.0
-                                                    else -> nextVal
+                                                if (isStartingNewVal) {
+                                                    // If = is pressed right after an operator, just commit current result
+                                                    activeOp = ""
+                                                } else {
+                                                    val nextVal = displayStr.toDoubleOrNull() ?: 0.0
+                                                    val opSymbol = if (activeOp == "*") "x" else (if (activeOp == "/") "÷" else activeOp)
+                                                    val res = when (activeOp) {
+                                                        "+" -> runningVal + nextVal
+                                                        "-" -> runningVal - nextVal
+                                                        "*" -> runningVal * nextVal
+                                                        "/" -> if (nextVal != 0.0) runningVal / nextVal else 0.0
+                                                        else -> nextVal
+                                                    }
+                                                    val resStr = if (res % 1 == 0.0) res.toLong().toString() else String.format(java.util.Locale.getDefault(), "%.2f", res)
+                                                    val runStr = if (runningVal % 1 == 0.0) runningVal.toLong().toString() else String.format(java.util.Locale.getDefault(), "%.2f", runningVal)
+
+                                                    val historyEntry = "$runStr $opSymbol $nextVal = $resStr"
+                                                    historyList = (listOf(historyEntry) + historyList).take(10)
+
+                                                    displayStr = resStr
+                                                    runningVal = res
+                                                    activeOp = ""
+                                                    isStartingNewVal = true
                                                 }
-                                                val resStr = if (res % 1 == 0.0) res.toLong().toString() else String.format(java.util.Locale.getDefault(), "%.2f", res)
-                                                val runStr = if (runningVal % 1 == 0.0) runningVal.toLong().toString() else String.format(java.util.Locale.getDefault(), "%.2f", runningVal)
-
-                                                val historyEntry = "$runStr $opSymbol $nextVal = $resStr"
-                                                historyList = (listOf(historyEntry) + historyList).take(10)
-
-                                                displayStr = resStr
-                                                runningVal = res
-                                                activeOp = ""
-                                                isStartingNewVal = true
                                             }
                                         }
 

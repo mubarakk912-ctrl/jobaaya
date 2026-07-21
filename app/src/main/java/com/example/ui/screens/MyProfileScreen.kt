@@ -198,6 +198,10 @@ fun MyProfileScreen(
                                 etPinCode.setText(editPinCode)
                                 etMobile.setText(editMobile)
 
+                                // Lock mobile number and country selection to prevent unauthorized admin access
+                                etMobile.isEnabled = false
+                                spinnerCountry.isEnabled = false
+
                                 // 2. डेटा लोड करने का लॉजिक (इसे onCreate या onViewCreated में नीचे रखें ताकि ऐप खुलते ही बॉक्स भर जाएं)
                                 etAddress?.setText(sharedPreferences.getString("address", ""))
                                 etCity?.setText(sharedPreferences.getString("city", ""))
@@ -309,11 +313,6 @@ fun MyProfileScreen(
                             } else {
                                 me.fullAddress
                             }
-                            val combinedMobile = if (editMobile.isNotBlank()) {
-                                "$editCountryCode $editMobile"
-                            } else {
-                                me.mobileNumber
-                            }
                             viewModel.updateMyProfessionalProfile(
                                 me.copy(
                                     name = editName,
@@ -322,7 +321,7 @@ fun MyProfileScreen(
                                     aboutSection = editAbout,
                                     yearsOfExperience = editExperience.toIntOrNull() ?: 0,
                                     fullAddress = combinedAddress,
-                                    mobileNumber = combinedMobile,
+                                    mobileNumber = me.mobileNumber, // Always use the verified number from login
                                     emailAddress = editEmail,
                                     languagesRaw = editLanguages,
                                     workingHours = editWorkingHours

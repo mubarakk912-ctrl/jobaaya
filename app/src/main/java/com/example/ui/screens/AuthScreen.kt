@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,6 +25,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Lock
@@ -35,6 +37,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -148,6 +152,8 @@ fun AuthContent(
 ) {
     var mobileInput by remember { mutableStateOf("") }
     var otpInput by remember { mutableStateOf("") }
+    var selectedCountryCode by remember { mutableStateOf("+91") }
+    var expanded by remember { mutableStateOf(false) }
 
     // Onboarding fields
     var regName by remember { mutableStateOf("") }
@@ -193,7 +199,7 @@ fun AuthContent(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFF0B3A51))
+                .background(Color(0xFF111827))
                 .padding(innerPadding)
         ) {
             Column(
@@ -240,7 +246,7 @@ fun AuthContent(
                             .fillMaxWidth()
                             .testTag("login_card"),
                         shape = RoundedCornerShape(28.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1D2951)),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1F2937)),
                         elevation = CardDefaults.cardElevation(4.dp)
                     ) {
                         Column(
@@ -265,12 +271,47 @@ fun AuthContent(
                                 OutlinedTextField(
                                     value = mobileInput,
                                     onValueChange = { mobileInput = it },
-                                    label = { Text(JobaayaLocalization.translate("mobile_number", currentLang).ifBlank { "Mobile Number (with +91)" }, color = Color.White) },
-                                    leadingIcon = { Icon(Icons.Default.PhoneAndroid, contentDescription = null, tint = Color.White) },
+                                    label = { Text(JobaayaLocalization.translate("mobile_number", currentLang).ifBlank { "Mobile Number" }, color = Color.White) },
+                                    leadingIcon = {
+                                        Box {
+                                            Row(
+                                                modifier = Modifier
+                                                    .clickable { expanded = true }
+                                                    .padding(start = 12.dp, end = 8.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(selectedCountryCode, color = Color.White, fontWeight = FontWeight.Bold)
+                                                Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = Color.White)
+                                            }
+                                            DropdownMenu(
+                                                expanded = expanded,
+                                                onDismissRequest = { expanded = false },
+                                                modifier = Modifier.background(Color(0xFF1F2937))
+                                            ) {
+                                                val codes = listOf(
+                                                    "+91", "+1", "+44", "+971", "+880", "+977", "+92", "+94", "+65", "+60", 
+                                                    "+66", "+62", "+82", "+84", "+63", "+81", "+86", "+49", "+33", "+39", 
+                                                    "+34", "+7", "+55", "+52", "+27", "+966", "+93", "+98", "+964", "+90", 
+                                                    "+20", "+234", "+254", "+251", "+212", "+213", "+41", "+43", "+46", 
+                                                    "+47", "+45", "+31", "+32", "+351", "+30", "+48", "+420", "+36", "+40", 
+                                                    "+380", "+353", "+64", "+54", "+56", "+57", "+58", "+51", "+593"
+                                                ).sorted()
+                                                codes.forEach { code ->
+                                                    DropdownMenuItem(
+                                                        text = { Text(code, color = Color.White) },
+                                                        onClick = {
+                                                            selectedCountryCode = code
+                                                            expanded = false
+                                                        }
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(14.dp),
-                                    placeholder = { Text("+91XXXXXXXXXX", color = Color.White.copy(alpha = 0.6f)) },
+                                    placeholder = { Text("XXXXXXXXXX", color = Color.White.copy(alpha = 0.6f)) },
                                     colors = OutlinedTextFieldDefaults.colors(
                                         focusedTextColor = Color.White,
                                         unfocusedTextColor = Color.White,
@@ -282,20 +323,26 @@ fun AuthContent(
                                 Spacer(modifier = Modifier.height(20.dp))
 
                                 Button(
-                                    onClick = { onSendOtp(mobileInput) },
+                                    onClick = { onSendOtp(selectedCountryCode + mobileInput) },
                                     enabled = mobileInput.length >= 10,
                                     modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(50.dp),
+                                        .fillMaxWidth(0.7f)
+                                        .height(35.dp),
                                     shape = RoundedCornerShape(14.dp),
+                                    contentPadding = PaddingValues(0.dp),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color(0xFF003E23),
+                                        containerColor = Color(0xFF22C55E),
                                         contentColor = Color.White,
-                                        disabledContainerColor = Color(0xFFF5F5F5).copy(alpha = 0.3f),
-                                        disabledContentColor = Color(0xFFF5F5F5)
+                                        disabledContainerColor = Color(0xFFE51F3E),
+                                        disabledContentColor = Color.White
                                     )
                                 ) {
-                                    Text(JobaayaLocalization.translate("send_otp", currentLang).ifBlank { "Send OTP" }, fontWeight = FontWeight.Bold)
+                                    Text(
+                                        text = JobaayaLocalization.translate("send_otp", currentLang).ifBlank { "Send OTP" },
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        textAlign = TextAlign.Center
+                                    )
                                 }
                             } else {
                                 // OTP INPUT
@@ -321,17 +368,23 @@ fun AuthContent(
                                     onClick = { onVerifyOtp(otpInput) },
                                     enabled = otpInput.length == 6,
                                     modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(50.dp),
+                                        .fillMaxWidth(0.7f)
+                                        .height(35.dp),
                                     shape = RoundedCornerShape(14.dp),
+                                    contentPadding = PaddingValues(0.dp),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color(0xFF003E23),
+                                        containerColor = Color(0xFF22C55E),
                                         contentColor = Color.White,
-                                        disabledContainerColor = Color(0xFFF5F5F5).copy(alpha = 0.3f),
-                                        disabledContentColor = Color(0xFFF5F5F5)
+                                        disabledContainerColor = Color(0xFFE51F3E),
+                                        disabledContentColor = Color.White
                                     )
                                 ) {
-                                    Text(JobaayaLocalization.translate("verify_otp", currentLang).ifBlank { "Verify & Login" }, fontWeight = FontWeight.Bold)
+                                    Text(
+                                        text = JobaayaLocalization.translate("verify_otp", currentLang).ifBlank { "Verify & Login" },
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        textAlign = TextAlign.Center
+                                    )
                                 }
 
                                 TextButton(

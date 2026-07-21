@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Logo ko aur 15% chhota kiya gaya hai (65dp -> 55dp) taaki corners se touch na ho -->
-    <item
-        android:width="55dp"
-        android:height="19dp"
-        android:drawable="@drawable/kuku"
-        android:gravity="center" />
-</layer-list>
