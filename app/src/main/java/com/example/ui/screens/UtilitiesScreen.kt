@@ -1,9 +1,12 @@
 package com.example.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -37,6 +41,8 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FormatAlignCenter
 import androidx.compose.material.icons.filled.FormatBold
 import androidx.compose.material.icons.filled.FormatItalic
+import androidx.compose.material.icons.filled.Calculate
+import androidx.compose.material.icons.filled.CurrencyExchange
 import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Description
@@ -101,79 +107,116 @@ fun UtilitiesScreen(
     modifier: Modifier = Modifier
 ) {
     val currentLang by viewModel.currentLanguage.collectAsState()
-    var selectedTab by remember { mutableIntStateOf(1) }
+    var selectedTab by remember { mutableIntStateOf(-1) }
+
+    BackHandler(enabled = selectedTab != -1) {
+        selectedTab = -1
+    }
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(Color(0xFF0D131D))
     ) {
-        TabRow(
-            selectedTabIndex = selectedTab,
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = Color(0xFFE0E0E0),
-            indicator = {},
-            divider = {},
-            modifier = Modifier.heightIn(min = 72.dp)
-        ) {
-            Tab(
-                selected = selectedTab == 1,
-                onClick = { selectedTab = 1 },
-                text = {
-                    Text(
-                        text = JobaayaLocalization.translate("calculator", currentLang),
-                        modifier = Modifier.padding(top = 32.dp),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        color = if(selectedTab == 1) Color.White else Color(0xFFE0E0E0),
-                        maxLines = 1,
-                        softWrap = false,
-                        textAlign = TextAlign.Center,
-                        overflow = TextOverflow.Visible
-                    )
-                }
-            )
-            Tab(
-                selected = selectedTab == 0,
-                onClick = { selectedTab = 0 },
-                text = {
-                    Text(
-                        text = JobaayaLocalization.translate("notes", currentLang),
-                        modifier = Modifier.padding(top = 32.dp),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        color = if(selectedTab == 0) Color.White else Color(0xFFE0E0E0),
-                        maxLines = 2,
-                        softWrap = true,
-                        textAlign = TextAlign.Center,
-                        overflow = TextOverflow.Visible
-                    )
-                }
-            )
-            Tab(
-                selected = selectedTab == 2,
-                onClick = { selectedTab = 2 },
-                text = {
-                    Text(
-                        text = JobaayaLocalization.translate("currency_counter", currentLang),
-                        modifier = Modifier.padding(top = 32.dp),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        color = if(selectedTab == 2) Color.White else Color(0xFFE0E0E0),
-                        maxLines = 2,
-                        softWrap = true,
-                        textAlign = TextAlign.Center,
-                        overflow = TextOverflow.Visible
-                    )
-                }
-            )
-        }
+        if (selectedTab == -1) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Tools",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 24.dp, start = 8.dp, top = 16.dp)
+                )
 
-        Box(modifier = Modifier.weight(1f)) {
-            when (selectedTab) {
-                1 -> CalculatorTabSection()
-                0 -> NotesTabSection(viewModel = viewModel, currentLang = currentLang)
-                2 -> CurrencyTabSection(currentLang = currentLang)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    val tools = listOf(
+                        Triple(JobaayaLocalization.translate("calculator", currentLang), Icons.Default.Calculate, 1),
+                        Triple(JobaayaLocalization.translate("notes", currentLang), Icons.Default.Description, 0),
+                        Triple(JobaayaLocalization.translate("currency_counter", currentLang), Icons.Default.CurrencyExchange, 2)
+                    )
+
+                    tools.forEach { (title, icon, index) ->
+                        val interactionSource = remember { MutableInteractionSource() }
+                        val isPressed by interactionSource.collectIsPressedAsState()
+
+                        Card(
+                            modifier = Modifier
+                                .weight(1f)
+                                .aspectRatio(1f)
+                                .clickable(
+                                    interactionSource = interactionSource,
+                                    indication = null,
+                                    onClick = { selectedTab = index }
+                                ),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF16202E))
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = title,
+                                    tint = if (isPressed) Color.White else Color(0xFFBDBDBD),
+                                    modifier = Modifier.size(36.dp)
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = title,
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    textAlign = TextAlign.Center,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.padding(horizontal = 4.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            Column(modifier = Modifier.fillMaxSize()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = { selectedTab = -1 }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White
+                        )
+                    }
+                    Text(
+                        text = when (selectedTab) {
+                            1 -> JobaayaLocalization.translate("calculator", currentLang)
+                            0 -> JobaayaLocalization.translate("notes", currentLang)
+                            2 -> JobaayaLocalization.translate("currency_counter", currentLang)
+                            else -> ""
+                        },
+                        style = MaterialTheme.typography.titleLarge,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                }
+
+                Box(modifier = Modifier.weight(1f)) {
+                    when (selectedTab) {
+                        1 -> CalculatorTabSection()
+                        0 -> NotesTabSection(viewModel = viewModel, currentLang = currentLang)
+                        2 -> CurrencyTabSection(currentLang = currentLang)
+                    }
+                }
             }
         }
     }
