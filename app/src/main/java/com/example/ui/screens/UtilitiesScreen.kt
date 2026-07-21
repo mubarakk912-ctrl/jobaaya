@@ -13,12 +13,16 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -110,7 +114,7 @@ fun UtilitiesScreen(
             contentColor = MaterialTheme.colorScheme.primary,
             indicator = {},
             divider = {},
-            modifier = Modifier.height(80.dp)
+            modifier = Modifier.heightIn(min = 72.dp)
         ) {
             Tab(
                 selected = selectedTab == 1,
@@ -393,7 +397,7 @@ fun NotesTabSection(
             properties = DialogProperties(usePlatformDefaultWidth = false)
         ) {
             Card(
-                modifier = Modifier.fillMaxWidth(0.95f).fillMaxHeight(0.75f),
+                modifier = Modifier.fillMaxWidth(0.95f).fillMaxHeight(0.85f),
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = Color(noteBgColor))
             ) {
@@ -712,10 +716,11 @@ fun CalculatorTabSection() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 10.dp, vertical = 6.dp),
+            .padding(horizontal = 10.dp, vertical = 6.dp)
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.fillMaxHeight(0.12f))
+        Spacer(modifier = Modifier.height(16.dp))
 
         Surface(
             modifier = Modifier
@@ -788,7 +793,7 @@ fun CalculatorTabSection() {
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .height(55.dp)
+                                .heightIn(min = 55.dp)
                                 .clip(RoundedCornerShape(14.dp))
                                 .background(
                                     when {
@@ -1059,7 +1064,7 @@ fun CurrencyTabSection(
                                 keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
                             ),
                             modifier = Modifier
-                                .width(70.dp)
+                                .width(80.dp)
                                 .border(1.dp, contentColor.copy(alpha = 0.3f), RoundedCornerShape(8.dp)),
                             singleLine = true,
                             colors = TextFieldDefaults.colors(
@@ -1093,7 +1098,7 @@ fun CurrencyTabSection(
                                 keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
                             ),
                             modifier = Modifier
-                                .width(85.dp)
+                                .width(80.dp)
                                 .border(1.dp, contentColor.copy(alpha = 0.3f), RoundedCornerShape(8.dp)),
                             singleLine = true,
                             colors = TextFieldDefaults.colors(

@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -177,7 +178,7 @@ fun HomeContent(
                             onClick = onNearMeClick,
                             shape = RoundedCornerShape(8.dp),
                             color = Color(0xFF0B3A51), // Deep Teal
-                            modifier = Modifier.height(32.dp)
+                            modifier = Modifier.heightIn(min = 32.dp)
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 8.dp),
@@ -204,7 +205,7 @@ fun HomeContent(
                 },
                 modifier = Modifier
                     .weight(1f)
-                    .height(68.dp)
+                    .heightIn(min = 56.dp)
                     .testTag("search_input"),
                 shape = RoundedCornerShape(12.dp),
                 singleLine = true,
