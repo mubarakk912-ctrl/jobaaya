@@ -161,36 +161,31 @@ fun AuthContent(
 
     val scrollState = rememberScrollState()
 
-    val primaryBgGradients = Brush.verticalGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-            MaterialTheme.colorScheme.background
-        )
-    )
-
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 40.dp, bottom = 10.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                // App Brand Logo fixed at top
+            if (onboardingStep) {
                 Box(
                     modifier = Modifier
-                        .width(90.dp)
-                        .height(32.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color.Black),
+                        .fillMaxWidth()
+                        .padding(top = 40.dp, bottom = 10.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.kuku),
-                        contentDescription = "Logo",
-                        modifier = Modifier.size(width = 80.dp, height = 28.dp)
-                    )
+                    // App Brand Logo fixed at top
+                    Box(
+                        modifier = Modifier
+                            .width(90.dp)
+                            .height(32.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color.Black),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.kuku),
+                            contentDescription = "Logo",
+                            modifier = Modifier.size(width = 80.dp, height = 28.dp)
+                        )
+                    }
                 }
             }
         }
@@ -198,55 +193,9 @@ fun AuthContent(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(primaryBgGradients)
+                .background(Color(0xFF0B3A51))
                 .padding(innerPadding)
         ) {
-            // Language selection icon at top right
-            var showLangSelector by remember { mutableStateOf(false) }
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(16.dp)
-            ) {
-                IconButton(
-                    onClick = { showLangSelector = !showLangSelector },
-                    modifier = Modifier.background(MaterialTheme.colorScheme.surface, CircleShape)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Language,
-                        contentDescription = "Change Language",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-
-                if (showLangSelector) {
-                    Card(
-                        modifier = Modifier
-                            .width(200.dp),
-                        elevation = CardDefaults.cardElevation(8.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                    ) {
-                        Column {
-                            AppLanguage.entries.take(4).forEach { lang ->
-                                Text(
-                                    text = lang.displayName,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            onLanguageChange(lang)
-                                            showLangSelector = false
-                                        }
-                                        .padding(12.dp),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = if (lang == currentLang) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (lang == currentLang) MaterialTheme.colorScheme.primary else Color.Unspecified
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -257,14 +206,23 @@ fun AuthContent(
             ) {
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // App Name and Tagline
-                Text(
-                    text = "jobaaya",
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.Black,
-                    color = Color.White, // Branding/Heading as white
-                    letterSpacing = 1.sp
-                )
+                // App Brand Logo
+                Box(
+                    modifier = Modifier
+                        .width(126.dp)
+                        .height(45.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.Black),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.kuku),
+                        contentDescription = "Logo",
+                        modifier = Modifier.size(width = 112.dp, height = 40.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
 
                 Text(
                     text = JobaayaLocalization.translate("app_tagline", currentLang),
@@ -282,7 +240,7 @@ fun AuthContent(
                             .fillMaxWidth()
                             .testTag("login_card"),
                         shape = RoundedCornerShape(28.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1D2951)),
                         elevation = CardDefaults.cardElevation(4.dp)
                     ) {
                         Column(
@@ -290,21 +248,14 @@ fun AuthContent(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                text = JobaayaLocalization.translate(key = "login_title", language = currentLang),
-                                modifier = Modifier.padding(top = 5.dp),
+                                text = "Welcome to jobaaya",
+                                modifier = Modifier.padding(top = 5.dp, bottom = 20.dp),
                                 style = MaterialTheme.typography.titleLarge.copy(
-                                    fontSize = 35.sp,
+                                    fontSize = 24.5.sp,
                                     fontWeight = FontWeight.Bold
                                 ),
-                                color = MaterialTheme.colorScheme.onSurface,
+                                color = Color.White,
                                 textAlign = TextAlign.Center
-                            )
-                            Text(
-                                text = JobaayaLocalization.translate("login_subtitle", currentLang),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(top = 4.dp, bottom = 20.dp)
                             )
 
                             Spacer(modifier = Modifier.height(20.dp))
@@ -314,12 +265,18 @@ fun AuthContent(
                                 OutlinedTextField(
                                     value = mobileInput,
                                     onValueChange = { mobileInput = it },
-                                    label = { Text(JobaayaLocalization.translate("mobile_number", currentLang).ifBlank { "Mobile Number (with +91)" }) },
-                                    leadingIcon = { Icon(Icons.Default.PhoneAndroid, contentDescription = null) },
+                                    label = { Text(JobaayaLocalization.translate("mobile_number", currentLang).ifBlank { "Mobile Number (with +91)" }, color = Color.White) },
+                                    leadingIcon = { Icon(Icons.Default.PhoneAndroid, contentDescription = null, tint = Color.White) },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(14.dp),
-                                    placeholder = { Text("+91XXXXXXXXXX") }
+                                    placeholder = { Text("+91XXXXXXXXXX", color = Color.White.copy(alpha = 0.6f)) },
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedTextColor = Color.White,
+                                        unfocusedTextColor = Color.White,
+                                        focusedBorderColor = Color.White,
+                                        unfocusedBorderColor = Color.White.copy(alpha = 0.5f)
+                                    )
                                 )
 
                                 Spacer(modifier = Modifier.height(20.dp))
@@ -330,7 +287,13 @@ fun AuthContent(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .height(50.dp),
-                                    shape = RoundedCornerShape(14.dp)
+                                    shape = RoundedCornerShape(14.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFF003E23),
+                                        contentColor = Color.White,
+                                        disabledContainerColor = Color(0xFFF5F5F5).copy(alpha = 0.3f),
+                                        disabledContentColor = Color(0xFFF5F5F5)
+                                    )
                                 ) {
                                     Text(JobaayaLocalization.translate("send_otp", currentLang).ifBlank { "Send OTP" }, fontWeight = FontWeight.Bold)
                                 }
@@ -339,11 +302,17 @@ fun AuthContent(
                                 OutlinedTextField(
                                     value = otpInput,
                                     onValueChange = { otpInput = it },
-                                    label = { Text(JobaayaLocalization.translate("enter_otp", currentLang).ifBlank { "Enter 6-digit OTP" }) },
-                                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                                    label = { Text(JobaayaLocalization.translate("enter_otp", currentLang).ifBlank { "Enter 6-digit OTP" }, color = Color.White) },
+                                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color.White) },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                                     modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(14.dp)
+                                    shape = RoundedCornerShape(14.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedTextColor = Color.White,
+                                        unfocusedTextColor = Color.White,
+                                        focusedBorderColor = Color.White,
+                                        unfocusedBorderColor = Color.White.copy(alpha = 0.5f)
+                                    )
                                 )
 
                                 Spacer(modifier = Modifier.height(20.dp))
@@ -354,7 +323,13 @@ fun AuthContent(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .height(50.dp),
-                                    shape = RoundedCornerShape(14.dp)
+                                    shape = RoundedCornerShape(14.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFF003E23),
+                                        contentColor = Color.White,
+                                        disabledContainerColor = Color(0xFFF5F5F5).copy(alpha = 0.3f),
+                                        disabledContentColor = Color(0xFFF5F5F5)
+                                    )
                                 ) {
                                     Text(JobaayaLocalization.translate("verify_otp", currentLang).ifBlank { "Verify & Login" }, fontWeight = FontWeight.Bold)
                                 }
@@ -363,29 +338,14 @@ fun AuthContent(
                                     onClick = { onSendOtp(mobileInput) },
                                     modifier = Modifier.padding(top = 8.dp)
                                 ) {
-                                    Text(JobaayaLocalization.translate("resend_otp", currentLang).ifBlank { "Resend OTP" })
+                                    Text(
+                                        text = JobaayaLocalization.translate("resend_otp", currentLang).ifBlank { "Resend OTP" },
+                                        color = Color.White
+                                    )
                                 }
                             }
 
                             Spacer(modifier = Modifier.height(16.dp))
-
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                Text(
-                                    text = JobaayaLocalization.translate("new_to_app", currentLang),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.outline
-                                )
-                                TextButton(onClick = { onToggleOnboarding(true) }) {
-                                    Text(
-                                        text = JobaayaLocalization.translate("register", currentLang),
-                                        fontWeight = FontWeight.Bold,
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
-                                }
-                            }
                         }
                     }
                 } else {
