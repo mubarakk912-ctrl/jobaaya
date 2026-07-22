@@ -892,6 +892,12 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun deleteNotification(notification: SystemNotification) {
+        viewModelScope.launch {
+            repository.deleteNotification(notification)
+        }
+    }
+
     // Partnership Deals
     fun getMyDeals(): StateFlow<List<PartnershipDeal>> {
         val myId = myProfile.value?.id ?: ""
@@ -1036,14 +1042,24 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun resolveBugReport(bugId: String) {
+    fun resolveBugReport(bugId: String, userId: String) {
         viewModelScope.launch {
             try {
+                // 1. Status update in Firestore
                 FirebaseFirestore.getInstance()
                     .collection("bug_reports")
                     .document(bugId)
                     .update("status", "resolved")
                     .await()
+                
+                // 2. Send Push Notification to user
+                repository.pushNotificationTrigger(
+                    targetUserId = userId,
+                    type = "bug_resolved",
+                    title = "Bug Fixed",
+                    body = "The issue you reported has been fixed. Thank you for your feedback!"
+                )
+
                 fetchBugReports()
             } catch (e: Exception) {
                 Log.e("JobaayaViewModel", "resolveBugReport error", e)

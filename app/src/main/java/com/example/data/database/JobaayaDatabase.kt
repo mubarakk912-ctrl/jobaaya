@@ -148,6 +148,9 @@ interface SystemNotificationDao {
 
     @Query("DELETE FROM system_notifications")
     suspend fun clearAll()
+
+    @Delete
+    suspend fun deleteNotification(notification: SystemNotification)
 }
 
 @Dao

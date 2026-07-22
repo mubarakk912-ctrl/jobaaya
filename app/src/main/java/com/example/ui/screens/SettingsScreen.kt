@@ -1006,7 +1006,7 @@ fun SettingsScreen(
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = "Apni problem yahan likhein, hum jald hi isse theek karenge.",
+                        text = if (currentLang == AppLanguage.ENGLISH) "Please describe your problem here, we will fix it as soon as possible." else "Apni problem yahan likhein, hum jald hi isse theek karenge.",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.outline
                     )
@@ -1018,7 +1018,7 @@ fun SettingsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 4,
                         maxLines = 6,
-                        placeholder = { Text("Bug ka description likhein...") },
+                        placeholder = { Text(if (currentLang == AppLanguage.ENGLISH) "Describe the bug..." else "Bug ka description likhein...") },
                         enabled = !isSubmittingBug
                     )
 

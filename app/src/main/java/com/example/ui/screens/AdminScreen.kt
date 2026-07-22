@@ -226,6 +226,7 @@ fun RowScope.AdminToolCard(title: String, icon: androidx.compose.ui.graphics.vec
 
 @Composable
 fun AdminSupportSection(viewModel: JobaayaViewModel) {
+    val context = LocalContext.current
     val messages by viewModel.contactMessages.collectAsState()
     val bugReports by viewModel.bugReports.collectAsState()
     var supportTab by remember { mutableIntStateOf(0) } // 0: General, 1: Bugs
@@ -409,7 +410,10 @@ fun AdminSupportSection(viewModel: JobaayaViewModel) {
                                 if (bug.status == "open") {
                                     Spacer(modifier = Modifier.height(12.dp))
                                     Button(
-                                        onClick = { viewModel.resolveBugReport(bug.id) },
+                                        onClick = { 
+                                            viewModel.resolveBugReport(bug.id, bug.userId)
+                                            Toast.makeText(context, "Bug fixed and user notified!", Toast.LENGTH_SHORT).show()
+                                        },
                                         modifier = Modifier.align(Alignment.End).height(34.dp),
                                         shape = RoundedCornerShape(8.dp),
                                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00281F))

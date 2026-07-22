@@ -113,6 +113,8 @@ class JobaayaRepository(
 
     suspend fun clearAllNotifications() = notificationDao.clearAll()
 
+    suspend fun deleteNotification(notification: SystemNotification) = notificationDao.deleteNotification(notification)
+
     // ==========================================
     // PUSH NOTIFICATION TRIGGER (NEW - Phase 2)
     // ==========================================
@@ -163,7 +165,7 @@ class JobaayaRepository(
                         "type" to type,
                         "title" to title,
                         "body" to body,
-                        "createdAt" to System.currentTimeMillis(),
+                        "createdAt" to com.google.firebase.Timestamp.now(),
                         "status" to "pending"
                     )
                 )
@@ -272,9 +274,6 @@ class JobaayaRepository(
         if (notifyExisting.isNullOrEmpty()) {
             notificationDao.insertNotification(SystemNotification(title = "System Alert", content = "Welcome to jobaaya! Your activity log is ready."))
         }
-
-        // Always add a session start notification for debugging visibility
-        notificationDao.insertNotification(SystemNotification(title = "Session Started", content = "Platform session initialized. All services are online."))
 
         val me = profileDao.getMyProfileDirect()
         if (me == null) {

@@ -478,15 +478,8 @@ fun MainPlatformContainer(
                                 style = MaterialTheme.typography.titleMedium,
                                 color = Color(0xFFE0E0E0)
                             )
-                            Row {
-                                if (notificationsList.isNotEmpty()) {
-                                    IconButton(onClick = { viewModel.clearAllNotifications() }) {
-                                        Icon(Icons.Default.Delete, contentDescription = "Clear All", tint = Color.Red, modifier = Modifier.size(20.dp))
-                                    }
-                                }
-                                IconButton(onClick = { showNotificationDrawer = false }) {
-                                    Icon(Icons.Default.Close, contentDescription = "Close Alerts")
-                                }
+                            IconButton(onClick = { showNotificationDrawer = false }) {
+                                Icon(Icons.Default.Close, contentDescription = "Close Alerts")
                             }
                         }
 
@@ -543,11 +536,25 @@ fun MainPlatformContainer(
                                                 sdf.format(java.util.Date(alert.timestamp))
                                             } catch (_: Exception) { "" }
 
-                                            Text(
-                                                text = timeString,
-                                                fontSize = 10.sp,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                            )
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text(
+                                                    text = timeString,
+                                                    fontSize = 10.sp,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                                )
+                                                Spacer(Modifier.width(8.dp))
+                                                IconButton(
+                                                    onClick = { viewModel.deleteNotification(alert) },
+                                                    modifier = Modifier.size(24.dp)
+                                                ) {
+                                                    Icon(
+                                                        Icons.Default.Delete,
+                                                        contentDescription = "Delete",
+                                                        tint = Color.Red.copy(alpha = 0.6f),
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                }
+                                            }
                                         }
                                         Text(
                                             text = alert.content,
