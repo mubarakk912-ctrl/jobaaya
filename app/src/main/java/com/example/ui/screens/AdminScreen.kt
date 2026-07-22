@@ -1,12 +1,16 @@
 package com.example.ui.screens
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,12 +19,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FolderShared
@@ -80,7 +86,11 @@ fun AdminScreen(
     val currentLang by viewModel.currentLanguage.collectAsState()
     val profiles by viewModel.filteredProfiles.collectAsState()
 
-    var selectedAdminTab by remember { mutableIntStateOf(0) } // 0: User Management, 1: Spam/Reports, 2: Analytics, 3: Support
+    var selectedAdminTab by remember { mutableIntStateOf(-1) } // -1: Menu, 0: User Management, 1: Spam/Reports, 2: Analytics, 3: Support
+
+    BackHandler(enabled = selectedAdminTab != -1) {
+        selectedAdminTab = -1
+    }
 
     val reportedProfiles = remember(profiles) {
         profiles.filter { it.isReported }
@@ -89,44 +99,127 @@ fun AdminScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(Color(0xFF0D131D))
     ) {
-        // Tab Header row
-        TabRow(
-            selectedTabIndex = selectedAdminTab,
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = Color(0xFFE0E0E0)
-        ) {
-            Tab(
-                selected = selectedAdminTab == 0,
-                onClick = { selectedAdminTab = 0 },
-                text = { Text(JobaayaLocalization.translate("admin_users", currentLang), fontWeight = FontWeight.Bold, fontSize = 11.sp) }
-            )
-            Tab(
-                selected = selectedAdminTab == 1,
-                onClick = { selectedAdminTab = 1 },
-                text = { Text(JobaayaLocalization.translate("admin_reports", currentLang), fontWeight = FontWeight.Bold, fontSize = 11.sp) }
-            )
-            Tab(
-                selected = selectedAdminTab == 2,
-                onClick = { selectedAdminTab = 2 },
-                text = { Text(JobaayaLocalization.translate("admin_analytics", currentLang), fontWeight = FontWeight.Bold, fontSize = 11.sp) }
-            )
-            Tab(
-                selected = selectedAdminTab == 3,
-                onClick = { selectedAdminTab = 3 },
-                text = { Text("Support", fontWeight = FontWeight.Bold, fontSize = 11.sp) }
-            )
+        if (selectedAdminTab == -1) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Admin Panel",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 24.dp, start = 8.dp, top = 16.dp)
+                )
+
+                val adminTools = listOf(
+                    Triple(JobaayaLocalization.translate("admin_users", currentLang), Icons.Default.FolderShared, 0),
+                    Triple(JobaayaLocalization.translate("admin_reports", currentLang), Icons.Default.Gavel, 1),
+                    Triple(JobaayaLocalization.translate("admin_analytics", currentLang), Icons.Default.SignalCellularAlt, 2),
+                    Triple("Support", Icons.Default.Check, 3)
+                )
+
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        adminTools.take(2).forEach { (title, icon, index) ->
+                            AdminToolCard(title, icon, index) { selectedAdminTab = it }
+                        }
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        adminTools.drop(2).forEach { (title, icon, index) ->
+                            AdminToolCard(title, icon, index) { selectedAdminTab = it }
+                        }
+                    }
+                }
+            }
+        } else {
+            Column(modifier = Modifier.fillMaxSize()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = { selectedAdminTab = -1 }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White
+                        )
+                    }
+                    Text(
+                        text = when (selectedAdminTab) {
+                            0 -> JobaayaLocalization.translate("admin_users", currentLang)
+                            1 -> JobaayaLocalization.translate("admin_reports", currentLang)
+                            2 -> JobaayaLocalization.translate("admin_analytics", currentLang)
+                            3 -> "Support"
+                            else -> ""
+                        },
+                        style = MaterialTheme.typography.titleLarge,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                }
+
+                Box(modifier = Modifier.weight(1f)) {
+                    // Content Routing based on selectors
+                    when (selectedAdminTab) {
+                        0 -> AdminUserManagementSection(viewModel = viewModel, profileList = profiles, currentLang = currentLang, onProfileClick = onProfileClick)
+                        1 -> AdminReportManagementSection(viewModel = viewModel, reportedList = reportedProfiles, currentLang = currentLang)
+                        2 -> AdminAnalyticsSection(profileList = profiles, currentLang = currentLang)
+                        3 -> AdminSupportSection(viewModel = viewModel)
+                    }
+                }
+            }
         }
+    }
+}
 
-        Spacer(modifier = Modifier.height(16.dp))
+@Composable
+fun RowScope.AdminToolCard(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, index: Int, onClick: (Int) -> Unit) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
 
-        // Content Routing based on selectors
-        when (selectedAdminTab) {
-            0 -> AdminUserManagementSection(viewModel = viewModel, profileList = profiles, currentLang = currentLang, onProfileClick = onProfileClick)
-            1 -> AdminReportManagementSection(viewModel = viewModel, reportedList = reportedProfiles, currentLang = currentLang)
-            2 -> AdminAnalyticsSection(profileList = profiles, currentLang = currentLang)
-            3 -> AdminSupportSection(viewModel = viewModel)
+    Card(
+        modifier = Modifier
+            .weight(1f)
+            .aspectRatio(1f)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = { onClick(index) }
+            ),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF16202E))
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = title,
+                tint = if (isPressed) Color.White else Color(0xFFBDBDBD),
+                modifier = Modifier.size(36.dp)
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = title,
+                color = Color.White,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
         }
     }
 }
@@ -149,12 +242,12 @@ fun AdminSupportSection(viewModel: JobaayaViewModel) {
             text = "Support Messages",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
+            color = Color.White
         )
         Text(
             text = "Reply to user problems and suggestions via push notifications.",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.outline,
+            color = Color.White.copy(alpha = 0.6f),
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
@@ -167,41 +260,53 @@ fun AdminSupportSection(viewModel: JobaayaViewModel) {
                 items(messages) { msg ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF16202E)),
+                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
                     ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
+                        Column(modifier = Modifier.padding(16.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(msg.userName, fontWeight = FontWeight.Bold, color = Color(0xFFE0E0E0))
+                                Text(msg.userName, fontWeight = FontWeight.Bold, color = Color.White)
                                 Spacer(modifier = Modifier.weight(1f))
                                 Surface(
-                                    color = if (msg.status == "Pending") Color.Red.copy(alpha = 0.2f) else Color.Green.copy(alpha = 0.2f),
-                                    shape = RoundedCornerShape(4.dp)
+                                    color = if (msg.status == "Pending") Color.Red.copy(alpha = 0.15f) else Color(0xFF00281F).copy(alpha = 0.3f),
+                                    shape = RoundedCornerShape(6.dp)
                                 ) {
                                     Text(
                                         text = msg.status,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                         fontSize = 10.sp,
-                                        color = if (msg.status == "Pending") Color.Red else Color(0xFF2E7D32),
+                                        color = if (msg.status == "Pending") Color(0xFFFF5252) else Color(0xFF4CAF50),
                                         fontWeight = FontWeight.Bold
                                     )
                                 }
                             }
-                            Text("Mobile: ${msg.registeredMobile}", fontSize = 10.sp, color = MaterialTheme.colorScheme.outline)
-                            Text("Device: ${msg.deviceModel} (Android ${msg.androidVersion})", fontSize = 10.sp, color = MaterialTheme.colorScheme.outline)
+                            Text("Mobile: ${msg.registeredMobile}", fontSize = 11.sp, color = Color.White.copy(alpha = 0.5f))
+                            Text("Device: ${msg.deviceModel} (Android ${msg.androidVersion})", fontSize = 11.sp, color = Color.White.copy(alpha = 0.5f))
                             
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(msg.message, fontSize = 14.sp)
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color.White.copy(alpha = 0.05f))
+                            
+                            Text(msg.message, fontSize = 14.sp, color = Color.White.copy(alpha = 0.9f), lineHeight = 20.sp)
                             
                             if (msg.status == "Pending") {
-                                Spacer(modifier = Modifier.height(12.dp))
+                                Spacer(modifier = Modifier.height(16.dp))
                                 OutlinedTextField(
                                     value = replyTextMap[msg.id] ?: "",
                                     onValueChange = { replyTextMap = replyTextMap + (msg.id to it) },
                                     modifier = Modifier.fillMaxWidth(),
-                                    placeholder = { Text("Type your reply here...", fontSize = 12.sp) },
-                                    maxLines = 3
+                                    placeholder = { Text("Type your reply here...", fontSize = 13.sp, color = Color.White.copy(alpha = 0.4f)) },
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedTextColor = Color.White,
+                                        unfocusedTextColor = Color.White,
+                                        focusedContainerColor = Color.Black.copy(alpha = 0.2f),
+                                        unfocusedContainerColor = Color.Black.copy(alpha = 0.2f),
+                                        focusedBorderColor = Color(0xFF00281F),
+                                        unfocusedBorderColor = Color.White.copy(alpha = 0.1f)
+                                    ),
+                                    shape = RoundedCornerShape(10.dp),
+                                    maxLines = 4
                                 )
-                                Spacer(modifier = Modifier.height(8.dp))
+                                Spacer(modifier = Modifier.height(12.dp))
                                 Button(
                                     onClick = {
                                         val reply = replyTextMap[msg.id] ?: ""
@@ -210,10 +315,12 @@ fun AdminSupportSection(viewModel: JobaayaViewModel) {
                                             replyTextMap = replyTextMap - msg.id
                                         }
                                     },
-                                    modifier = Modifier.align(Alignment.End),
+                                    modifier = Modifier.align(Alignment.End).height(38.dp),
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00281F)),
                                     enabled = (replyTextMap[msg.id] ?: "").isNotBlank()
                                 ) {
-                                    Text("Send Reply & Resolve", fontSize = 12.sp)
+                                    Text("Send Reply & Resolve", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
@@ -262,16 +369,20 @@ fun AdminUserManagementSection(
         OutlinedTextField(
             value = adminSearchQuery,
             onValueChange = { adminSearchQuery = it },
-            placeholder = { Text("Search by name, phone, or profession...", fontSize = 13.sp) },
+            placeholder = { Text("Search by name, phone, or profession...", fontSize = 13.sp, color = Color.White.copy(alpha = 0.4f)) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp),
             shape = RoundedCornerShape(12.dp),
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color(0xFFE0E0E0)) },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.White.copy(alpha = 0.6f)) },
             singleLine = true,
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White,
+                focusedContainerColor = Color(0xFF16202E),
+                unfocusedContainerColor = Color(0xFF16202E),
+                focusedBorderColor = Color(0xFF00281F),
+                unfocusedBorderColor = Color.White.copy(alpha = 0.1f)
             ),
             textStyle = TextStyle(fontSize = 14.sp)
         )
@@ -292,26 +403,26 @@ fun AdminUserManagementSection(
                 Surface(
                     modifier = Modifier.clickable { adminFilter = filter },
                     shape = RoundedCornerShape(20.dp),
-                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
-                    border = BorderStroke(1.dp, if (isSelected) Color.Transparent else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                    color = if (isSelected) Color(0xFF00281F) else Color(0xFF16202E),
+                    border = BorderStroke(1.dp, if (isSelected) Color.Transparent else Color.White.copy(alpha = 0.1f))
                 ) {
                     Text(
                         text = filter,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (isSelected) Color.White else Color(0xFFE0E0E0)
+                        color = if (isSelected) Color.White else Color.White.copy(alpha = 0.7f)
                     )
                 }
             }
         }
 
-        HorizontalDivider(modifier = Modifier.padding(bottom = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+        HorizontalDivider(modifier = Modifier.padding(bottom = 12.dp), color = Color.White.copy(alpha = 0.1f))
 
         Text(
             text = "Showing ${filteredList.size} Results",
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.outline,
+            color = Color.White.copy(alpha = 0.5f),
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
@@ -323,7 +434,8 @@ fun AdminUserManagementSection(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF16202E)),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
                 ) {
                     Row(
                         modifier = Modifier.padding(12.dp),
@@ -333,35 +445,35 @@ fun AdminUserManagementSection(
                             modifier = Modifier
                                 .size(36.dp)
                                 .clip(CircleShape)
-                                .background(if (user.isBlocked) Color.Red.copy(alpha = 0.1f) else MaterialTheme.colorScheme.secondaryContainer),
+                                .background(if (user.isBlocked) Color.Red.copy(alpha = 0.2f) else Color(0xFF00281F).copy(alpha = 0.2f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(user.name.take(2).uppercase(), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if(user.isBlocked) Color.Red else MaterialTheme.colorScheme.onSecondaryContainer)
+                            Text(user.name.take(2).uppercase(), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if(user.isBlocked) Color(0xFFFF5252) else Color(0xFF4CAF50))
                         }
 
                         Spacer(modifier = Modifier.width(10.dp))
 
                         Column(modifier = Modifier.weight(1f)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(user.name, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Text(user.name, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
                                 if (user.isVerified) {
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Icon(Icons.Default.Verified, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color(0xFF1E88E5))
                                 }
                                 if (user.isBlocked) {
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("(Blocked)", color = Color.Red, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    Text("(Blocked)", color = Color(0xFFFF5252), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
-                            Text(user.profession, fontSize = 11.sp, color = MaterialTheme.colorScheme.outline)
-                            Text(user.mobileNumber, fontSize = 10.sp, color = MaterialTheme.colorScheme.outline.copy(alpha=0.7f))
+                            Text(user.profession, fontSize = 11.sp, color = Color.White.copy(alpha = 0.6f))
+                            Text(user.mobileNumber, fontSize = 10.sp, color = Color.White.copy(alpha = 0.4f))
                         }
 
                         IconButton(onClick = { onProfileClick(user.id) }) {
                             Icon(
                                 imageVector = Icons.Default.Analytics,
                                 contentDescription = "Preview Profile",
-                                tint = Color(0xFFE0E0E0),
+                                tint = Color.White.copy(alpha = 0.7f),
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -372,7 +484,7 @@ fun AdminUserManagementSection(
                             shape = RoundedCornerShape(8.dp),
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (user.isVerified) Color(0xFFE53935) else Color(0xFF4CAF50)
+                                containerColor = if (user.isVerified) Color(0xFFD32F2F) else Color(0xFF00281F)
                             )
                         ) {
                             Text(
@@ -407,12 +519,12 @@ fun AdminReportManagementSection(
             text = "Moderation Compliance",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
+            color = Color.White
         )
         Text(
             text = "Review user complaints, spam detection issues, and block requests.",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.outline,
+            color = Color.White.copy(alpha = 0.6f),
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
@@ -426,14 +538,14 @@ fun AdminReportManagementSection(
                     imageVector = Icons.Default.Warning,
                     contentDescription = null,
                     modifier = Modifier.size(54.dp),
-                    tint = Color(0xFFE0E0E0).copy(alpha = 0.5f)
+                    tint = Color.White.copy(alpha = 0.2f)
                 )
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(
-                    text = "Clean moderation queue! No active reported profiles reported by clients.",
+                    text = "Clean moderation queue! No active reported profiles.",
                     fontSize = 13.sp,
                     textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = Color.White.copy(alpha = 0.4f),
                     modifier = Modifier.padding(horizontal = 24.dp)
                 )
             }
@@ -445,22 +557,23 @@ fun AdminReportManagementSection(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF16202E)),
+                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
                     ) {
                         Column(modifier = Modifier.padding(14.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Box(
                                     modifier = Modifier
                                         .size(32.dp)
-                                        .background(Color.Red.copy(alpha = 0.2f), CircleShape),
+                                        .background(Color.Red.copy(alpha = 0.15f), CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(Icons.Default.Warning, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.Red)
+                                    Icon(Icons.Default.Warning, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color(0xFFFF5252))
                                 }
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Column {
-                                    Text(reported.name, fontWeight = FontWeight.Bold)
-                                    Text("Profession: ${reported.profession}", fontSize = 11.sp, color = MaterialTheme.colorScheme.outline)
+                                    Text(reported.name, fontWeight = FontWeight.Bold, color = Color.White)
+                                    Text("Profession: ${reported.profession}", fontSize = 11.sp, color = Color.White.copy(alpha = 0.6f))
                                 }
                             }
 
@@ -469,7 +582,7 @@ fun AdminReportManagementSection(
                             Text(
                                 text = "Violation flags: Reported for spamming / pricing discrepancy coordinates.",
                                 fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = Color.White.copy(alpha = 0.8f)
                             )
 
                             Spacer(modifier = Modifier.height(12.dp))
@@ -483,10 +596,11 @@ fun AdminReportManagementSection(
                                         viewModel.adminPardonUser(reported.id)
                                         Toast.makeText(context, "Pardoned user successfully.", Toast.LENGTH_SHORT).show()
                                     },
-                                    modifier = Modifier.weight(1f),
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+                                    modifier = Modifier.weight(1f).height(36.dp),
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.1f))
                                 ) {
-                                    Text("Dismiss Flag", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    Text("Dismiss Flag", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
                                 }
 
                                 Button(
@@ -494,10 +608,11 @@ fun AdminReportManagementSection(
                                         viewModel.blockUserProfile(reported.id)
                                         Toast.makeText(context, "Blocked and banned from searches.", Toast.LENGTH_SHORT).show()
                                     },
-                                    modifier = Modifier.weight(1f),
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                                    modifier = Modifier.weight(1f).height(36.dp),
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
                                 ) {
-                                    Text("Ban Account", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    Text("Ban Account", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
                                 }
                             }
                         }
@@ -526,12 +641,12 @@ fun AdminAnalyticsSection(
             text = "Growth Analytics Insights",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
+            color = Color.White
         )
         Text(
             text = "Real-time engagement audit metrics (profile click-through & searches)",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.outline,
+            color = Color.White.copy(alpha = 0.6f),
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
@@ -541,20 +656,24 @@ fun AdminAnalyticsSection(
         ) {
             Card(
                 modifier = Modifier.weight(1f),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF16202E)),
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
-                    Text("Directory Views", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                    Text("$totalViewsSum", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
+                    Text("Directory Views", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.5f))
+                    Text("$totalViewsSum", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black, color = Color.White)
                 }
             }
             Card(
                 modifier = Modifier.weight(1f),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF16202E)),
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
-                    Text("Lead Clicks", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                    Text("$totalClicksSum", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
+                    Text("Lead Clicks", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.5f))
+                    Text("$totalClicksSum", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black, color = Color.White)
                 }
             }
         }
@@ -565,14 +684,15 @@ fun AdminAnalyticsSection(
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF16202E)),
+            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
                     text = "Profile Impact Audit Charts",
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFFE0E0E0)
+                    color = Color.White
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -590,6 +710,7 @@ fun AdminAnalyticsSection(
                             text = user.name.split(" ").first(),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
+                            color = Color.White,
                             modifier = Modifier.width(60.dp),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -601,15 +722,15 @@ fun AdminAnalyticsSection(
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .height(14.dp)
+                                .height(12.dp)
                                 .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .background(Color.White.copy(alpha = 0.05f))
                         ) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxHeight()
                                     .fillMaxWidth(filledPct)
-                                    .background(MaterialTheme.colorScheme.primary, CircleShape)
+                                    .background(Color(0xFF00281F), CircleShape)
                             )
                         }
 
@@ -619,6 +740,7 @@ fun AdminAnalyticsSection(
                             text = "${user.profileViewsCount}",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
+                            color = Color.White.copy(alpha = 0.8f),
                             modifier = Modifier.width(36.dp),
                             textAlign = TextAlign.End
                         )
