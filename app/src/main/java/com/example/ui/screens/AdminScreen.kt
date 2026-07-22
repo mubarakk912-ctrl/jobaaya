@@ -227,10 +227,13 @@ fun RowScope.AdminToolCard(title: String, icon: androidx.compose.ui.graphics.vec
 @Composable
 fun AdminSupportSection(viewModel: JobaayaViewModel) {
     val messages by viewModel.contactMessages.collectAsState()
+    val bugReports by viewModel.bugReports.collectAsState()
+    var supportTab by remember { mutableIntStateOf(0) } // 0: General, 1: Bugs
     var replyTextMap by remember { mutableStateOf(mapOf<String, String>()) }
 
     LaunchedEffect(Unit) {
         viewModel.fetchContactMessages()
+        viewModel.fetchBugReports()
     }
 
     Column(
@@ -239,88 +242,180 @@ fun AdminSupportSection(viewModel: JobaayaViewModel) {
             .padding(horizontal = 16.dp)
     ) {
         Text(
-            text = "Support Messages",
+            text = "Support & Feedback",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = Color.White
         )
         Text(
-            text = "Reply to user problems and suggestions via push notifications.",
+            text = if(supportTab == 0) "User queries and help requests." else "Technical issues reported by users.",
             style = MaterialTheme.typography.bodySmall,
-            color = Color.White.copy(alpha = 0.6f),
-            modifier = Modifier.padding(bottom = 16.dp)
+            color = Color.White.copy(alpha = 0.6f)
         )
 
-        if (messages.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No messages found.", color = Color.Gray)
+        Spacer(modifier = Modifier.height(20.dp))
+        
+        // Sub-tabs for General/Bugs arranged properly
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color(0xFF16202E))
+                .padding(4.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if(supportTab == 1) Color(0xFF00281F) else Color.Transparent)
+                    .clickable { supportTab = 1 }
+                    .padding(vertical = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Bugs", color = if(supportTab == 1) Color.White else Color.White.copy(alpha=0.5f), fontSize = 13.sp, fontWeight = FontWeight.Bold)
             }
-        } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(messages) { msg ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF16202E)),
-                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(msg.userName, fontWeight = FontWeight.Bold, color = Color.White)
-                                Spacer(modifier = Modifier.weight(1f))
-                                Surface(
-                                    color = if (msg.status == "Pending") Color.Red.copy(alpha = 0.15f) else Color(0xFF00281F).copy(alpha = 0.3f),
-                                    shape = RoundedCornerShape(6.dp)
-                                ) {
-                                    Text(
-                                        text = msg.status,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                        fontSize = 10.sp,
-                                        color = if (msg.status == "Pending") Color(0xFFFF5252) else Color(0xFF4CAF50),
-                                        fontWeight = FontWeight.Bold
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if(supportTab == 0) Color(0xFF00281F) else Color.Transparent)
+                    .clickable { supportTab = 0 }
+                    .padding(vertical = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("General", color = if(supportTab == 0) Color.White else Color.White.copy(alpha=0.5f), fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        if (supportTab == 0) {
+            if (messages.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("No messages found.", color = Color.Gray)
+                }
+            } else {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    items(messages) { msg ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF16202E)),
+                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(msg.userName, fontWeight = FontWeight.Bold, color = Color.White)
+                                    Spacer(modifier = Modifier.weight(1f))
+                                    Surface(
+                                        color = if (msg.status == "Pending") Color.Red.copy(alpha = 0.15f) else Color(0xFF00281F).copy(alpha = 0.3f),
+                                        shape = RoundedCornerShape(6.dp)
+                                    ) {
+                                        Text(
+                                            text = msg.status,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                            fontSize = 10.sp,
+                                            color = if (msg.status == "Pending") Color(0xFFFF5252) else Color(0xFF4CAF50),
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                                Text("Mobile: ${msg.registeredMobile}", fontSize = 11.sp, color = Color.White.copy(alpha = 0.5f))
+                                Text("Device: ${msg.deviceModel} (Android ${msg.androidVersion})", fontSize = 11.sp, color = Color.White.copy(alpha = 0.5f))
+                                
+                                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color.White.copy(alpha = 0.05f))
+                                
+                                Text(msg.message, fontSize = 14.sp, color = Color.White.copy(alpha = 0.9f), lineHeight = 20.sp)
+                                
+                                if (msg.status == "Pending") {
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    OutlinedTextField(
+                                        value = replyTextMap[msg.id] ?: "",
+                                        onValueChange = { replyTextMap = replyTextMap + (msg.id to it) },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        placeholder = { Text("Type your reply here...", fontSize = 13.sp, color = Color.White.copy(alpha = 0.4f)) },
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedTextColor = Color.White,
+                                            unfocusedTextColor = Color.White,
+                                            focusedContainerColor = Color.Black.copy(alpha = 0.2f),
+                                            unfocusedContainerColor = Color.Black.copy(alpha = 0.2f),
+                                            focusedBorderColor = Color(0xFF00281F),
+                                            unfocusedBorderColor = Color.White.copy(alpha = 0.1f)
+                                        ),
+                                        shape = RoundedCornerShape(10.dp),
+                                        maxLines = 4
                                     )
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Button(
+                                        onClick = {
+                                            val reply = replyTextMap[msg.id] ?: ""
+                                            if (reply.isNotBlank()) {
+                                                viewModel.replyToContactMessage(msg.id, msg.userId, reply)
+                                                replyTextMap = replyTextMap - msg.id
+                                            }
+                                        },
+                                        modifier = Modifier.align(Alignment.End).height(38.dp),
+                                        shape = RoundedCornerShape(8.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00281F)),
+                                        enabled = (replyTextMap[msg.id] ?: "").isNotBlank()
+                                    ) {
+                                        Text("Send Reply & Resolve", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    }
                                 }
                             }
-                            Text("Mobile: ${msg.registeredMobile}", fontSize = 11.sp, color = Color.White.copy(alpha = 0.5f))
-                            Text("Device: ${msg.deviceModel} (Android ${msg.androidVersion})", fontSize = 11.sp, color = Color.White.copy(alpha = 0.5f))
-                            
-                            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color.White.copy(alpha = 0.05f))
-                            
-                            Text(msg.message, fontSize = 14.sp, color = Color.White.copy(alpha = 0.9f), lineHeight = 20.sp)
-                            
-                            if (msg.status == "Pending") {
-                                Spacer(modifier = Modifier.height(16.dp))
-                                OutlinedTextField(
-                                    value = replyTextMap[msg.id] ?: "",
-                                    onValueChange = { replyTextMap = replyTextMap + (msg.id to it) },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    placeholder = { Text("Type your reply here...", fontSize = 13.sp, color = Color.White.copy(alpha = 0.4f)) },
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedTextColor = Color.White,
-                                        unfocusedTextColor = Color.White,
-                                        focusedContainerColor = Color.Black.copy(alpha = 0.2f),
-                                        unfocusedContainerColor = Color.Black.copy(alpha = 0.2f),
-                                        focusedBorderColor = Color(0xFF00281F),
-                                        unfocusedBorderColor = Color.White.copy(alpha = 0.1f)
-                                    ),
-                                    shape = RoundedCornerShape(10.dp),
-                                    maxLines = 4
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Button(
-                                    onClick = {
-                                        val reply = replyTextMap[msg.id] ?: ""
-                                        if (reply.isNotBlank()) {
-                                            viewModel.replyToContactMessage(msg.id, msg.userId, reply)
-                                            replyTextMap = replyTextMap - msg.id
-                                        }
-                                    },
-                                    modifier = Modifier.align(Alignment.End).height(38.dp),
-                                    shape = RoundedCornerShape(8.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00281F)),
-                                    enabled = (replyTextMap[msg.id] ?: "").isNotBlank()
-                                ) {
-                                    Text("Send Reply & Resolve", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        } else {
+            // Bug Reports List
+            if (bugReports.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("No bug reports yet.", color = Color.Gray)
+                }
+            } else {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    items(bugReports) { bug ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF16202E)),
+                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text("Bug on ${bug.screen}", fontWeight = FontWeight.Bold, color = Color.White)
+                                    Spacer(modifier = Modifier.weight(1f))
+                                    Surface(
+                                        color = if (bug.status == "open") Color.Red.copy(alpha = 0.15f) else Color(0xFF00281F).copy(alpha = 0.3f),
+                                        shape = RoundedCornerShape(6.dp)
+                                    ) {
+                                        Text(
+                                            text = bug.status.uppercase(),
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                            fontSize = 10.sp,
+                                            color = if (bug.status == "open") Color(0xFFFF5252) else Color(0xFF4CAF50),
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                                Text("User ID: ${bug.userId.take(8)}...", fontSize = 11.sp, color = Color.White.copy(alpha = 0.5f))
+                                Text("Language: ${bug.language}", fontSize = 11.sp, color = Color.White.copy(alpha = 0.5f))
+                                
+                                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color.White.copy(alpha = 0.05f))
+                                
+                                Text(bug.description, fontSize = 14.sp, color = Color.White.copy(alpha = 0.9f), lineHeight = 20.sp)
+                                
+                                if (bug.status == "open") {
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Button(
+                                        onClick = { viewModel.resolveBugReport(bug.id) },
+                                        modifier = Modifier.align(Alignment.End).height(34.dp),
+                                        shape = RoundedCornerShape(8.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00281F))
+                                    ) {
+                                        Text("Mark as Fixed", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
                                 }
                             }
                         }

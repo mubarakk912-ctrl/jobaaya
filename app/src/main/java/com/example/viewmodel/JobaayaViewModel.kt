@@ -976,6 +976,9 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
     private val _contactMessages = MutableStateFlow<List<com.example.data.model.ContactMessageWithId>>(emptyList())
     val contactMessages: StateFlow<List<com.example.data.model.ContactMessageWithId>> = _contactMessages.asStateFlow()
 
+    private val _bugReports = MutableStateFlow<List<com.example.data.model.BugReport>>(emptyList())
+    val bugReports: StateFlow<List<com.example.data.model.BugReport>> = _bugReports.asStateFlow()
+
     fun fetchContactMessages() {
         viewModelScope.launch {
             try {
@@ -1002,6 +1005,48 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
                     }
             } catch (e: Exception) {
                 Log.e("JobaayaViewModel", "fetchContactMessages error", e)
+            }
+        }
+    }
+
+    fun fetchBugReports() {
+        viewModelScope.launch {
+            try {
+                FirebaseFirestore.getInstance()
+                    .collection("bug_reports")
+                    .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                    .get()
+                    .addOnSuccessListener { result ->
+                        val list = result.documents.map { doc ->
+                            com.example.data.model.BugReport(
+                                id = doc.id,
+                                userId = doc.getString("userId") ?: "",
+                                description = doc.getString("description") ?: "",
+                                screen = doc.getString("screen") ?: "",
+                                language = doc.getString("language") ?: "",
+                                status = doc.getString("status") ?: "open",
+                                timestamp = (doc.getTimestamp("timestamp")?.seconds ?: 0L) * 1000
+                            )
+                        }
+                        _bugReports.value = list
+                    }
+            } catch (e: Exception) {
+                Log.e("JobaayaViewModel", "fetchBugReports error", e)
+            }
+        }
+    }
+
+    fun resolveBugReport(bugId: String) {
+        viewModelScope.launch {
+            try {
+                FirebaseFirestore.getInstance()
+                    .collection("bug_reports")
+                    .document(bugId)
+                    .update("status", "resolved")
+                    .await()
+                fetchBugReports()
+            } catch (e: Exception) {
+                Log.e("JobaayaViewModel", "resolveBugReport error", e)
             }
         }
     }

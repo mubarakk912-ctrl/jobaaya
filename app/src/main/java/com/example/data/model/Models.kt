@@ -302,3 +302,12 @@ data class ContactMessageWithId(
     val status: String = "Pending"
 )
 
+data class BugReport(
+    val id: String,
+    val userId: String,
+    val description: String,
+    val screen: String,
+    val language: String,
+    val status: String = "open",
+    val timestamp: Long
+)
