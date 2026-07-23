@@ -60,7 +60,8 @@ fun SettingsScreen(
     viewModel: JobaayaViewModel,
     modifier: Modifier = Modifier,
     onPreviewClick: (String) -> Unit = {},
-    onContactUsClick: () -> Unit = {}
+    onContactUsClick: () -> Unit = {},
+    initiallyExpandProfile: Boolean = false
 ) {
     val context = LocalContext.current
 
@@ -79,7 +80,7 @@ fun SettingsScreen(
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
 
     // --- NEW DROPDOWN STATE FOR PROFILE ---
-    var showProfileItems by remember { mutableStateOf(false) }
+    var showProfileItems by remember { mutableStateOf(initiallyExpandProfile) }
 
     // --- BUG REPORT STATES ---
     var showBugReportDialog by remember { mutableStateOf(false) }

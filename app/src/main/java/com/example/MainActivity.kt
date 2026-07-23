@@ -63,6 +63,8 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -123,6 +125,17 @@ fun MainPlatformContainer(
     var detailedUserIdRoute by remember { mutableStateOf("") }
     var showNotificationDrawer by remember { mutableStateOf(false) }
 
+    var showCreateProfilePopup by remember { mutableStateOf(false) }
+    var expandProfileInSettings by remember { mutableStateOf(false) }
+
+    LaunchedEffect(myProfile, activeViewRoute) {
+        if (activeViewRoute == "home" && (myProfile == null || myProfile?.name == "Guest User" || myProfile?.name?.isBlank() == true)) {
+            showCreateProfilePopup = true
+        } else {
+            showCreateProfilePopup = false
+        }
+    }
+
     // NEW: Ask for POST_NOTIFICATIONS permission (required on Android 13+) once,
     // shortly after the user reaches the main app screen.
     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
@@ -141,6 +154,9 @@ fun MainPlatformContainer(
         if (activeViewRoute != route) {
             previousViewRoute = activeViewRoute
             activeViewRoute = route
+            if (route != "settings") {
+                expandProfileInSettings = false
+            }
         }
     }
 
@@ -430,7 +446,8 @@ fun MainPlatformContainer(
                         detailedUserIdRoute = id
                         navigateTo("detail")
                     },
-                    onContactUsClick = { navigateTo("contact_us") }
+                    onContactUsClick = { navigateTo("contact_us") },
+                    initiallyExpandProfile = expandProfileInSettings
                 )
 
                 "contact_us" -> ContactUsScreen(
@@ -447,6 +464,41 @@ fun MainPlatformContainer(
                     },
                     onOpenAdmin = { navigateTo("admin") }
                 )
+            }
+
+            if (showCreateProfilePopup) {
+                androidx.compose.ui.window.Dialog(onDismissRequest = { showCreateProfilePopup = false }) {
+                    Card(
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1F2937)),
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Create your professional profile to start networking!",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Spacer(modifier = Modifier.height(24.dp))
+                            androidx.compose.material3.Button(
+                                onClick = {
+                                    showCreateProfilePopup = false
+                                    expandProfileInSettings = true
+                                    navigateTo("settings")
+                                },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF22C55E))
+                            ) {
+                                Text("Create profile", color = Color.White, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
             }
 
             // Notification drawer block

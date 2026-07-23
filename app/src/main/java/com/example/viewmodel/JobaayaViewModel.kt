@@ -436,13 +436,8 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private suspend fun checkProfileStatusAndNavigate() {
-        val myProfileDirect = repository.getMyProfileDirect()
-        if (myProfileDirect == null || myProfileDirect.name == "Guest User" || myProfileDirect.name.isBlank()) {
-            _onboardingStep.value = true
-        } else {
-            // Already has a profile
-            _onboardingStep.value = false
-        }
+        // Skip onboarding registration step as per request
+        _onboardingStep.value = false
     }
 
     fun completeOnboardingRegistration(name: String, profession: String, skills: String, accountType: AccountType, email: String, address: String, exp: Int, languages: String) {
