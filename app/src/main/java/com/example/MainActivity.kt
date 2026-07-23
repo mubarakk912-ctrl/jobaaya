@@ -67,6 +67,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -208,7 +209,16 @@ fun MainPlatformContainer(
                     selected = activeViewRoute == "marketplace",
                     onClick = { navigateTo("marketplace") },
                     icon = { Icon(Icons.Default.Storefront, contentDescription = JobaayaLocalization.translate("marketplace", currentLang), modifier = Modifier.size(21.dp)) },
-                    label = { Text(JobaayaLocalization.translate("marketplace", currentLang), fontSize = 10.sp, fontWeight = FontWeight.Bold) },
+                    label = { 
+                        Text(
+                            text = JobaayaLocalization.translate("marketplace", currentLang), 
+                            fontSize = 10.sp, 
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis
+                        ) 
+                    },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = Color.White,
                         selectedTextColor = Color.White,
