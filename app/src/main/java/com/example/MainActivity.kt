@@ -44,6 +44,7 @@ import com.example.ui.screens.MapScreen
 import com.example.ui.screens.ProfileDetailScreen
 import com.example.ui.screens.SettingsScreen
 import com.example.ui.screens.UtilitiesScreen
+import com.example.ui.screens.MarketplaceScreen
 import com.example.ui.theme.MyApplicationTheme
 import com.example.viewmodel.JobaayaViewModel
 import com.example.ui.localization.JobaayaLocalization
@@ -51,6 +52,7 @@ import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.filled.SupervisorAccount
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -120,7 +122,7 @@ fun MainPlatformContainer(
     val inboxList by viewModel.chatInboxList.collectAsState()
     val notificationsList by viewModel.notifications.collectAsState()
 
-    var activeViewRoute by remember { mutableStateOf("home") } // "home", "map", "chats", "utilities", "admin", "settings", "detail", "contact_us"
+    var activeViewRoute by remember { mutableStateOf("home") } // "home", "marketplace", "map", "chats", "utilities", "admin", "settings", "detail", "contact_us"
     var previousViewRoute by remember { mutableStateOf("home") }
     var detailedUserIdRoute by remember { mutableStateOf("") }
     var showNotificationDrawer by remember { mutableStateOf(false) }
@@ -192,6 +194,21 @@ fun MainPlatformContainer(
                     onClick = { navigateTo("home") },
                     icon = { Icon(Icons.Default.Home, contentDescription = JobaayaLocalization.translate("home", currentLang), modifier = Modifier.size(21.dp)) },
                     label = { Text(JobaayaLocalization.translate("home", currentLang), fontSize = 10.sp, fontWeight = FontWeight.Bold) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Color.White,
+                        selectedTextColor = Color.White,
+                        unselectedIconColor = Color.White.copy(alpha = 0.6f),
+                        unselectedTextColor = Color.White.copy(alpha = 0.6f),
+                        indicatorColor = Color.Transparent
+                    )
+                )
+
+                // Marketplace Tab
+                NavigationBarItem(
+                    selected = activeViewRoute == "marketplace",
+                    onClick = { navigateTo("marketplace") },
+                    icon = { Icon(Icons.Default.Storefront, contentDescription = JobaayaLocalization.translate("marketplace", currentLang), modifier = Modifier.size(21.dp)) },
+                    label = { Text(JobaayaLocalization.translate("marketplace", currentLang), fontSize = 10.sp, fontWeight = FontWeight.Bold) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = Color.White,
                         selectedTextColor = Color.White,
@@ -393,6 +410,10 @@ fun MainPlatformContainer(
                         navigateTo("chats")
                     },
                     onNearMeClick = { navigateTo("map") }
+                )
+
+                "marketplace" -> MarketplaceScreen(
+                    viewModel = viewModel
                 )
 
                 "map" -> MapScreen(

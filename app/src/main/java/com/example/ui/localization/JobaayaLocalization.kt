@@ -148,7 +148,8 @@ object JobaayaLocalization {
             "loc_req" to "Location Access Required",
             "loc_req_desc" to "Grant permission to see nearby tradespeople",
             "grant_perm" to "Grant Permission",
-            "prof_proximity" to "Professionals in Your Proximity"
+            "prof_proximity" to "Professionals in Your Proximity",
+            "marketplace" to "Marketplace"
         ),
         AppLanguage.HINDI to mapOf(
             "app_tagline" to "पेशेवर नेटवर्किंग और व्यावसायिक विकास",
@@ -274,7 +275,8 @@ object JobaayaLocalization {
             "loc_req" to "स्थान की अनुमति आवश्यक है",
             "loc_req_desc" to "आस-पास के पेशेवरों को देखने के लिए अनुमति दें",
             "grant_perm" to "अनुमति दें",
-            "prof_proximity" to "आपके पास के पेशेवर"
+            "prof_proximity" to "आपके पास के पेशेवर",
+            "marketplace" to "मार्केटप्लेस"
         ),
         AppLanguage.BENGALI to mapOf(
             "app_tagline" to "পেশাদার নেটওয়ার্কিং এবং ব্যবসায়িক বৃদ্ধি",
