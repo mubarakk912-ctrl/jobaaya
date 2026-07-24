@@ -423,7 +423,11 @@ fun MainPlatformContainer(
                 )
 
                 "marketplace" -> MarketplaceScreen(
-                    viewModel = viewModel
+                    viewModel = viewModel,
+                    onStartChat = { id ->
+                        viewModel.selectActiveChat(id)
+                        navigateTo("chats")
+                    }
                 )
 
                 "map" -> MapScreen(

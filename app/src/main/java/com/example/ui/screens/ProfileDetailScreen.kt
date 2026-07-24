@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Report
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.filled.SupervisorAccount
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.filled.Work
@@ -82,6 +83,7 @@ import com.example.ui.components.PhotoFitDialog
 import com.example.ui.localization.JobaayaLocalization
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.viewmodel.JobaayaViewModel
+import com.example.data.model.Product
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -101,10 +103,19 @@ fun ProfileDetailScreen(
     val currentLang by viewModel.currentLanguage.collectAsState()
     val profiles by viewModel.filteredProfiles.collectAsState()
     val myProfile by viewModel.myProfile.collectAsState()
+    val deviceLocation by viewModel.deviceLocation.collectAsState()
+
+    // Priority Location Logic for distance
+    val myLat = deviceLocation?.latitude ?: myProfile?.latitude ?: 28.6139
+    val myLon = deviceLocation?.longitude ?: myProfile?.longitude ?: 77.2090
 
     // Query specific profile details
     var profile by remember { mutableStateOf<UserProfile?>(null) }
     val profileReviews by (profile?.let { viewModel.getProfileReviews(it.id) } ?: kotlinx.coroutines.flow.flowOf(emptyList())).collectAsState(initial = emptyList())
+    val userProducts by (profile?.let { viewModel.getProductsBySeller(it.id) } ?: kotlinx.coroutines.flow.flowOf(emptyList())).collectAsState(initial = emptyList())
+
+    // State to toggle Market view
+    var showUserMarket by remember { mutableStateOf(false) }
 
     // Seed and trigger tracking views
     LaunchedEffect(profileId, profiles, myProfile) {
@@ -463,6 +474,59 @@ fun ProfileDetailScreen(
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 lineHeight = 20.sp
+                            )
+                        }
+                    }
+                }
+
+                // --- Market Button and Section ---
+                item {
+                    Button(
+                        onClick = { showUserMarket = !showUserMarket },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (showUserMarket) Color(0xFF22C55E) else MaterialTheme.colorScheme.secondary
+                        )
+                    ) {
+                        Icon(Icons.Default.Storefront, null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(if (showUserMarket) "Hide Market Products" else "View Market Products")
+                    }
+                }
+
+                if (showUserMarket) {
+                    if (userProducts.isEmpty()) {
+                        item {
+                            Text(
+                                "No products uploaded by this user.",
+                                modifier = Modifier.fillMaxWidth().padding(8.dp),
+                                textAlign = TextAlign.Center,
+                                color = Color.Gray
+                            )
+                        }
+                    } else {
+                        items(userProducts) { product ->
+                            ProductCard(
+                                product = product,
+                                viewModel = viewModel,
+                                myLat = myLat,
+                                myLon = myLon,
+                                onChatClick = { onStartChat(product.sellerId) },
+                                onCallClick = {
+                                    try {
+                                        val dialIntent = Intent(Intent.ACTION_DIAL).apply {
+                                            data = "tel:${product.sellerPhone}".toUri()
+                                        }
+                                        context.startActivity(dialIntent)
+                                    } catch (_: Exception) { }
+                                },
+                                onRatingChange = { newRating ->
+                                    val totalPoints = product.rating * product.reviewsCount
+                                    val newReviewsCount = product.reviewsCount + 1
+                                    val newAvgRating = (totalPoints + newRating) / newReviewsCount
+                                    viewModel.updateProduct(product.copy(rating = newAvgRating, reviewsCount = newReviewsCount))
+                                }
                             )
                         }
                     }

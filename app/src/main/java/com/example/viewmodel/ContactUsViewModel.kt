@@ -27,7 +27,8 @@ class ContactUsViewModel(application: Application) : AndroidViewModel(applicatio
         db.profileMediaDao,
         db.utilityNoteDao,
         db.systemNotificationDao,
-        db.partnershipDealDao
+        db.partnershipDealDao,
+        db.productDao
     )
 
     private val _message = MutableStateFlow("")

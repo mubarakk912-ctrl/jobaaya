@@ -19,6 +19,7 @@ import com.example.data.model.UtilityNote
 import com.example.data.model.PartnershipDeal
 import com.example.data.model.DealMessage
 import com.example.data.model.DealAuditLog
+import com.example.data.model.Product
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -154,6 +155,27 @@ interface SystemNotificationDao {
 }
 
 @Dao
+interface ProductDao {
+    @Query("SELECT * FROM marketplace_products ORDER BY timestamp DESC")
+    fun getAllProducts(): Flow<List<Product>>
+
+    @Query("SELECT * FROM marketplace_products WHERE sellerId = :sellerId ORDER BY timestamp DESC")
+    fun getProductsBySeller(sellerId: String): Flow<List<Product>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertProduct(product: Product)
+
+    @Update
+    suspend fun updateProduct(product: Product)
+
+    @Delete
+    suspend fun deleteProduct(product: Product)
+
+    @Query("SELECT * FROM marketplace_products WHERE name LIKE '%' || :query || '%' OR category LIKE '%' || :query || '%' OR sellerLocation LIKE '%' || :query || '%' ORDER BY timestamp DESC")
+    fun searchProducts(query: String): Flow<List<Product>>
+}
+
+@Dao
 interface PartnershipDealDao {
     @Query("SELECT * FROM partnership_deals WHERE partnerId = :userId OR proId = :userId ORDER BY createdAt DESC")
     fun getMyDeals(userId: String): Flow<List<PartnershipDeal>>
@@ -195,9 +217,10 @@ interface PartnershipDealDao {
         SystemNotification::class,
         PartnershipDeal::class,
         DealMessage::class,
-        DealAuditLog::class
+        DealAuditLog::class,
+        Product::class
     ],
-    version = 23,
+    version = 25,
     exportSchema = false
 )
 abstract class JobaayaDatabase : RoomDatabase() {
@@ -210,6 +233,7 @@ abstract class JobaayaDatabase : RoomDatabase() {
     abstract val utilityNoteDao: UtilityNoteDao
     abstract val systemNotificationDao: SystemNotificationDao
     abstract val partnershipDealDao: PartnershipDealDao
+    abstract val productDao: ProductDao
 
     companion object {
         @Volatile

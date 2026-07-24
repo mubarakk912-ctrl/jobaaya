@@ -20,6 +20,7 @@ import com.example.data.model.WorkStatus
 import com.example.data.model.PartnershipDeal
 import com.example.data.model.DealMessage
 import com.example.data.model.DealAuditLog
+import com.example.data.model.Product
 import com.example.data.repository.AuthRepository
 import com.example.data.repository.JobaayaRepository
 import com.example.ui.localization.AppLanguage
@@ -72,7 +73,8 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
         db.profileMediaDao,
         db.utilityNoteDao,
         db.systemNotificationDao,
-        db.partnershipDealDao
+        db.partnershipDealDao,
+        db.productDao
     )
 
     // Current app-wide language state
@@ -272,6 +274,44 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
         started = SharingStarted.Eagerly,
         initialValue = emptyList()
     )
+
+    // Products
+    val allProducts: StateFlow<List<Product>> = repository.allProducts.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
+
+    fun getProductsBySeller(sellerId: String) = repository.getProductsBySeller(sellerId)
+
+    fun searchProducts(query: String) = repository.searchProducts(query)
+
+    fun addProduct(product: Product) {
+        viewModelScope.launch {
+            repository.insertProduct(product)
+        }
+    }
+
+    fun deleteProduct(product: Product) {
+        viewModelScope.launch {
+            repository.deleteProduct(product)
+        }
+    }
+
+    fun updateProduct(product: Product) {
+        viewModelScope.launch {
+            repository.updateProduct(product)
+        }
+    }
+
+    fun saveProductImage(uri: android.net.Uri): String {
+        return saveMediaToInternalStorage(uri.toString(), "prod_${UUID.randomUUID()}")
+    }
+
+    fun isUserPremium(): Boolean {
+        // Preparation for premium check
+        return false 
+    }
 
     init {
         viewModelScope.launch {
@@ -1117,7 +1157,7 @@ class JobaayaViewModel(application: Application) : AndroidViewModel(application)
     }
 
     // Great Spherical Cosine formula (Haversine approximation)
-    private fun calculateDistanceKm(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+    fun calculateDistanceKm(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
         val r = 6371.0 // Earth radius in km
         val dLat = Math.toRadians(lat2 - lat1)
         val dLon = Math.toRadians(lon2 - lon1)

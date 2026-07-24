@@ -277,6 +277,35 @@ data class DealAuditLog(
     val timestamp: Long = System.currentTimeMillis()
 )
 
+@Entity(
+    tableName = "marketplace_products",
+    foreignKeys = [
+        ForeignKey(
+            entity = UserProfile::class,
+            parentColumns = ["id"],
+            childColumns = ["sellerId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index(value = ["sellerId"]), Index(value = ["category"])]
+)
+data class Product(
+    @PrimaryKey val id: String = UUID.randomUUID().toString(),
+    val name: String,
+    val price: String,
+    val imageUrl: String = "",
+    val rating: Float = 0.0f,
+    val reviewsCount: Int = 0,
+    val sellerName: String,
+    val sellerLocation: String,
+    val sellerId: String,
+    val sellerPhone: String,
+    val category: String = "All",
+    val latitude: Double = 0.0,
+    val longitude: Double = 0.0,
+    val timestamp: Long = System.currentTimeMillis()
+)
+
 data class ContactMessage(
     val message: String,
     val userId: String,

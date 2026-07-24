@@ -24,9 +24,11 @@ import com.example.data.model.UserReview
 import com.example.data.model.UtilityNote
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.example.data.model.Product
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.tasks.await
+import java.util.UUID
 
 class JobaayaRepository(
     private val profileDao: UserProfileDao,
@@ -37,10 +39,19 @@ class JobaayaRepository(
     private val mediaDao: ProfileMediaDao,
     private val noteDao: UtilityNoteDao,
     private val notificationDao: SystemNotificationDao,
-    private val dealDao: PartnershipDealDao
+    private val dealDao: PartnershipDealDao,
+    private val productDao: com.example.data.database.ProductDao
 ) {
     val otherProfiles: Flow<List<UserProfile>> = profileDao.getOtherProfiles()
     val myProfile: Flow<UserProfile?> = profileDao.getMyProfileFlow()
+
+    // Products logic
+    val allProducts: Flow<List<Product>> = productDao.getAllProducts()
+    fun getProductsBySeller(sellerId: String) = productDao.getProductsBySeller(sellerId)
+    fun searchProducts(query: String) = productDao.searchProducts(query)
+    suspend fun insertProduct(product: Product) = productDao.insertProduct(product)
+    suspend fun updateProduct(product: Product) = productDao.updateProduct(product)
+    suspend fun deleteProduct(product: Product) = productDao.deleteProduct(product)
 
     suspend fun getMyProfileDirect(): UserProfile? = profileDao.getMyProfileDirect()
 
